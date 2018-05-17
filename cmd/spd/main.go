@@ -16,7 +16,7 @@ func main () {
 	router.MaxMultipartMemory = 8 << 20 // 8 MiB
 
 	router.POST("/api/forecast", processForecast)
-	router.Run(":8080")
+	router.Run(":8081")
 }
 
 func processForecast(c *gin.Context){

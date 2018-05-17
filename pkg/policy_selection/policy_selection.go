@@ -6,5 +6,5 @@ import (
 
 
 func SelectPolicy(policies [] types.Policy) types.Policy {
-
+	return types.Policy{}
 }
