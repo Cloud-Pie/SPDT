@@ -1,0 +1,22 @@
+---VM-types:
+- type: t2.nano
+  price: 0.0058
+  price unit: hour
+- type: t2.micro
+  price: 0.0058
+  price unit: hour
+- type: t2.small
+  price: 0.0058
+  price unit: hour
+- type: t2.medium
+  price: 0.0058
+  price unit: hour
+- type: t2.large
+  price: 0.0058
+  price unit: hour
+- type: t2.xlarge
+  price: 0.0058
+  price unit: hour
+- type: t2.2xlarge
+  price: 0.0058
+  price unit: hour
