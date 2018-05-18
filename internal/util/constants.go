@@ -1,0 +1,4 @@
+package util
+
+const URL_SCHEDULER = "http://10.180.76.227:8080/api/states"
+const URL_PROFILER = "http://localhost:8082/api/profiles"
