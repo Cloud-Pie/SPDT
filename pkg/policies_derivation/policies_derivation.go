@@ -5,12 +5,13 @@ import (
 	"github.com/yemramirezca/SPDT/pkg/performance_profiles"
 	)
 
-func CreatePolicies(forecasting types.Forecast, performance_profile performance_profiles.PerformanceProfile) [] types.Policy{
-	requests := 1000
-	list_vm := performance_profile.Perf_models[0].VMs;
+//TODO: Profile for Current config
 
-	for i := range list_vm {
-		a := requests / list_vm[i].Trn
-	}
-	return nil
+type Policy_Set_interface interface {
+	CreatePolicies()
+}
+
+func CreatePolicies (forecasting types.Forecast, performance_profile performance_profiles.PerformanceProfile) []types.Policy {
+	naive := NaivePolicy {forecasting, performance_profile}
+	return naive.CreatePolicies()
 }

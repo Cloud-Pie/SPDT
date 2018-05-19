@@ -12,12 +12,7 @@ import (
 
 func TriggerScheduler(policy types.Policy) bool{
 
-	name := "service-name"
-	start_time := "05-01-2020, 13:24:52 UTC"
-	var services  = [] types.Service{{"ui-service", "3"}, {"backend-service", "2"}}
-	var state = types.State{start_time, services, name}
-
-	jsonValue, _ := json.Marshal(state)
+	jsonValue, _ := json.Marshal(policy.States[0])
 	response, err := http.Post(util.URL_SCHEDULER, "application/json", bytes.NewBuffer(jsonValue))
 
 	if err != nil {
