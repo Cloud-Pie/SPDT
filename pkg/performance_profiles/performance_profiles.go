@@ -8,29 +8,30 @@ import (
 	"fmt"
 )
 
-type VM struct {
-	Vm_type string `json:"vm_type"`
-	Trn int `json:"trn"`
-	Num_cores int `json:"num_cores"`
-	Memory_gb int `json:"memory_gb"`
-}
 
-type QoS_Params struct {
+type QoSParams struct {
 	Request_time_out_sec int `json:"request_time_out_sec"`
 	Request_availability_percent int `json:"request_availability_percent"`
 }
 
-type Perf_model struct {
-	CSP string `json:"CSP"`
-	VMs []VM `json:"VMs"`
+type VmProfile struct {
+	VmType   string `json:"vm_type"`
+	Trn      int    `json:"trn"`
+	NumCores int    `json:"num_cores"`
+	MemoryGb int    `json:"memory_gb"`
+}
+
+type PerformanceModel struct {
+	CSP        string             `json:"CSP"`
+	VmProfiles [] VmProfile `json:"VmProfiles"`
 }
 
 type PerformanceProfile struct {
-	App_type string `json:"app_type"`
-	Docker_image_app string `json:"docker_image_app"`
-	Git_url_app string `json:"git_url_app"`
-	QoS_Params QoS_Params `json:"qos_params"`
-	Perf_models [] Perf_model `json:perf_model`
+	AppType           string              `json:"app_type"`
+	DockerImageApp    string              `json:"docker_image_app"`
+	GitUrlApp         string              `json:"git_url_app"`
+	QoSParams         QoSParams           `json:"qos_params"`
+	PerformanceModels [] PerformanceModel `json:perf_model`
 }
 
 func GetPerformanceProfiles () PerformanceProfile {
@@ -45,6 +46,6 @@ func GetPerformanceProfiles () PerformanceProfile {
 	defer response.Body.Close()
 	data, err := ioutil.ReadAll(response.Body)
 	json.Unmarshal(data, &performanceProfile)
-	fmt.Println("Successfully reading JSON file for App type: " + performanceProfile.App_type)
+	fmt.Println("Successfully reading JSON file for App type: " + performanceProfile.AppType)
 	return performanceProfile
 }

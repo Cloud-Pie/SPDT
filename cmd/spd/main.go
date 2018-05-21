@@ -12,6 +12,7 @@ import (
 )
 
 func main () {
+
 	router := gin.Default()
 	router.MaxMultipartMemory = 8 << 20 // 8 MiB
 
@@ -33,7 +34,7 @@ func processForecast(c *gin.Context){
 
 
 	forecast := forecast_processing.ProcessData()
-	if(forecast.Need_to_scale) {
+	if(forecast.NeedToScale) {
 		vmProfiles := performance_profiles.GetPerformanceProfiles()
 		policies := policies_derivation.CreatePolicies(forecast, vmProfiles)
 		policy := policy_selection.SelectPolicy(policies)

@@ -9,26 +9,26 @@ type Service struct {
 //State is the metadata of the state expected to scale to.
 type State struct {
 	Time     string
-	Services []Service
+	Services [] Service
 	Name     string
+	VmsScale  [] VmScale
 }
 
-type VM struct {
-	Vm_type string `json:"vm_type"`
-	Trn int `json:"trn"`
-	Num_cores int `json:"num_cores"`
-	Memory_gb int `json:"memory_gb"`
+type VmScale struct {
+	Type string `json:"type"`
+	Scale int `json:"scale"`
 }
 
-type PriceVM struct {
-	Price	float32
-	TimeUnit	float32
-	VM	VM
+type VmPrice struct {
+	Price    float32
+	TimeUnit float32
+	Type     string
 }
 
 type Policy struct {
-	Total_cost float32
-	States 	[] State
+	ID string
+	TotalCost float32
+	States    [] State
 }
 
 type CriticalInterval struct {
@@ -39,6 +39,6 @@ type CriticalInterval struct {
 }
 
 type Forecast struct {
-	Need_to_scale bool
+	NeedToScale       bool
 	CriticalIntervals [] CriticalInterval
 }

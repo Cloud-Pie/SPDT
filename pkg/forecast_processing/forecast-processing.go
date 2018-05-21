@@ -1,8 +1,8 @@
 package forecast_processing
 
 import (
-	"github.com/yemramirezca/SPDT/internal/types"
 	"fmt"
+	"github.com/yemramirezca/SPDT/internal/types"
 )
 
 func ProcessData() types.Forecast {
