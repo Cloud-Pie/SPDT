@@ -23,7 +23,7 @@ type VmProfile struct {
 
 type PerformanceModel struct {
 	CSP        string             `json:"CSP"`
-	VmProfiles [] VmProfile `json:"VmProfiles"`
+	VmProfiles [] VmProfile `json:"VMs"`
 }
 
 type PerformanceProfile struct {
@@ -37,7 +37,7 @@ type PerformanceProfile struct {
 func GetPerformanceProfiles () PerformanceProfile {
 	fmt.Println("start profiles")
 
-	var performanceProfile PerformanceProfile
+	performanceProfile := PerformanceProfile {}
 	response, err := http.Get(util.URL_PROFILER)
 	if err != nil {
 		fmt.Printf("The profiler request failed with error %s\n", err)
@@ -45,7 +45,17 @@ func GetPerformanceProfiles () PerformanceProfile {
 	}
 	defer response.Body.Close()
 	data, err := ioutil.ReadAll(response.Body)
-	json.Unmarshal(data, &performanceProfile)
+
+	if err != nil {
+		fmt.Printf("The profiler request failed with error %s\n", err)
+		panic(err)
+	}
+
+	err = json.Unmarshal(data, &performanceProfile)
+	if err != nil {
+		fmt.Printf("The profiler request failed with error %s\n", err)
+		panic(err)
+	}
 	fmt.Println("Successfully reading JSON file for App type: " + performanceProfile.AppType)
 	return performanceProfile
 }

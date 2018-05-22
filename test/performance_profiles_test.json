@@ -3,8 +3,8 @@
   "docker_image_app": "image_url",
   "git_url_app": "git_url_off_app",
   "qos_params": {
-    "request_time_out_sec": "1",
-    "request_availability_percent": "99"
+    "request_time_out_sec": 1,
+    "request_availability_percent": 99
   },
   "perf_model": [
     {
@@ -12,15 +12,15 @@
       "VMs": [
         {
           "vm_type": "m1.small",
-          "trn": "1200",
-          "num_cores": "1",
-          "memory_gb": "2"
+          "trn": 1200,
+          "num_cores": 1,
+          "memory_gb": 2
         },
         {
           "vm_type": "m2.micro",
-          "trn": "1000",
-          "num_cores": "1",
-          "memory_gb": "1"
+          "trn": 1000,
+          "num_cores": 1,
+          "memory_gb": 1
         }
       ]
     },
@@ -29,15 +29,15 @@
       "VMs": [
         {
           "vm_type": "m1.small",
-          "trn": "1000",
-          "num_cores": "1",
-          "memory_gb": "2"
+          "trn": 1000,
+          "num_cores": 1,
+          "memory_gb": 2
         },
         {
           "vm_type": "m2.micro",
-          "trn": "800",
-          "num_cores": "1",
-          "memory_gb": "1"
+          "trn": 800,
+          "num_cores": 1,
+          "memory_gb": 1
         }
       ]
     }

@@ -4,8 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"fmt"
-	"os"
 	"io/ioutil"
+	"encoding/json"
 )
 
 func main () {
@@ -19,12 +19,14 @@ func main () {
 
 func profiles(c *gin.Context){
 	// Open jsonFile
-	jsonFile, err := os.Open("test/performance_profiles_test.json")
+	data, err := ioutil.ReadFile("test/performance_profiles_test.json")
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
 	}
-	defer jsonFile.Close()
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-	c.JSON(http.StatusOK, byteValue)
+
+	var profile interface{}
+	err = json.Unmarshal(data, &profile)
+
+	c.JSON(http.StatusOK, profile)
 }

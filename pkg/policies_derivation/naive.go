@@ -6,13 +6,13 @@ import (
 )
 
 type NaivePolicy struct {
-	forecasting types.Forecast
-	performance_profile performance_profiles.PerformanceProfile
+	forecasting        types.Forecast
+	performanceProfile performance_profiles.PerformanceProfile
 }
 
 func (naive NaivePolicy) CreatePolicies() [] types.Policy {
-	listVm := naive.performance_profile.PerformanceModels[0].VmProfiles; //TODO: Change according to CSP
-	service := naive.performance_profile.DockerImageApp
+	listVm := naive.performanceProfile.PerformanceModels[0].VmProfiles; //TODO: Change according to CSP
+	service := naive.performanceProfile.DockerImageApp
 	policies := []types.Policy {}
 
 	for i := range listVm {

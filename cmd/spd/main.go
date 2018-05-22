@@ -7,7 +7,6 @@ import (
 	"github.com/yemramirezca/SPDT/pkg/performance_profiles"
 	"github.com/yemramirezca/SPDT/pkg/policies_derivation"
 	"github.com/yemramirezca/SPDT/pkg/policy_selection"
-	"github.com/yemramirezca/SPDT/pkg/reconfiguration"
 	"github.com/yemramirezca/SPDT/pkg/forecast_processing"
 )
 
@@ -36,9 +35,10 @@ func processForecast(c *gin.Context){
 	forecast := forecast_processing.ProcessData()
 	if(forecast.NeedToScale) {
 		vmProfiles := performance_profiles.GetPerformanceProfiles()
-		policies := policies_derivation.CreatePolicies(forecast, vmProfiles)
+		policies := policies_derivation.Policies(forecast, vmProfiles)
 		policy := policy_selection.SelectPolicy(policies)
-		reconfiguration.TriggerScheduler(policy)
+		fmt.Println("selected policy with price %f", policy.TotalCost)
+		//reconfiguration.TriggerScheduler(policy)
 	} else {
 		//No need to scale in the next time window.
 		//write logs

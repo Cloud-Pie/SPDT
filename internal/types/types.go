@@ -19,11 +19,7 @@ type VmScale struct {
 	Scale int `json:"scale"`
 }
 
-type VmPrice struct {
-	Price    float32
-	TimeUnit float32
-	Type     string
-}
+
 
 type Policy struct {
 	ID string
