@@ -28,10 +28,10 @@ type Policy struct {
 }
 
 type CriticalInterval struct {
-	TimeStart	string
-	Requests	int	//max/min point in the interval
-	Trend	int //1:= aboveThreshold; -1:= below
-	TimeEnd	string
+	TimeStart	string	`json:"TimeStart"`
+	Requests	int	`json:"Requests"`	//max/min point in the interval
+	Trend	int `json:"Trend"`	//1:= aboveThreshold; -1:= below
+	TimeEnd	string	`json:"TimeEnd"`
 }
 
 type Forecast struct {

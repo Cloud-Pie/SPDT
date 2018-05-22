@@ -4,8 +4,8 @@ import (
 	"github.com/yemramirezca/SPDT/internal/util"
 	"net/http"
 	"encoding/json"
-	"io/ioutil"
 	"fmt"
+	"io/ioutil"
 )
 
 
@@ -31,13 +31,12 @@ type PerformanceProfile struct {
 	DockerImageApp    string              `json:"docker_image_app"`
 	GitUrlApp         string              `json:"git_url_app"`
 	QoSParams         QoSParams           `json:"qos_params"`
-	PerformanceModels [] PerformanceModel `json:perf_model`
+	PerformanceModels [] PerformanceModel `json:"perf_model"`
 }
 
-func GetPerformanceProfiles () PerformanceProfile {
+func GetPerformanceProfiles () PerformanceProfile{
 	fmt.Println("start profiles")
 
-	performanceProfile := PerformanceProfile {}
 	response, err := http.Get(util.URL_PROFILER)
 	if err != nil {
 		fmt.Printf("The profiler request failed with error %s\n", err)
@@ -51,11 +50,12 @@ func GetPerformanceProfiles () PerformanceProfile {
 		panic(err)
 	}
 
+	performanceProfile := PerformanceProfile {}
 	err = json.Unmarshal(data, &performanceProfile)
 	if err != nil {
 		fmt.Printf("The profiler request failed with error %s\n", err)
 		panic(err)
 	}
-	fmt.Println("Successfully reading JSON file for App type: " + performanceProfile.AppType)
+	//fmt.Println("Successfully reading JSON file for App type: " + performanceProfile.AppType)
 	return performanceProfile
 }
