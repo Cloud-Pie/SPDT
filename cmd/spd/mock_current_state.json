@@ -1,0 +1,16 @@
+{
+  "Time": "10",
+  "Services": [
+    {
+      "Name": "image_url",
+      "Scale": 3
+    }
+  ],
+  "Name": "unknown",
+  "Vms": [
+    {
+      "Type": "m2.micro",
+      "Scale": 3
+    }
+  ]
+}
