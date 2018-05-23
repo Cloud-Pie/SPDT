@@ -30,18 +30,20 @@ func processForecast(c *gin.Context){
 		c.String(http.StatusBadRequest, fmt.Sprintf("Upload file err: %s. ", err.Error()))
 		return
 	}
-	c.String(http.StatusOK, fmt.Sprintf("File %s uploaded successfully.", file.Filename))
+
 
 
 	forecast := forecast_processing.ProcessData()
-	if(forecast.NeedToScale) {
+	if(!forecast.NeedToScale) {
+		c.String(http.StatusOK,fmt.Sprintf("No need to scale in the next time window"))
+	//write logs
+	} else 	{
 		vmProfiles := performance_profiles.GetPerformanceProfiles()
 		policies := policies_derivation.Policies(forecast, vmProfiles)
+		//currentState := CurrentState()
 		policy := policy_selection.SelectPolicy(policies)
-		fmt.Println("selected policy with price ", policy.TotalCost)
+
 		reconfiguration.TriggerScheduler(policy)
-	} else {
-		//No need to scale in the next time window.
-		//write logs
+		c.JSON(http.StatusOK, policy)
 	}
 }

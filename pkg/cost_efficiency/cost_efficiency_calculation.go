@@ -3,29 +3,42 @@ package cost_efficiency_calculation
 import (
 	"github.com/yemramirezca/SPDT/internal/types"
 	"github.com/yemramirezca/SPDT/internal/util"
+	"time"
 )
 
+const (
+	HOUR = "Hour"
+	SECOND = "Second"
+)
 
-func ComputeCost (policies [] types.Policy) [] types.Policy{
-	priceModel := util.ParsePricesFile(util.PRICES_FILE)
-	mapPrices := structToMap(priceModel)
-	for i,policy := range policies {
-		totalCost := float32(0.0)
-		for _,st := range policy.States {
-			for _,vm := range st.VmsScale {
-				totalCost += (mapPrices [vm.Type] * float32(vm.Scale))
-			}
+func ComputeTotalCost(policies [] types.Policy) [] types.Policy {
+	mapPrices,unit :=  ParsePricesFile(util.PRICES_FILE).MapPrices()
+	for pi,policy := range policies {
+		totalCost := float64(0.0)
+		configurations := policy.Configurations
+		for cfi,cf := range configurations {
+				configurationCost := ComputeConfigurationCost (cf, unit, mapPrices)
+				policies[pi].Configurations[cfi].TransitionCost = configurationCost
+				totalCost += configurationCost
 		}
-		policies[i].TotalCost = totalCost
+		policies[pi].TotalCost = totalCost
 	}
-
 	return policies
 }
 
-func structToMap(priceModel util.PriceModel) map[string] float32 {
-	mapPrices := make(map[string]float32)
-	for _,vmPrice := range priceModel.VMPrices {
-		mapPrices [vmPrice.VmType ] = vmPrice.Price
+func ComputeConfigurationCost (cf types.Configuration, unit string, mapPrices map[string] float64) float64 {
+	configurationCost := float64(0.0)
+	deltaTime := setDeltaTime(cf.TimeStart,cf.TimeEnd,unit)
+	for _,vm := range cf.State.Vms {
+		transitionTime := setDeltaTime(cf.State.Time, cf.TimeStart, unit)
+		configurationCost += mapPrices [vm.Type] * float64(vm.Scale) * (deltaTime + transitionTime)
 	}
-	return mapPrices
+	return  configurationCost
+}
+
+func setDeltaTime (timeStart time.Time, timeEnd time.Time, unit string) float64{
+	if unit == SECOND {
+		return timeEnd.Sub(timeStart).Seconds()
+	}
+	return timeEnd.Sub(timeStart).Hours()
 }

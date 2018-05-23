@@ -12,22 +12,22 @@ func getMockData()  [] types.CriticalInterval{
 
 	i := `[
     {
-      "TimeStart" : "10",
+      "TimeStart" : "2020-01-05T13:24:52Z",
       "Requests" : 300,
       "Trend" :	-1,
-      "TimeEnd" : "50"
+      "TimeEnd" : "2020-01-05T13:54:52Z"
     },
     {
-      "TimeStart" : "60",
+      "TimeStart" : "2020-01-05T13:54:52Z",
       "Requests" : 800,
       "Trend" :	1,
-      "TimeEnd" : "80"
+      "TimeEnd" : "2020-01-05T14:54:52Z"
     },
     {
-      "TimeStart" : "90",
+      "TimeStart" : "2020-01-05T14:54:52Z",
       "Requests" : 400,
       "Trend" :	-1,
-      "TimeEnd" : "100"
+      "TimeEnd" : "2020-01-05T15:24:52Z"
     }
   ]`
 	err := json.Unmarshal([]byte(i), &intervals)

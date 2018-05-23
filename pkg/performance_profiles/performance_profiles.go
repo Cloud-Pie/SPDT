@@ -56,6 +56,6 @@ func GetPerformanceProfiles () PerformanceProfile{
 		fmt.Printf("The profiler request failed with error %s\n", err)
 		panic(err)
 	}
-	//fmt.Println("Successfully reading JSON file for App type: " + performanceProfile.AppType)
+
 	return performanceProfile
 }

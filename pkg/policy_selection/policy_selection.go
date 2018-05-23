@@ -5,16 +5,17 @@ import (
 	"sort"
 )
 
-
+//TODO: Include as criteria for the selection time
 
 func SelectPolicy(policies [] types.Policy) types.Policy {
-	policies2 := cost_efficiency_calculation.ComputeCost(policies)
 
-	sort.Slice(policies2, func(i, j int) bool {
-		return policies2[i].TotalCost < policies2[j].TotalCost
+	policies = cost_efficiency_calculation.ComputeTotalCost(policies)
+
+	sort.Slice(policies, func(i, j int) bool {
+		return policies[i].TotalCost < policies[j].TotalCost
 	})
 
-	return policies2[0]
+	return policies[0]
 }
 
 
