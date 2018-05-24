@@ -12,10 +12,11 @@ type Service struct {
 
 /*State is the metadata of the state expected to scale to*/
 type State struct {
-	Time     time.Time     `json:Time`
+	ISOTime  time.Time
 	Services [] Service `json:Services`
 	Name     string     `json:Name`
 	Vms      [] VmScale `json:Vms`
+	Time string 	`json:Time`
 
 }
 

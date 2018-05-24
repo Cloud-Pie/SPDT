@@ -4,6 +4,7 @@ import (
 	"github.com/yemramirezca/SPDT/internal/types"
 	"github.com/yemramirezca/SPDT/internal/util"
 	"time"
+	"fmt"
 )
 
 const (
@@ -12,6 +13,7 @@ const (
 )
 
 func ComputeTotalCost(policies [] types.Policy) [] types.Policy {
+	fmt.Println("start cost calculation")
 	mapPrices,unit :=  ParsePricesFile(util.PRICES_FILE).MapPrices()
 	for pi,policy := range policies {
 		totalCost := float64(0.0)
@@ -30,7 +32,7 @@ func ComputeConfigurationCost (cf types.Configuration, unit string, mapPrices ma
 	configurationCost := float64(0.0)
 	deltaTime := setDeltaTime(cf.TimeStart,cf.TimeEnd,unit)
 	for _,vm := range cf.State.Vms {
-		transitionTime := setDeltaTime(cf.State.Time, cf.TimeStart, unit)
+		transitionTime := setDeltaTime(cf.State.ISOTime, cf.TimeStart, unit)
 		configurationCost += mapPrices [vm.Type] * float64(vm.Scale) * (deltaTime + transitionTime)
 	}
 	return  configurationCost

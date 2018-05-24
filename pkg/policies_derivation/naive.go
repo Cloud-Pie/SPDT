@@ -4,6 +4,8 @@ import (
 	"github.com/yemramirezca/SPDT/internal/types"
 	"github.com/yemramirezca/SPDT/pkg/performance_profiles"
 	"time"
+	"fmt"
+	"github.com/yemramirezca/SPDT/internal/util"
 )
 
 type NaivePolicy struct {
@@ -12,6 +14,7 @@ type NaivePolicy struct {
 }
 
 func (naive NaivePolicy) CreatePolicies() [] types.Policy {
+	fmt.Println("start derivation of policies")
 	listVm := naive.performanceProfile.PerformanceModels[0].VmProfiles; //TODO: Change according to CSP
 	service := naive.performanceProfile.DockerImageApp
 	policies := []types.Policy {}
@@ -24,7 +27,8 @@ func (naive NaivePolicy) CreatePolicies() [] types.Policy {
 			services := [] types.Service{{ service, n_vms}} //TODO: Change according to # Services
 			vms := [] types.VmScale {{listVm[i].VmType, n_vms}}
 			transitionTime := -10*time.Minute		//TODO: Calculate booting time
-			state :=  types.State{it.TimeStart.Add(transitionTime),services,"unknown", vms}
+			startTime := it.TimeStart.Add(transitionTime)
+			state :=  types.State{startTime,services,"unknown", vms, startTime.Format(util.TIME_LAYOUT)}
 			configurations = append(configurations, types.Configuration{-1, state, it.TimeStart, it.TimeEnd})
 
 		}
