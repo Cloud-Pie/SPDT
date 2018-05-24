@@ -4,36 +4,22 @@ import (
 	"github.com/yemramirezca/SPDT/internal/types"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 )
 
-func getMockData()  [] types.CriticalInterval{
+func getMockData() types.Forecast{
 
-	intervals := [] types.CriticalInterval{}
+	forecast := types.Forecast{}
 
-	i := `[
-    {
-      "TimeStart" : "2020-01-05T13:24:52Z",
-      "Requests" : 300,
-      "Trend" :	-1,
-      "TimeEnd" : "2020-01-05T13:54:52Z"
-    },
-    {
-      "TimeStart" : "2020-01-05T13:54:52Z",
-      "Requests" : 800,
-      "Trend" :	1,
-      "TimeEnd" : "2020-01-05T14:54:52Z"
-    },
-    {
-      "TimeStart" : "2020-01-05T14:54:52Z",
-      "Requests" : 400,
-      "Trend" :	-1,
-      "TimeEnd" : "2020-01-05T15:24:52Z"
-    }
-  ]`
-	err := json.Unmarshal([]byte(i), &intervals)
+	data, err := ioutil.ReadFile("pkg/forecast_processing/mock_forecast.json")
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
 	}
-	return intervals
+	err = json.Unmarshal(data, &forecast)
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+	return forecast
 }

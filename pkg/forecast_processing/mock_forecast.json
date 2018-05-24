@@ -1,0 +1,23 @@
+{
+  "NeedToScale" : true,
+  "CriticalIntervals" : [
+    {
+      "TimeStart" : "2020-01-05T13:24:52Z",
+      "Requests" : 400,
+      "Trend" :	-1,
+      "TimeEnd" : "2020-01-05T14:24:52Z"
+    },
+    {
+      "TimeStart" : "2020-01-05T14:24:52Z",
+      "Requests" : 800,
+      "Trend" :	1,
+      "TimeEnd" : "2020-01-05T15:24:52Z"
+    },
+    {
+      "TimeStart" : "2020-01-05T15:24:52Z",
+      "Requests" : 400,
+      "Trend" :	-1,
+      "TimeEnd" : "2020-01-05T16:24:52Z"
+    }
+  ]
+}
