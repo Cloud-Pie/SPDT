@@ -1,7 +1,7 @@
 package forecast_processing
 
 import (
-	"github.com/yemramirezca/SPDT/internal/types"
+	"github.com/Cloud-Pie/SPDT/internal/types"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"

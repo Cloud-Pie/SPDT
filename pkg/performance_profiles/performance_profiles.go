@@ -1,7 +1,7 @@
 package performance_profiles
 
 import (
-	"github.com/yemramirezca/SPDT/internal/util"
+	"github.com/Cloud-Pie/SPDT/internal/util"
 	"net/http"
 	"encoding/json"
 	"fmt"

@@ -1,13 +1,13 @@
 package reconfiguration
 
 import (
-	"github.com/yemramirezca/SPDT/internal/types"
+	"github.com/Cloud-Pie/SPDT/internal/types"
 	"encoding/json"
 	"net/http"
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"github.com/yemramirezca/SPDT/internal/util"
+	"github.com/Cloud-Pie/SPDT/internal/util"
 )
 
 func TriggerScheduler(policy types.Policy){

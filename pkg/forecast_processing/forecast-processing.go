@@ -2,7 +2,7 @@ package forecast_processing
 
 import (
 	"fmt"
-	"github.com/yemramirezca/SPDT/internal/types"
+	"github.com/Cloud-Pie/SPDT/internal/types"
 )
 
 func ProcessData() types.Forecast {

@@ -4,11 +4,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"fmt"
-	"github.com/yemramirezca/SPDT/pkg/performance_profiles"
-	"github.com/yemramirezca/SPDT/pkg/forecast_processing"
-	"github.com/yemramirezca/SPDT/pkg/policies_derivation"
-	"github.com/yemramirezca/SPDT/pkg/policy_selection"
-	"github.com/yemramirezca/SPDT/pkg/reconfiguration"
+	"github.com/Cloud-Pie/SPDT/pkg/performance_profiles"
+	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
+	"github.com/Cloud-Pie/SPDT/pkg/policies_derivation"
+	"github.com/Cloud-Pie/SPDT/pkg/policy_selection"
 )
 
 func main () {
@@ -43,7 +42,7 @@ func processForecast(c *gin.Context){
 		//currentState := CurrentState()
 		policy := policy_selection.SelectPolicy(policies)
 
-		reconfiguration.TriggerScheduler(policy)
+		//reconfiguration.TriggerScheduler(policy)
 		c.JSON(http.StatusOK, policy)
 	}
 }

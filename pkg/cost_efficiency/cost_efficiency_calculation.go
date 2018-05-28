@@ -1,8 +1,8 @@
 package cost_efficiency_calculation
 
 import (
-	"github.com/yemramirezca/SPDT/internal/types"
-	"github.com/yemramirezca/SPDT/internal/util"
+	"github.com/Cloud-Pie/SPDT/internal/types"
+	"github.com/Cloud-Pie/SPDT/internal/util"
 	"time"
 	"fmt"
 )

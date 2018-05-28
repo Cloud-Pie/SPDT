@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/yemramirezca/SPDT/internal/types"
+	"github.com/Cloud-Pie/SPDT/internal/types"
 	"io/ioutil"
 	"fmt"
 	"encoding/json"

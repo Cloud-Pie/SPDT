@@ -1,11 +1,11 @@
 package policies_derivation
 
 import (
-	"github.com/yemramirezca/SPDT/internal/types"
-	"github.com/yemramirezca/SPDT/pkg/performance_profiles"
+	"github.com/Cloud-Pie/SPDT/internal/types"
+	"github.com/Cloud-Pie/SPDT/pkg/performance_profiles"
 	"time"
 	"fmt"
-	"github.com/yemramirezca/SPDT/internal/util"
+	"github.com/Cloud-Pie/SPDT/internal/util"
 )
 
 type NaivePolicy struct {

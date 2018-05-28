@@ -1,8 +1,8 @@
 package policies_derivation
 
 import (
-	"github.com/yemramirezca/SPDT/internal/types"
-	"github.com/yemramirezca/SPDT/pkg/performance_profiles"
+	"github.com/Cloud-Pie/SPDT/internal/types"
+	"github.com/Cloud-Pie/SPDT/pkg/performance_profiles"
 	)
 
 //TODO: Profile for Current config
