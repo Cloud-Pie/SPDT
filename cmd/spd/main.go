@@ -8,13 +8,21 @@ import (
 	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
 	"github.com/Cloud-Pie/SPDT/pkg/policies_derivation"
 	"github.com/Cloud-Pie/SPDT/pkg/policy_selection"
+	"github.com/Cloud-Pie/SPDT/config"
+	"github.com/Cloud-Pie/SPDT/internal/util"
+	"log"
 )
 
 func main () {
 
+	systemConfiguration,err := config.ParseConfigFile(util.CONFIG_FILE)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+	forecastEndpoint := systemConfiguration.ForecastingComponent.Endpoint
+	log.Print(forecastEndpoint)
+	
 	router := gin.Default()
-	router.MaxMultipartMemory = 8 << 20 // 8 MiB
-
 	router.POST("/api/forecast", processForecast)
 	router.Run(":8081")
 }
