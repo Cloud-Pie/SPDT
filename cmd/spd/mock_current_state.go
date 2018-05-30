@@ -1,15 +1,15 @@
 package main
 
 import (
-	"github.com/Cloud-Pie/SPDT/internal/types"
-	"io/ioutil"
-	"fmt"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
+
+	"github.com/Cloud-Pie/Passa/ymlparser"
 )
 
-
-func CurrentState() types.State {
-	var state types.State
+func CurrentState() ymlparser.State {
+	var state ymlparser.State
 
 	data, err := ioutil.ReadFile("cmd/spd/mock_current_state.json")
 	if err != nil {
