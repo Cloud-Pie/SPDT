@@ -1,27 +1,26 @@
 package reconfiguration
 
 import (
-	"github.com/Cloud-Pie/SPDT/internal/types"
-	"encoding/json"
-	"net/http"
-	"bytes"
 	"fmt"
-	"io/ioutil"
+
 	"github.com/Cloud-Pie/SPDT/internal/util"
+
+	"github.com/Cloud-Pie/Passa/server"
+	"github.com/Cloud-Pie/SPDT/internal/types"
 )
 
-func TriggerScheduler(policy types.Policy){
+//TriggerScheduler sends the policies to Scheduler
+func TriggerScheduler(policy types.Policy) {
 
 	for _, conf := range policy.Configurations {
-		jsonValue, _ := json.Marshal(conf.State)
-		response, err := http.Post(util.URL_SCHEDULER, "application/json", bytes.NewBuffer(jsonValue))
+		serverMessenger := server.Communication{
+			SchedulerURL: util.URL_SCHEDULER,
+		}
+		err := serverMessenger.CreateState(conf.State)
 
 		if err != nil {
 			fmt.Printf("The scheduler request failed with error %s\n", err)
 			panic(err)
-		} else {
-			data, _ := ioutil.ReadAll(response.Body)
-			fmt.Println(string(data))
 		}
 	}
 }

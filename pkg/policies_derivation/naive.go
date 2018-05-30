@@ -1,11 +1,13 @@
 package policies_derivation
 
 import (
+	"fmt"
+	"time"
+
+	"github.com/Cloud-Pie/Passa/ymlparser"
+
 	"github.com/Cloud-Pie/SPDT/internal/types"
 	"github.com/Cloud-Pie/SPDT/pkg/performance_profiles"
-	"time"
-	"fmt"
-	"github.com/Cloud-Pie/SPDT/internal/util"
 )
 
 type NaivePolicy struct {
@@ -13,23 +15,29 @@ type NaivePolicy struct {
 	performanceProfile performance_profiles.PerformanceProfile
 }
 
-func (naive NaivePolicy) CreatePolicies() [] types.Policy {
+func (naive NaivePolicy) CreatePolicies() []types.Policy {
 	fmt.Println("start derivation of policies")
-	listVm := naive.performanceProfile.PerformanceModels[0].VmProfiles; //TODO: Change according to CSP
+	listVm := naive.performanceProfile.PerformanceModels[0].VmProfiles //TODO: Change according to CSP
 	service := naive.performanceProfile.DockerImageApp
-	policies := []types.Policy {}
+	policies := []types.Policy{}
 
 	for i := range listVm {
-		configurations := []types.Configuration {}
+		configurations := []types.Configuration{}
 		for _, it := range naive.forecasting.CriticalIntervals {
 			requests := it.Requests
 			n_vms := requests / listVm[i].Trn
-			services := [] types.Service{{ service, n_vms}} //TODO: Change according to # Services
-			vms := [] types.VmScale {{listVm[i].VmType, n_vms}}
-			transitionTime := -10*time.Minute		//TODO: Calculate booting time
+			services := []ymlparser.Service{{Name: service, Scale: n_vms}} //TODO: Change according to # Services
+
+			vms := []ymlparser.VM{{Type: listVm[i].VmType, Scale: n_vms}}
+			transitionTime := -10 * time.Minute //TODO: Calculate booting time
 			startTime := it.TimeStart.Add(transitionTime)
-			state :=  types.State{startTime,services,"unknown", vms, startTime.Format(util.TIME_LAYOUT)}
-			configurations = append(configurations, types.Configuration{-1, state, it.TimeStart, it.TimeEnd})
+			state := ymlparser.State{
+				ISODate:  startTime,
+				Services: services,
+				Name:     "unknown",
+				VMs:      vms,
+			}
+			configurations = append(configurations, types.Configuration{TransitionCost: -1, State: state, TimeStart: it.TimeStart, TimeEnd: it.TimeEnd})
 
 		}
 		new_policy := types.Policy{"naive", -1, configurations}

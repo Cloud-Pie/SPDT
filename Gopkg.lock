@@ -3,6 +3,16 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/Cloud-Pie/Passa"
+  packages = [
+    "database",
+    "server",
+    "ymlparser"
+  ]
+  revision = "916e9aa6ea5dd1810b46c4d2ea87c42a48f0cb07"
+
+[[projects]]
+  branch = "master"
   name = "github.com/gin-contrib/sse"
   packages = ["."]
   revision = "22d885f9ecc78bf4ee5d72b937e4bbcdc58e8cae"
@@ -76,6 +86,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f2020c952a53cc084ccc46dfb85be6fd6a62faf11b47b35339c1580ac926fc92"
+  inputs-digest = "17fe0e63d2474927f53a7a4e234bc9dccb1e5277af58c8489a343cda2434761c"
   solver-name = "gps-cdcl"
   solver-version = 1
