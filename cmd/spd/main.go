@@ -15,13 +15,17 @@ import (
 
 func main () {
 
+	defaultLogFile    := util.DAFAULT_LOGFILE //TODO:Change to flag arg
+	var Log *Logger = NewLogger()
+	Log.SetLogFile(defaultLogFile)
+
 	systemConfiguration,err := config.ParseConfigFile(util.CONFIG_FILE)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
 	forecastEndpoint := systemConfiguration.ForecastingComponent.Endpoint
 	log.Print(forecastEndpoint)
-	
+
 	router := gin.Default()
 	router.POST("/api/forecast", processForecast)
 	router.Run(":8081")
@@ -37,8 +41,6 @@ func processForecast(c *gin.Context){
 		c.String(http.StatusBadRequest, fmt.Sprintf("Upload file err: %s. ", err.Error()))
 		return
 	}
-
-
 
 	forecast := forecast_processing.ProcessData()
 	if(!forecast.NeedToScale) {
