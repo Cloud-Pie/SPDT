@@ -14,7 +14,8 @@ const (
 
 func ComputeTotalCost(policies [] types.Policy) [] types.Policy {
 	fmt.Println("start cost calculation")
-	mapPrices,unit :=  ParsePricesFile(util.PRICES_FILE).MapPrices()
+	priceModel,_ := ParsePricesFile(util.PRICES_FILE)
+	mapPrices,unit :=  priceModel.MapPrices()
 	for pi,policy := range policies {
 		totalCost := float64(0.0)
 		configurations := policy.Configurations

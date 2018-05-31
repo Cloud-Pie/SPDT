@@ -34,8 +34,7 @@ type PerformanceProfile struct {
 	PerformanceModels [] PerformanceModel `json:"perf_model"`
 }
 
-func GetPerformanceProfiles () PerformanceProfile{
-	fmt.Println("start profiles")
+func GetPerformanceProfiles() PerformanceProfile{
 
 	response, err := http.Get(util.URL_PROFILER)
 	if err != nil {

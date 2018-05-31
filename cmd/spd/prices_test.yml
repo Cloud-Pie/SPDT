@@ -1,4 +1,4 @@
-vmPrices:
+vm-prices:
 - type: t2.nano
   price: 0.0058
   unit: hour

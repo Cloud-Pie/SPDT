@@ -13,10 +13,10 @@ type VMPrice struct{
 }
 
 type PriceModel struct{
-	VMPrices []VMPrice	`yaml:"vmPrices"`
+	VMPrices []VMPrice	`yaml:"vm-prices"`
 }
 
-func ParsePricesFile(configFile string) PriceModel {
+func ParsePricesFile(configFile string) (PriceModel,error) {
 	prices := PriceModel{}
 	source, err := ioutil.ReadFile(configFile)
 	if err != nil {
@@ -26,7 +26,7 @@ func ParsePricesFile(configFile string) PriceModel {
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
-	return prices
+	return prices,err
 }
 
 func (priceModel PriceModel) MapPrices() (map[string] float64, string) {

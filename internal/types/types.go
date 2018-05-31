@@ -59,8 +59,13 @@ type CriticalInterval struct {
 	TimeEnd	time.Time	`json:"TimeEnd"`
 }
 
-/*Forecast metadata after processing */
-type Forecast struct {
+/*ProcessedForecast metadata after processing */
+type ProcessedForecast struct {
 	NeedToScale       bool
 	CriticalIntervals [] CriticalInterval
+}
+
+type Forecast struct {
+	TimeStamp   time.Time	`json:"app_type"`
+	Requests	int         `json:"docker_image_app"`
 }

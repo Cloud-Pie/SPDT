@@ -1,58 +1,86 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
-	"net/http"
-	"fmt"
-	"github.com/Cloud-Pie/SPDT/pkg/performance_profiles"
-	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
+	Pservice "github.com/Cloud-Pie/SPDT/internal/rest_clients/performance_profiles"
+	Fservice "github.com/Cloud-Pie/SPDT/internal/rest_clients/forecast"
 	"github.com/Cloud-Pie/SPDT/pkg/policies_derivation"
 	"github.com/Cloud-Pie/SPDT/pkg/policy_selection"
-	"github.com/Cloud-Pie/SPDT/config"
 	"github.com/Cloud-Pie/SPDT/internal/util"
-	"log"
+	"github.com/Cloud-Pie/SPDT/config"
+	costs "github.com/Cloud-Pie/SPDT/pkg/cost_efficiency"
+	Sservice "github.com/Cloud-Pie/SPDT/pkg/reconfiguration"
+	"time"
+	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
 )
 
+
+var Log = util.NewLogger()
+
 func main () {
-
-	defaultLogFile    := util.DAFAULT_LOGFILE //TODO:Change to flag arg
-	var Log *Logger = NewLogger()
-	Log.SetLogFile(defaultLogFile)
-
-	systemConfiguration,err := config.ParseConfigFile(util.CONFIG_FILE)
-	if err != nil {
-		log.Fatalf("error: %v", err)
+	var flagsVar = util.ParseFlags()
+	if flagsVar.LogFile {
+		Log.Info.Printf("Logs can be accessed in %s", util.DEFAULT_LOGFILE)
+		Log.SetLogFile(util.DEFAULT_LOGFILE)
 	}
-	forecastEndpoint := systemConfiguration.ForecastingComponent.Endpoint
-	log.Print(forecastEndpoint)
+	if flagsVar.ConfigFile == "" {
+		Log.Info.Printf("Configuration file not specified. Default configuration will be used.")
+		flagsVar.ConfigFile = util.CONFIG_FILE
+	} else {
+		_,err := config.ParseConfigFile(flagsVar.ConfigFile)
+		if err != nil {
+			Log.Error.Fatalf("Configuration file could not be processed %s", err)
+		}
+	}
+	if flagsVar.PricesFile == "" {
+		Log.Info.Printf("Prices file not specified. Default pricing file will be used.")
+		flagsVar.PricesFile = util.PRICES_FILE
+	} else {
+		_,err := costs.ParsePricesFile(util.PRICES_FILE)
+		if err != nil {
+			Log.Error.Fatalf("Prices file could not be processed %s", err)
+		}
+	}
 
-	router := gin.Default()
-	router.POST("/api/forecast", processForecast)
-	router.Run(":8081")
+	server := SetUpServer()
+	server.Run(":" +flagsVar.Port)
+
+	for {
+		time.Sleep(2 * time.Second)
+		go startPolicyDerivation()
+	}
 }
 
-func processForecast(c *gin.Context){
-	file,err := c.FormFile("file")
+func startPolicyDerivation() {
+	//Request Performance Profiles
+	Log.Trace.Printf("Start request Performance Profiles")
+	vmProfiles := Pservice.GetPerformanceProfiles()
+	Log.Trace.Printf("Finish request Performance Profiles")
+
+	//Request Forecasting
+	Log.Trace.Printf("Start request Forecasting")
+	data,err := Fservice.GetForecast()
 	if err != nil {
-		c.String(http.StatusBadRequest, fmt.Sprintf(err.Error()))
-		return
-	}
-	if err := c.SaveUploadedFile (file, "pkg/forecast_processing/"+file.Filename); err != nil {
-		c.String(http.StatusBadRequest, fmt.Sprintf("Upload file err: %s. ", err.Error()))
-		return
+		Log.Error.Printf("")
 	}
 
-	forecast := forecast_processing.ProcessData()
-	if(!forecast.NeedToScale) {
-		c.String(http.StatusOK,fmt.Sprintf("No need to scale in the next time window"))
-	//write logs
-	} else 	{
-		vmProfiles := performance_profiles.GetPerformanceProfiles()
+	forecast := forecast_processing.ProcessData(data)
+	Log.Trace.Printf("Finish request Forecasting")
+
+	if (forecast.NeedToScale) {
+		//Derive Strategies
+		Log.Trace.Printf("Start policies derivation")
 		policies := policies_derivation.Policies(forecast, vmProfiles)
-		//currentState := CurrentState()
-		policy := policy_selection.SelectPolicy(policies)
+		Log.Trace.Printf("Finish policies derivation")
 
-		//reconfiguration.TriggerScheduler(policy)
-		c.JSON(http.StatusOK, policy)
+		Log.Trace.Printf("Start policies evaluation")
+		policy := policy_selection.SelectPolicy(policies)
+		Log.Trace.Printf("Finish policies evaluation")
+
+		Log.Trace.Printf("Start request Scheduler")
+		Sservice.TriggerScheduler(policy)
+		Log.Trace.Printf("Finish request Scheduler")
+
+	} else {
+		Log.Trace.Printf("No need to startPolicyDerivation for the requested time window")
 	}
 }

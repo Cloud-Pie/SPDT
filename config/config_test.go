@@ -6,7 +6,7 @@ import (
 )
 
 func TestFileFormat(t *testing.T) {
-	_,err := ParseConfigFile("Config.yml")
+	_,err := ParseConfigFile("config.yml")
 	if err != nil {
 		t.Error(
 			"For", util.CONFIG_FILE,

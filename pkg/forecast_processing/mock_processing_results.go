@@ -7,9 +7,9 @@ import (
 	"io/ioutil"
 )
 
-func getMockData() types.Forecast{
+func getMockData() types.ProcessedForecast {
 
-	forecast := types.Forecast{}
+	forecast := types.ProcessedForecast{}
 
 	data, err := ioutil.ReadFile("pkg/forecast_processing/mock_forecast.json")
 	if err != nil {
