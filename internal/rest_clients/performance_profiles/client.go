@@ -4,7 +4,6 @@ import (
 	"github.com/Cloud-Pie/SPDT/internal/util"
 	"net/http"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 )
 
@@ -34,27 +33,21 @@ type PerformanceProfile struct {
 	PerformanceModels [] PerformanceModel `json:"perf_model"`
 }
 
-func GetPerformanceProfiles() PerformanceProfile{
-
+func GetPerformanceProfiles() (PerformanceProfile, error){
+	performanceProfile := PerformanceProfile {}
 	response, err := http.Get(util.URL_PROFILER)
 	if err != nil {
-		fmt.Printf("The profiler request failed with error %s\n", err)
-		panic(err)
+		return performanceProfile,err
 	}
 	defer response.Body.Close()
 	data, err := ioutil.ReadAll(response.Body)
 
 	if err != nil {
-		fmt.Printf("The profiler request failed with error %s\n", err)
-		panic(err)
+		return performanceProfile,err
 	}
-
-	performanceProfile := PerformanceProfile {}
 	err = json.Unmarshal(data, &performanceProfile)
 	if err != nil {
-		fmt.Printf("The profiler request failed with error %s\n", err)
-		panic(err)
+		return performanceProfile,err
 	}
-
-	return performanceProfile
+	return performanceProfile,err
 }

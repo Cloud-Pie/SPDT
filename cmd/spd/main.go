@@ -8,8 +8,7 @@ import (
 	"github.com/Cloud-Pie/SPDT/internal/util"
 	"github.com/Cloud-Pie/SPDT/config"
 	costs "github.com/Cloud-Pie/SPDT/pkg/cost_efficiency"
-	Sservice "github.com/Cloud-Pie/SPDT/pkg/reconfiguration"
-	"time"
+	"github.com/Cloud-Pie/SPDT/pkg/reconfiguration"
 	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
 )
 
@@ -41,30 +40,35 @@ func main () {
 		}
 	}
 
-	server := SetUpServer()
-	server.Run(":" +flagsVar.Port)
-
-	for {
+	/*for {
 		time.Sleep(2 * time.Second)
 		go startPolicyDerivation()
-	}
+	}*/
+	startPolicyDerivation()
+
+	server := SetUpServer()
+	server.Run(":" +flagsVar.Port)
 }
 
 func startPolicyDerivation() {
 	//Request Performance Profiles
 	Log.Trace.Printf("Start request Performance Profiles")
-	vmProfiles := Pservice.GetPerformanceProfiles()
+	vmProfiles,err := Pservice.GetPerformanceProfiles()
+	if err != nil {
+		Log.Error.Fatalf(err.Error())
+	}
 	Log.Trace.Printf("Finish request Performance Profiles")
 
 	//Request Forecasting
 	Log.Trace.Printf("Start request Forecasting")
 	data,err := Fservice.GetForecast()
 	if err != nil {
-		Log.Error.Printf("")
+		Log.Error.Fatalf(err.Error())
 	}
+	Log.Trace.Printf("Finish request Forecasting")
 
 	forecast := forecast_processing.ProcessData(data)
-	Log.Trace.Printf("Finish request Forecasting")
+
 
 	if (forecast.NeedToScale) {
 		//Derive Strategies
@@ -77,7 +81,7 @@ func startPolicyDerivation() {
 		Log.Trace.Printf("Finish policies evaluation")
 
 		Log.Trace.Printf("Start request Scheduler")
-		Sservice.TriggerScheduler(policy)
+		reconfiguration.TriggerScheduler(policy)
 		Log.Trace.Printf("Finish request Scheduler")
 
 	} else {

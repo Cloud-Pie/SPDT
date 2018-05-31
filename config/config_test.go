@@ -2,16 +2,15 @@ package config
 
 import (
 	"testing"
-	"github.com/Cloud-Pie/SPDT/internal/util"
 )
 
 func TestFileFormat(t *testing.T) {
-	_,err := ParseConfigFile("config.yml")
+	_,err := ParseConfigFile("config_test.yml")
 	if err != nil {
 		t.Error(
-			"For", util.CONFIG_FILE,
-			"expected", nil,
-			"got", err,
+			"For: ", "config_test.yml",
+			"expected: ", nil,
+			"got: ", err,
 		)
 	}
 }

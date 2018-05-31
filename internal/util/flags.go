@@ -13,7 +13,7 @@ func ParseFlags() FlagVars{
 	logFile := flag.Bool("log-file",false,"Enable writing logs in file")
 	configFile := flag.String("config-file", "", "Configuration file path")
 	priceFile := flag.String("prices-file","", "Prices file path")
-	port := flag.String("http-port","8082", "Http Port")
+	port := flag.String("http-port","8083", "Http Port")
 	flag.Parse()
 
 	return FlagVars{

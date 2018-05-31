@@ -1,0 +1,61 @@
+{
+  "id": "1",
+  "values": [
+    {
+      "time-stamp":"2019-08-08T07:24:45Z",
+      "requests": 1000
+    },
+    {
+      "time-stamp":"2019-08-08T08:24:45Z",
+      "requests": 2000
+    },
+    {
+      "time-stamp":"2019-08-08T09:24:45Z",
+      "requests": 3000
+    },
+    {
+      "time-stamp":"2019-08-08T10:24:45Z",
+      "requests": 4000
+    },
+    {
+      "time-stamp":"2019-08-08T11:24:45Z",
+      "requests": 5000
+    },
+    {"time-stamp":"2019-08-08T12:24:45Z",
+      "requests": 4000
+    },
+    {"time-stamp":"2019-08-08T13:24:45Z",
+      "requests": 3000
+    },
+    {"time-stamp":"2019-08-08T14:24:45Z",
+      "requests": 2000
+    },
+    {"time-stamp":"2019-08-08T15:24:45Z",
+      "requests": 1000
+    },
+    {"time-stamp":"2019-08-08T16:24:45Z",
+      "requests": 500
+    },
+    {"time-stamp":"2019-08-08T17:24:45Z",
+      "requests": 400
+    },
+    {"time-stamp":"2019-08-08T18:24:45Z",
+      "requests": 400
+    },
+    {"time-stamp":"2019-08-08T19:24:45Z",
+      "requests": 200
+    },
+    {"time-stamp":"2019-08-08T20:24:45Z",
+      "requests": 300
+    },
+    {"time-stamp":"2019-08-08T21:24:45Z",
+      "requests": 400
+    },
+    {"time-stamp":"2019-08-08T22:24:45Z",
+      "requests": 500
+    },
+    {"time-stamp":"2019-08-08T23:24:45Z",
+      "requests": 600
+    }
+  ]
+}

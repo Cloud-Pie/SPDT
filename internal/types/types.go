@@ -65,7 +65,12 @@ type ProcessedForecast struct {
 	CriticalIntervals [] CriticalInterval
 }
 
+type ForecastedValue struct {
+	TimeStamp   time.Time	`json:"time-stamp"`
+	Requests	int         `json:"requests"`
+}
+
 type Forecast struct {
-	TimeStamp   time.Time	`json:"app_type"`
-	Requests	int         `json:"docker_image_app"`
+	ID	string							`json:"id"`
+	ForecastedValues []ForecastedValue	`json:"values"`
 }

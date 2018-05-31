@@ -14,11 +14,12 @@ type Logger struct {
 	Error   *log.Logger
 }
 
-func NewLogger() *Logger{
+func NewLogger() *Logger {
 	Log := new (Logger)
 	Log.SetLogger(os.Stdout, os.Stdout, os.Stdout, os.Stderr)
 	return  Log
 }
+
 
 func (Log *Logger) SetLogger(
 	traceHandle io.Writer,

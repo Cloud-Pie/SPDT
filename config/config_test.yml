@@ -1,0 +1,25 @@
+forecasting-component:
+  endpoint: http://localhost:8081/api/forecast
+  username:
+  password:
+  api-key:
+performance-profiles-component:
+  endpoint: http://localhost:8082/api/profiles
+  user-name:
+  password:
+  api-key:
+scheduler-component:
+  endpoint: http://localhost:8080/api/states
+  user-name:
+  password:
+  api-key:
+scaling-horizon:
+  start-time: 2001-12-15T02:59:43.1Z
+  end-time: 2001-12-15T02:59:43.1Z
+preferred-algorithm: integer programming approach
+policy-settings:
+  horizontal-enabled: true
+  vertical-enabled: false
+monthly-budget: 2000.0
+
+
