@@ -1,39 +1,40 @@
-package forecast
+package performance_profiles
 
 import (
 	"testing"
 	"time"
 	"net/http"
-	"github.com/Cloud-Pie/SPDT/internal/util"
+	"github.com/Cloud-Pie/SPDT/util"
 )
 
-func TestGetForecast(t *testing.T) {
+func TestGetPerformanceProfiles(t *testing.T) {
 	if !isServerAvailable() {
 				t.Skip("Server is not available")
 	}
 
-	forecast, err := GetForecast()
+	profile, err := GetPerformanceProfiles()
 	if err != nil {
 		t.Error(
-			"For", "Forecast Service",
+			"For", "Performance Profile Service",
 			"expected", nil,
 			"got", err,
 		)
 	}
 
-	if len (forecast.ForecastedValues) == 0 {
+	if len (profile.PerformanceModels) == 0 {
 		t.Error(
-			"For", "Forecasted values lenght",
+			"For", "Performance profiles values lenght",
 			"expected", ">0",
 			"got", 0,
 		)
 	}
+
 }
 
 func isServerAvailable() bool {
 	timeout := time.Duration(time.Second)
 	client := http.Client{Timeout: timeout}
-	_, err := client.Get(util.URL_FORECAST)
+	_, err := client.Get(util.URL_PROFILER)
 
 	if err == nil {
 		return true

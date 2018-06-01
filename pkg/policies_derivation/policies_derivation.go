@@ -1,7 +1,7 @@
 package policies_derivation
 
 import (
-	"github.com/Cloud-Pie/SPDT/internal/types"
+	"github.com/Cloud-Pie/SPDT/types"
 	)
 
 //TODO: Profile for Current config

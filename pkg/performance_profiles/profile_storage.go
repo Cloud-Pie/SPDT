@@ -3,7 +3,7 @@ package performance_profiles
 import (
 	"gopkg.in/mgo.v2"
 	"log"
-	"github.com/Cloud-Pie/SPDT/internal/types"
+	"github.com/Cloud-Pie/SPDT/types"
 	"gopkg.in/mgo.v2/bson"
 )
 

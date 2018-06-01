@@ -1,6 +1,6 @@
 package policy_selection
 import (
-	"github.com/Cloud-Pie/SPDT/internal/types"
+	"github.com/Cloud-Pie/SPDT/types"
 	"github.com/Cloud-Pie/SPDT/pkg/cost_efficiency"
 	"sort"
 )

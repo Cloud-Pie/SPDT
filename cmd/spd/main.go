@@ -1,11 +1,11 @@
 package main
 
 import (
-	Pservice "github.com/Cloud-Pie/SPDT/internal/rest_clients/performance_profiles"
-	Fservice "github.com/Cloud-Pie/SPDT/internal/rest_clients/forecast"
+	Pservice "github.com/Cloud-Pie/SPDT/rest_clients/performance_profiles"
+	Fservice "github.com/Cloud-Pie/SPDT/rest_clients/forecast"
 	"github.com/Cloud-Pie/SPDT/pkg/policies_derivation"
 	"github.com/Cloud-Pie/SPDT/pkg/policy_selection"
-	"github.com/Cloud-Pie/SPDT/internal/util"
+	"github.com/Cloud-Pie/SPDT/util"
 	"github.com/Cloud-Pie/SPDT/config"
 	costs "github.com/Cloud-Pie/SPDT/pkg/cost_efficiency"
 	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"

@@ -1,11 +1,11 @@
 package performance_profiles
 
 import (
-	"github.com/Cloud-Pie/SPDT/internal/util"
+	"github.com/Cloud-Pie/SPDT/util"
 	"net/http"
 	"encoding/json"
 	"io/ioutil"
-	"github.com/Cloud-Pie/SPDT/internal/types"
+	"github.com/Cloud-Pie/SPDT/types"
 )
 
 

@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 	"net/http"
-	"github.com/Cloud-Pie/SPDT/internal/util"
-	"github.com/Cloud-Pie/SPDT/internal/types"
+	"github.com/Cloud-Pie/SPDT/util"
+	"github.com/Cloud-Pie/SPDT/types"
 )
 
 func TestCreateState(t *testing.T) {

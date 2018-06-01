@@ -1,9 +1,9 @@
 package forecast
 
 import (
-	"github.com/Cloud-Pie/SPDT/internal/types"
+	"github.com/Cloud-Pie/SPDT/types"
 	"net/http"
-	"github.com/Cloud-Pie/SPDT/internal/util"
+	"github.com/Cloud-Pie/SPDT/util"
 	"io/ioutil"
 	"encoding/json"
 )

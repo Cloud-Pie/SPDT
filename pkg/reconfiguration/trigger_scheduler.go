@@ -2,8 +2,8 @@ package reconfiguration
 
 import (
 	"fmt"
-	"github.com/Cloud-Pie/SPDT/internal/types"
-	"github.com/Cloud-Pie/SPDT/internal/rest_clients/scheduler"
+	"github.com/Cloud-Pie/SPDT/types"
+	"github.com/Cloud-Pie/SPDT/rest_clients/scheduler"
 )
 
 func TriggerScheduler(policy types.Policy){

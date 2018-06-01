@@ -1,8 +1,8 @@
 package scheduler
 
 import (
-	"github.com/Cloud-Pie/SPDT/internal/types"
-	"github.com/Cloud-Pie/SPDT/internal/util"
+	"github.com/Cloud-Pie/SPDT/types"
+	"github.com/Cloud-Pie/SPDT/util"
 	"encoding/json"
 	"net/http"
 	"bytes"
