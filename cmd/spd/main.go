@@ -8,8 +8,11 @@ import (
 	"github.com/Cloud-Pie/SPDT/internal/util"
 	"github.com/Cloud-Pie/SPDT/config"
 	costs "github.com/Cloud-Pie/SPDT/pkg/cost_efficiency"
-	"github.com/Cloud-Pie/SPDT/pkg/reconfiguration"
 	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
+	"github.com/Cloud-Pie/SPDT/pkg/performance_profiles"
+	"gopkg.in/mgo.v2/bson"
+	"fmt"
+	"github.com/Cloud-Pie/SPDT/pkg/reconfiguration"
 )
 
 
@@ -59,6 +62,18 @@ func startPolicyDerivation() {
 	}
 	Log.Trace.Printf("Finish request Performance Profiles")
 
+	//Store received information about Performance Profiles
+	vmProfiles.ID = bson.NewObjectId()
+	vmProfileDAO := performance_profiles.PerformanceProfileDAO{
+		util.DEFAULT_DB_SERVER_PROFILES,
+		util.DEFAULT_DB_PROFILES,
+	}
+	vmProfileDAO.Connect()
+	err = vmProfileDAO.Insert(vmProfiles)
+	if err != nil {
+		Log.Error.Fatalf(err.Error())
+	}
+
 	//Request Forecasting
 	Log.Trace.Printf("Start request Forecasting")
 	data,err := Fservice.GetForecast()
@@ -82,6 +97,7 @@ func startPolicyDerivation() {
 
 		Log.Trace.Printf("Start request Scheduler")
 		reconfiguration.TriggerScheduler(policy)
+		fmt.Sprintf(string(policy.ID))
 		Log.Trace.Printf("Finish request Scheduler")
 
 	} else {

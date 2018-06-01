@@ -2,7 +2,6 @@ package policies_derivation
 
 import (
 	"github.com/Cloud-Pie/SPDT/internal/types"
-	"github.com/Cloud-Pie/SPDT/internal/rest_clients/performance_profiles"
 	"time"
 	"fmt"
 	"github.com/Cloud-Pie/SPDT/internal/util"
@@ -10,7 +9,7 @@ import (
 
 type NaivePolicy struct {
 	forecasting        types.ProcessedForecast
-	performanceProfile performance_profiles.PerformanceProfile
+	performanceProfile types.PerformanceProfile
 }
 
 func (naive NaivePolicy) CreatePolicies() [] types.Policy {

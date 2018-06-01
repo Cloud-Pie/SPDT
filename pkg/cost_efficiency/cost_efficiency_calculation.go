@@ -4,7 +4,6 @@ import (
 	"github.com/Cloud-Pie/SPDT/internal/types"
 	"github.com/Cloud-Pie/SPDT/internal/util"
 	"time"
-	"fmt"
 )
 
 const (
@@ -13,7 +12,6 @@ const (
 )
 
 func ComputeTotalCost(policies [] types.Policy) [] types.Policy {
-	fmt.Println("start cost calculation")
 	priceModel,_ := ParsePricesFile(util.PRICES_FILE)
 	mapPrices,unit :=  priceModel.MapPrices()
 	for pi,policy := range policies {

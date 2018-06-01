@@ -2,6 +2,7 @@ package types
 
 import (
 	"time"
+	"gopkg.in/mgo.v2/bson"
 )
 
 /*Service keeps the name and scale of the scaled service*/
@@ -73,4 +74,31 @@ type ForecastedValue struct {
 type Forecast struct {
 	ID	string							`json:"id"`
 	ForecastedValues []ForecastedValue	`json:"values"`
+}
+
+
+type QoSParams struct {
+	Request_time_out_sec int `json:"request_time_out_sec" bson:"request_time_out_sec"`
+	Request_availability_percent int `json:"request_availability_percent" bson:"request_availability_percent"`
+}
+
+type VmProfile struct {
+	VmType   string `json:"vm_type" bson:"vm_type"`
+	Trn      int    `json:"trn" bson:"trn"`
+	NumCores int    `json:"num_cores" bson:"num_cores"`
+	MemoryGb int    `json:"memory_gb" bson:"memory_gb"`
+}
+
+type PerformanceModel struct {
+	CSP        string             `json:"CSP" bson:"CSP"`
+	VmProfiles [] VmProfile `json:"VMs" bson:"VMs"`
+}
+
+type PerformanceProfile struct {
+	ID          	  bson.ObjectId 	  `bson:"_id" json:"id"`
+	AppType           string              `json:"app_type" bson:"app_type"`
+	DockerImageApp    string              `json:"docker_image_app" bson:"docker_image_app"`
+	GitUrlApp         string              `json:"git_url_app" bson:"git_url_app"`
+	QoSParams         QoSParams           `json:"qos_params" bson:"qos_params"`
+	PerformanceModels [] PerformanceModel `json:"perf_model" bson:"perf_model"`
 }
