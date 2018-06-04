@@ -10,7 +10,7 @@ import (
 
 
 func GetPerformanceProfiles() (types.PerformanceProfile, error){
-	performanceProfile := types.PerformanceProfile {}
+	performanceProfile := types.PerformanceProfile{}
 	response, err := http.Get(util.URL_PROFILER)
 	if err != nil {
 		return performanceProfile,err

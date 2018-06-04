@@ -1,7 +1,6 @@
-package policy_selection
+package policy_evaluation
 import (
 	"github.com/Cloud-Pie/SPDT/types"
-	"github.com/Cloud-Pie/SPDT/pkg/cost_efficiency"
 	"sort"
 )
 
@@ -9,7 +8,7 @@ import (
 
 func SelectPolicy(policies [] types.Policy) types.Policy {
 
-	policies = cost_efficiency_calculation.ComputeTotalCost(policies)
+	policies = ComputeTotalCost(policies)
 
 	sort.Slice(policies, func(i, j int) bool {
 		return policies[i].TotalCost < policies[j].TotalCost

@@ -4,10 +4,9 @@ import (
 	Pservice "github.com/Cloud-Pie/SPDT/rest_clients/performance_profiles"
 	Fservice "github.com/Cloud-Pie/SPDT/rest_clients/forecast"
 	"github.com/Cloud-Pie/SPDT/pkg/policies_derivation"
-	"github.com/Cloud-Pie/SPDT/pkg/policy_selection"
+	"github.com/Cloud-Pie/SPDT/pkg/policy_evaluation"
 	"github.com/Cloud-Pie/SPDT/util"
 	"github.com/Cloud-Pie/SPDT/config"
-	costs "github.com/Cloud-Pie/SPDT/pkg/cost_efficiency"
 	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
 	"github.com/Cloud-Pie/SPDT/pkg/performance_profiles"
 	"gopkg.in/mgo.v2/bson"
@@ -37,7 +36,7 @@ func main () {
 		Log.Info.Printf("Prices file not specified. Default pricing file will be used.")
 		flagsVar.PricesFile = util.PRICES_FILE
 	} else {
-		_,err := costs.ParsePricesFile(util.PRICES_FILE)
+		_,err := policy_evaluation.ParsePricesFile(util.PRICES_FILE)
 		if err != nil {
 			Log.Error.Fatalf("Prices file could not be processed %s", err)
 		}
@@ -92,7 +91,7 @@ func startPolicyDerivation() {
 		Log.Trace.Printf("Finish policies derivation")
 
 		Log.Trace.Printf("Start policies evaluation")
-		policy := policy_selection.SelectPolicy(policies)
+		policy := policy_evaluation.SelectPolicy(policies)
 		Log.Trace.Printf("Finish policies evaluation")
 
 		Log.Trace.Printf("Start request Scheduler")

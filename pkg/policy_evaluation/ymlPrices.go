@@ -1,4 +1,4 @@
-package cost_efficiency_calculation
+package policy_evaluation
 
 import (
 	"gopkg.in/yaml.v2"

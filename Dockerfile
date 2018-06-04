@@ -1,4 +1,4 @@
-FROM golang:1.8.5-jessie as builder
+FROM golang:1.10.2 as builder
 # install dep
 RUN go get -u github.com/golang/dep/cmd/dep
 # setup the working directory
