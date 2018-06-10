@@ -1,7 +1,6 @@
 package performance_profiles
 
 import (
-	"github.com/Cloud-Pie/SPDT/util"
 	"net/http"
 	"encoding/json"
 	"io/ioutil"
@@ -9,9 +8,9 @@ import (
 )
 
 
-func GetPerformanceProfiles() (types.PerformanceProfile, error){
+func GetPerformanceProfiles(endpoint string) (types.PerformanceProfile, error){
 	performanceProfile := types.PerformanceProfile{}
-	response, err := http.Get(util.URL_PROFILER)
+	response, err := http.Get(endpoint)
 	if err != nil {
 		return performanceProfile,err
 	}

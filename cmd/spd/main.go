@@ -11,30 +11,29 @@ import (
 	"github.com/Cloud-Pie/SPDT/pkg/performance_profiles"
 	"gopkg.in/mgo.v2/bson"
 	"fmt"
-	"github.com/Cloud-Pie/SPDT/pkg/reconfiguration"
+	"github.com/gin-gonic/gin"
+	"github.com/Cloud-Pie/SPDT/types"
+	"net/http"
 )
 
-
 var Log = util.NewLogger()
+var FlagsVar = util.ParseFlags()
 
 func main () {
-	var flagsVar = util.ParseFlags()
-	if flagsVar.LogFile {
+
+	if FlagsVar.LogFile {
 		Log.Info.Printf("Logs can be accessed in %s", util.DEFAULT_LOGFILE)
 		Log.SetLogFile(util.DEFAULT_LOGFILE)
 	}
-	if flagsVar.ConfigFile == "" {
+
+	if FlagsVar.ConfigFile == "" {
 		Log.Info.Printf("Configuration file not specified. Default configuration will be used.")
-		flagsVar.ConfigFile = util.CONFIG_FILE
-	} else {
-		_,err := config.ParseConfigFile(flagsVar.ConfigFile)
-		if err != nil {
-			Log.Error.Fatalf("Configuration file could not be processed %s", err)
-		}
+		FlagsVar.ConfigFile = util.CONFIG_FILE
 	}
-	if flagsVar.PricesFile == "" {
+
+	if FlagsVar.PricesFile == "" {
 		Log.Info.Printf("Prices file not specified. Default pricing file will be used.")
-		flagsVar.PricesFile = util.PRICES_FILE
+		FlagsVar.PricesFile = util.PRICES_FILE
 	} else {
 		_,err := policy_evaluation.ParsePricesFile(util.PRICES_FILE)
 		if err != nil {
@@ -42,20 +41,28 @@ func main () {
 		}
 	}
 
-	/*for {
-		time.Sleep(2 * time.Second)
-		go startPolicyDerivation()
-	}*/
-	startPolicyDerivation()
-
 	server := SetUpServer()
-	server.Run(":" +flagsVar.Port)
+	server.Run(":" + FlagsVar.Port)
+
+	/*for {
+		go startPolicyDerivation(configuration)
+		time.Sleep(24 * time.Hour)
+	}*/
+
+	//startPolicyDerivation(configuration)
+
 }
 
-func startPolicyDerivation() {
+func startPolicyDerivation() [] types.Policy {
+
+	configuration,err := config.ParseConfigFile(FlagsVar.ConfigFile)
+	if err != nil {
+		Log.Error.Fatalf("Configuration file could not be processed %s", err)
+	}
+
 	//Request Performance Profiles
 	Log.Trace.Printf("Start request Performance Profiles")
-	vmProfiles,err := Pservice.GetPerformanceProfiles()
+	vmProfiles,err := Pservice.GetPerformanceProfiles(configuration.PerformanceProfilesComponent.Endpoint)
 	if err != nil {
 		Log.Error.Fatalf(err.Error())
 	}
@@ -75,7 +82,7 @@ func startPolicyDerivation() {
 
 	//Request Forecasting
 	Log.Trace.Printf("Start request Forecasting")
-	data,err := Fservice.GetForecast()
+	data,err := Fservice.GetForecast(configuration.ForecastingComponent.Endpoint)
 	if err != nil {
 		Log.Error.Fatalf(err.Error())
 	}
@@ -83,11 +90,11 @@ func startPolicyDerivation() {
 
 	forecast := forecast_processing.ProcessData(data)
 
-
+	var policies []types.Policy
 	if (forecast.NeedToScale) {
 		//Derive Strategies
 		Log.Trace.Printf("Start policies derivation")
-		policies := policies_derivation.Policies(forecast, vmProfiles)
+		policies = policies_derivation.Policies(forecast, vmProfiles, configuration)
 		Log.Trace.Printf("Finish policies derivation")
 
 		Log.Trace.Printf("Start policies evaluation")
@@ -95,11 +102,18 @@ func startPolicyDerivation() {
 		Log.Trace.Printf("Finish policies evaluation")
 
 		Log.Trace.Printf("Start request Scheduler")
-		reconfiguration.TriggerScheduler(policy)
+		//reconfiguration.TriggerScheduler(policy)
 		fmt.Sprintf(string(policy.ID))
 		Log.Trace.Printf("Finish request Scheduler")
 
 	} else {
 		Log.Trace.Printf("No need to startPolicyDerivation for the requested time window")
 	}
+
+	return  policies
+}
+
+func serverCall(c *gin.Context) {
+	policiy := startPolicyDerivation()
+	c.JSON(http.StatusOK, policiy)
 }

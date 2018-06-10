@@ -5,6 +5,7 @@ import (
 	"log"
 	"github.com/Cloud-Pie/SPDT/types"
 	"gopkg.in/mgo.v2/bson"
+	"github.com/Cloud-Pie/SPDT/util"
 )
 
 type PolicyDAO struct {
@@ -49,4 +50,19 @@ func (p *PolicyDAO) Insert(policies types.Policy) error {
 func (p *PolicyDAO) Delete(policies types.Policy) error {
 	err := db.C(COLLECTION).Remove(&policies)
 	return err
+}
+
+func Store(policy types.Policy){
+	//Store received information about Performance Profiles
+	//policy.ID = bson.NewObjectId()
+	policyDAO := PolicyDAO{
+		util.DEFAULT_DB_SERVER_POLICIES,
+		util.DEFAULT_DB_POLICIES,
+	}
+	policyDAO.Connect()
+
+	err := policyDAO.Insert(policy)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
 }

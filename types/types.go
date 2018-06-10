@@ -46,9 +46,12 @@ type Configuration struct {
 
 //Policy states the scaling transitions
 type Policy struct {
-	ID string
-	TotalCost float64
-	Configurations    [] Configuration
+	ID     bson.ObjectId 	  `bson:"_id" json:"id"`
+	Algorithm 	string		  `json:"algorithm" bson:"algorithm"`
+	TotalCost float64		`json:"total_cost" bson:"total_cost"`
+	Configurations    [] Configuration	`json:"configuration" bson:"configuration"`
+	StartTimeDerivation	time.Time	`json:"start_derivation_time" bson:"start_derivation_time"`
+	FinishTimeDerivation time.Time	`json:"finish_derivation_time" bson:"finish_derivation_time"`
 }
 
 /*Critical Interval is the interval of time for which the requests
@@ -58,6 +61,8 @@ type CriticalInterval struct {
 	Requests	int	`json:"Requests"`	//max/min point in the interval
 	Trend	int `json:"Trend"`	//1:= aboveThreshold; -1:= below
 	TimeEnd	time.Time	`json:"TimeEnd"`
+	TimePeak time.Time
+	DeltaT	int			//Distance between peaks
 }
 
 /*ProcessedForecast metadata after processing */

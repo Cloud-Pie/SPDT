@@ -7,22 +7,21 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-type NaivePolicy struct {
+type IntegerPolicy struct {
 	forecasting        types.ProcessedForecast
 	performanceProfile types.PerformanceProfile
 }
 
-func (naive NaivePolicy) CreatePolicies() [] types.Policy {
-
-	listVm := naive.performanceProfile.PerformanceModels[0].VmProfiles; //TODO: Change according to CSP
-	service := naive.performanceProfile.DockerImageApp
+func (integer IntegerPolicy) CreatePolicies() [] types.Policy {
+	listVm := integer.performanceProfile.PerformanceModels[0].VmProfiles; //TODO: Change according to CSP
+	service := integer.performanceProfile.DockerImageApp
 	policies := []types.Policy {}
 
 	for i := range listVm {
 		new_policy := types.Policy{}
 		new_policy.StartTimeDerivation = time.Now()
 		configurations := []types.Configuration {}
-		for _, it := range naive.forecasting.CriticalIntervals {
+		for _, it := range integer.forecasting.CriticalIntervals {
 			requests := it.Requests
 			n_vms := requests / listVm[i].Trn
 			services := [] types.Service{{ service, n_vms}} //TODO: Change according to # Services
@@ -35,7 +34,7 @@ func (naive NaivePolicy) CreatePolicies() [] types.Policy {
 		}
 		new_policy.Configurations = configurations
 		new_policy.FinishTimeDerivation = time.Now()
-		new_policy.Algorithm = util.NAIVE_ALGORITHM
+		new_policy.Algorithm = util.INTEGER_PROGRAMMING_ALGORITHM
 		new_policy.ID = bson.NewObjectId()
 		//store policy
 		Store(new_policy)
@@ -43,3 +42,4 @@ func (naive NaivePolicy) CreatePolicies() [] types.Policy {
 	}
 	return policies
 }
+
