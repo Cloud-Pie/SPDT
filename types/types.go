@@ -59,7 +59,7 @@ are above/below the capacity*/
 type CriticalInterval struct {
 	TimeStart	time.Time	`json:"TimeStart"`
 	Requests	int	`json:"Requests"`	//max/min point in the interval
-	Trend	int `json:"Trend"`	//1:= aboveThreshold; -1:= below
+	AboveThreshold	bool `json:"AboveThreshold"`	//1:= aboveThreshold; -1:= below
 	TimeEnd	time.Time	`json:"TimeEnd"`
 	TimePeak time.Time
 	DeltaT	int			//Distance between peaks
@@ -106,4 +106,11 @@ type PerformanceProfile struct {
 	GitUrlApp         string              `json:"git_url_app" bson:"git_url_app"`
 	QoSParams         QoSParams           `json:"qos_params" bson:"qos_params"`
 	PerformanceModels [] PerformanceModel `json:"perf_model" bson:"perf_model"`
+}
+
+type PoI struct {
+	Peak	bool	 `json:"peak"`
+	Index 	int  	 `json:"index"`
+	Start 	float64  `json:"start"`
+	End 	float64  `json:"end"`
 }

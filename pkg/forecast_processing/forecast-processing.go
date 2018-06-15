@@ -2,24 +2,42 @@ package forecast_processing
 
 import (
 	"github.com/Cloud-Pie/SPDT/types"
-	"fmt"
 	"github.com/Cloud-Pie/SPDT/util"
+	SProcessing "github.com/Cloud-Pie/SPDT/rest_clients/time_serie_processing"
+	"time"
+	"math"
 )
 
 func ProcessData(forecast types.Forecast) types.ProcessedForecast {
-	//TODO: Process the Time Serie
-	//arr := []int {0, 10, 20, 30, 40,2,3,4,5,11,23,1,4,5,2}
-	//b := burst(arr,10)
-	array := detectBurst(forecast, 1000)
-	for _,in := range array {
-		s1 := in.TimeStart
-		s2 := in.TimeEnd
-		fmt.Printf("\nstart: %s \nend: %s \nrequests: %d\n", s1.Format(util.TIME_LAYOUT), s2.Format(util.TIME_LAYOUT),in.Requests)
+	values := [] int {}
+	times := [] time.Time {}
+	for _,x := range forecast.ForecastedValues {
+		values = append(values,x.Requests)
+		times = append(times,x.TimeStamp)
 	}
-	return getMockData()
+	threshold := 12		//TODO: Get current TRN
+	poiList,_ := SProcessing.ProcessData(values, threshold, util.URL_SERIE_PROCESSING)
+
+	intervals := []types.CriticalInterval{}
+
+	for _,item := range poiList {
+		interval := types.CriticalInterval{}
+		interval.Requests = values[item.Index]
+		interval.TimePeak = times[item.Index]
+		interval.TimeStart = adjustTime(times[int(item.Start)], math.Floor(item.Start) - item.Start)
+		interval.TimeEnd = adjustTime(times[int(item.End)], math.Floor(item.End) - item.End)
+		interval.AboveThreshold = item.Peak
+		intervals = append(intervals, interval)
+	}
+	processedForecast := types.ProcessedForecast{true, intervals}
+
+	return processedForecast
 }
 
-
+func adjustTime(t time.Time, factor float64) time.Time{
+	f := factor*3600
+	return t.Add(time.Duration(f) * time.Second)
+}
 func detectBurst(forecast types.Forecast, threshold int) [] types.CriticalInterval{
 
 	flag := false

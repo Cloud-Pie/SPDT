@@ -88,7 +88,9 @@ func startPolicyDerivation() [] types.Policy {
 	}
 	Log.Trace.Printf("Finish request Forecasting")
 
+	Log.Trace.Printf("Start processing time serie")
 	forecast := forecast_processing.ProcessData(data)
+	Log.Trace.Printf("Finish processing time serie")
 
 	var policies []types.Policy
 	if (forecast.NeedToScale) {
