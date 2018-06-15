@@ -1,43 +1,78 @@
 {
-  "app_type": "cpu-intensive",
-  "docker_image_app": "image_url",
-  "git_url_app": "git_url_off_app",
-  "qos_params": {
-    "request_time_out_sec": 1,
-    "request_availability_percent": 99
+  "app_type":"cpu-intensive",
+  "docker_image_app":"image_url",
+  "git_url_app":"git_url_off_app",
+  "qos_params":{
+    "request_time_out_sec":1,
+    "request_availability_percent":99
   },
-  "perf_model": [
+  "perf_model":[
     {
-      "CSP": "AWS",
-      "VMs": [
+      "CSP":"AWS",
+      "profiles":[
         {
-          "vm_type": "m1.small",
-          "trn": 1200,
-          "num_cores": 1,
-          "memory_gb": 2
+          "vm_info":{
+            "type":"m1.small",
+            "num_cores":2,
+            "memory_gb":2,
+            "boot_time_sec":10,
+            "os":"ubuntu 16.04"
+          },
+          "services":[
+            {
+              "name":"service_1",
+              "num_replicas":1,
+              "docker_image":"path to docker_image",
+              "container_start_time_sec":2,
+              "limits":{
+                "num_cores":0,
+                "memory":0
+              }
+            },
+            {
+              "name":"service_2",
+              "num_replicas":1,
+              "docker_image":"path to docker_image",
+              "container_start_time_sec":2,
+              "limits":{
+                "num_cores":0,
+                "memory":0
+              }
+            }
+          ],
+          "maximum_service_capacity_per_sec":1200
         },
         {
-          "vm_type": "m2.micro",
-          "trn": 1000,
-          "num_cores": 1,
-          "memory_gb": 1
-        }
-      ]
-    },
-    {
-      "CSP": "LRZ",
-      "VMs": [
-        {
-          "vm_type": "m1.small",
-          "trn": 1000,
-          "num_cores": 1,
-          "memory_gb": 2
-        },
-        {
-          "vm_type": "m2.micro",
-          "trn": 800,
-          "num_cores": 1,
-          "memory_gb": 1
+          "vm_info":{
+            "type":"m2.micro",
+            "num_cores":1,
+            "memory_gb":1,
+            "boot_time_sec":8,
+            "os":"ubuntu 16.04"
+          },
+          "services":[
+            {
+              "name":"service_1",
+              "num_replicas":1,
+              "docker_image":"path to docker_image",
+              "container_start_time_sec":2,
+              "limits":{
+                "num_cores":0,
+                "memory":0
+              }
+            },
+            {
+              "name":"service_2",
+              "num_replicas":1,
+              "docker_image":"path to docker_image",
+              "container_start_time_sec":2,
+              "limits":{
+                "num_cores":0,
+                "memory":0
+              }
+            }
+          ],
+          "maximum_service_capacity_per_sec":1000
         }
       ]
     }

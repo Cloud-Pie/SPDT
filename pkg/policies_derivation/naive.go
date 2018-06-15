@@ -15,7 +15,7 @@ type NaivePolicy struct {
 func (naive NaivePolicy) CreatePolicies() [] types.Policy {
 
 	listVm := naive.performanceProfile.PerformanceModels[0].VmProfiles; //TODO: Change according to CSP
-	service := naive.performanceProfile.DockerImageApp
+	stateName := naive.performanceProfile.DockerImageApp + time.Now().Format(util.TIME_LAYOUT)
 	policies := []types.Policy {}
 
 	for i := range listVm {
@@ -24,14 +24,19 @@ func (naive NaivePolicy) CreatePolicies() [] types.Policy {
 		configurations := []types.Configuration {}
 		for _, it := range naive.forecasting.CriticalIntervals {
 			requests := it.Requests
-			n_vms := requests / listVm[i].Trn
-			services := [] types.Service{{ service, n_vms}} //TODO: Change according to # Services
-			vms := [] types.VmScale {{listVm[i].VmType, n_vms}}
-			transitionTime := -10*time.Minute		//TODO: Calculate booting time
-			startTime := it.TimeStart.Add(transitionTime)
-			state :=  types.State{startTime,services,"unknown", vms, startTime.Format(util.TIME_LAYOUT)}
-			configurations = append(configurations, types.Configuration{-1, state, it.TimeStart, it.TimeEnd})
+			nVms := requests / listVm[i].TRN
 
+			servicesList := listVm[i].ServiceInfo
+			services := [] types.Service{}
+			for _,s := range servicesList {
+				services = append(services, types.Service{ s.Name, s.NumReplicas})
+			}
+			//services := [] types.Service{{ service, nVms}} //TODO: Change according to # Services
+			vms := [] types.VmScale {{listVm[i].VmInfo.Type, nVms}}
+			transitionTime := listVm[i].VmInfo.BootTimeSec		//TODO: Calculate booting time
+			startTime := it.TimeStart.Add(time.Duration(transitionTime) * time.Second)
+			state :=  types.State{startTime,services,stateName, vms, startTime.Format(util.TIME_LAYOUT)}
+			configurations = append(configurations, types.Configuration{-1, state, it.TimeStart, it.TimeEnd})
 		}
 		new_policy.Configurations = configurations
 		new_policy.FinishTimeDerivation = time.Now()

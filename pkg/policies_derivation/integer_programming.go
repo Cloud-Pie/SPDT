@@ -23,9 +23,9 @@ func (integer IntegerPolicy) CreatePolicies() [] types.Policy {
 		configurations := []types.Configuration {}
 		for _, it := range integer.forecasting.CriticalIntervals {
 			requests := it.Requests
-			n_vms := requests / listVm[i].Trn
+			n_vms := requests / listVm[i].TRN
 			services := [] types.Service{{ service, n_vms}} //TODO: Change according to # Services
-			vms := [] types.VmScale {{listVm[i].VmType, n_vms}}
+			vms := [] types.VmScale {{listVm[i].VmInfo.Type, n_vms}}
 			transitionTime := -10*time.Minute		//TODO: Calculate booting time
 			startTime := it.TimeStart.Add(transitionTime)
 			state :=  types.State{startTime,services,"unknown", vms, startTime.Format(util.TIME_LAYOUT)}
