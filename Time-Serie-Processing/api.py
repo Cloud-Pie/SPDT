@@ -1,13 +1,15 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 import json
 from processing import getMeassures
 
 app = Flask(__name__)
 
-@app.route("/api/peaks", methods=['GET'])
+@app.route("/api/peaks", methods=['POST'])
 def processSignal():
-    x = [10, 16, 20, 22, 15, 10, 15, 10, 8, 6, 7, 5, 10, 13, 14, 10, 8, 13, 8, 10, 7, 12, 15, 10, 12, 10]
-    return json.dumps( {"response": getMeassures(x, 12)})
+    threshold = request.json['threshold']
+    serie = request.json['serie']
+    y ={"PoI": getMeassures(serie, threshold)}
+    return jsonify(y)
 
 
 if __name__ == "__main__":

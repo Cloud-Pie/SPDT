@@ -6,7 +6,7 @@ def getMeassures(x, threshold):
 
     vector = np.array(x)
     invvector = vector * -1
-    peaks, properties = scipy.signal.find_peaks(vector, distance=2, prominence=1, width=0.1, height=threshold, rel_height=1)
+    peaks, properties = scipy.signal.find_peaks(vector, distance=2, prominence=1, width=1, height=threshold, rel_height=1)
     valleys, propValleys = scipy.signal.find_peaks(invvector,  distance=2, prominence=1, width=1,rel_height=1)
 
     #plotGraph(x,peaks,valleys,properties,propValleys,vector,invvector)
@@ -18,32 +18,28 @@ def getMeassures(x, threshold):
     while True:
         try:
             interval = {}
-            if i>=peaks.size and j>=valleys.size:
+            if i >= peaks.size and j >= valleys.size:
                 return response
-            if (i <= peaks.size and j >=valleys.size):
+            if (i < peaks.size and j >= valleys.size):
                 interval["peak"] = True
-                interval["value"] = peaks[i]
-                index = peaks[i]
+                interval["index"] = int(peaks[i])
+                index = int(peaks[i])
                 i += 1
-
-            elif( i >= peaks.size and j <= valleys.size):
+            elif( i >= peaks.size and j < valleys.size):
                 interval["peak"] = False
-                interval["value"] = valleys[j]
-                index = valleys[i]
+                interval["index"] = int(valleys[j])
+                index = int(valleys[j])
                 j += 1
-
             elif(peaks[i] > valleys[j]):
                 interval["peak"] = False
-                interval["value"] = valleys[j]
-                index = valleys[i]
+                interval["index"] = int(valleys[j])
+                index = int(valleys[j])
                 j += 1
-
-            else:
+            elif(peaks[i] < valleys[j]):
                 interval["peak"] = True
-                interval["value"] = peaks[i]
-                index = peaks[i]
+                interval["index"] = int(peaks[i])
+                index = int(peaks[i])
                 i += 1
-
 
            #left intersection
             interval["start"] = findIntersection(x, index, threshold, -1)
@@ -51,11 +47,15 @@ def getMeassures(x, threshold):
             interval["end"] = findIntersection(x, index, threshold, 1)
             response.append(interval)
         except IndexError:
-            print("i:", i, " j:", j)
+            print("IndexError ","i:", i, " j:", j)
 
     return response
 
 def findIntersection(x, index, threshold, step):
+    if (index + step) >= len(x):
+        return len(x)-1
+    elif (index+step) <=0:
+        return 0
     if (x[index + step] <= threshold and x[index ] > threshold) or (x[index] <= threshold and x[index +step] > threshold):
         return calculateX(threshold, x[index], index, x[index+step], index+step)
     else:
