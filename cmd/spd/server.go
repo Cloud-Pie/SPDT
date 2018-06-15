@@ -6,11 +6,9 @@ import (
 
 func SetUpServer() *gin.Engine{
 	router := gin.Default()
-	router.POST("/api/forecast", processForecast)
+	router.MaxMultipartMemory = 8 << 20 // 8 MiB
+	router.GET("/api/forecast", serverCall)
 	return router
 }
 
-func processForecast(c *gin.Context){
-
-}
 
