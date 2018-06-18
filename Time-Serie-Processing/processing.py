@@ -3,23 +3,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def getMeassures(x, threshold):
-
+    xcoords = []
     vector = np.array(x)
     invvector = vector * -1
     peaks, properties = scipy.signal.find_peaks(vector, distance=2, prominence=1, width=1, height=threshold, rel_height=1)
     valleys, propValleys = scipy.signal.find_peaks(invvector,  distance=2, prominence=1, width=1,rel_height=1)
 
-    #plotGraph(x,peaks,valleys,properties,propValleys,vector,invvector)
-
     response = []
     i = 0
     j = 0
     index = 0
+
     while True:
         try:
             interval = {}
             if i >= peaks.size and j >= valleys.size:
-                return response
+                break
             if (i < peaks.size and j >= valleys.size):
                 interval["peak"] = True
                 interval["index"] = int(peaks[i])
@@ -43,11 +42,16 @@ def getMeassures(x, threshold):
 
            #left intersection
             interval["start"] = findIntersection(x, index, threshold, -1)
+
             # right intersection
             interval["end"] = findIntersection(x, index, threshold, 1)
+           # xcoords.append(interval["end"])
+
             response.append(interval)
         except IndexError:
             print("IndexError ","i:", i, " j:", j)
+
+    plotGraph(x, peaks, valleys, properties, propValleys, vector, invvector, threshold, xcoords)
 
     return response
 
@@ -70,17 +74,22 @@ def calculateX(y,y1,x1,y2,x2):
         print ("x1:", x1, " y1:", y1, " x2:", x2, " y2:", y2)
     return x
 
-def plotGraph(x, peaks, valleys, properties, propValleys, vector, invvector):
+def plotGraph(x, peaks, valleys, properties, propValleys, vector, invvector, threshold, xcoords):
     plt.plot(x)
-    plt.hlines(y=12, xmin=0, xmax=25, color="C6")
+    plt.hlines(y=threshold, xmin=0, xmax=25, color="C6")
     plt.plot(peaks, vector[peaks], "x", color="C1")
     plt.vlines(x=peaks, ymin=vector[peaks] - properties["prominences"], ymax=vector[peaks], color="C1")
-    plt.hlines(y=vector[peaks] - properties["prominences"], xmin=properties["left_bases"], xmax=properties["right_bases"],color="C4")
-    plt.hlines(y=properties["width_heights"], xmin=properties["left_ips"], xmax=properties["right_ips"], color = "C1")
+  #  plt.hlines(y=vector[peaks] - properties["prominences"], xmin=properties["left_bases"], xmax=properties["right_bases"],color="C4")
+   # plt.hlines(y=properties["width_heights"], xmin=properties["left_ips"], xmax=properties["right_ips"], color = "C1")
 
     plt.plot(valleys, invvector[valleys] * -1, "o", color="C2")
     plt.vlines(x=valleys, ymin=(invvector[valleys] - propValleys["prominences"]) * -1, ymax=(invvector[valleys]) * -1,
                color="C2")
-    plt.hlines(y= - invvector[valleys] + propValleys["prominences"], xmin=propValleys["left_bases"],xmax=propValleys["right_bases"], color="C5")
-    plt.hlines(y=propValleys["width_heights"] * -1, xmin=propValleys["left_ips"], xmax=propValleys["right_ips"],color="C2")
+  #  plt.hlines(y= - invvector[valleys] + propValleys["prominences"], xmin=propValleys["left_bases"],xmax=propValleys["right_bases"], color="C5")
+   # plt.hlines(y=propValleys["width_heights"] * -1, xmin=propValleys["left_ips"], xmax=propValleys["right_ips"],color="C2")
+
+    for xc in xcoords:
+        plt.axvline(x=xc, color="C8")
+
     plt.show()
+
