@@ -16,7 +16,7 @@ def getMeassures(x, threshold):
         try:
             interval = {}
             interval["peak"] = True
-            interval["index_peak"] = int(peaks[i])
+            interval["index"] = int(peaks[i])
             interval["widht_heights"] = properties["width_heights"][i]
             interval["left_ips"] = properties["left_ips"][i]
             interval["right_ips"] = properties["right_ips"][i]
@@ -24,34 +24,34 @@ def getMeassures(x, threshold):
             if (j) < len(valleys):
                 if(peaks[i] < valleys[j] and j==0):
                     valley = {}
-                    valley["index_left_valley"] = 0
-                    interval["start"] = valley
+                    valley["index"] = 0
+                    interval["index_left_valley"] = valley
 
                 if(peaks[i] > valleys[j]):
                     valley = {}
-                    valley["index_left_valley"] = int(valleys[j])
+                    valley["index"] = int(valleys[j])
                     valley["widht_heights"] = propValleys["width_heights"][j] * -1
                     valley["left_ips"] = propValleys["left_ips"][j]
                     valley["right_ips"] = propValleys["right_ips"][j]
-                    interval["start"] = valley
+                    interval["index_left_valley"] = valley
                     j+=1
 
             if (j) < len(valleys):
                 if(peaks[i] < valleys[j]):
                     valley = {}
-                    valley["index_right_valley"] = int(valleys[j])
+                    valley["index"] = int(valleys[j])
                     valley["widht_heights"] = propValleys["width_heights"][j] * -1
                     valley["left_ips"] = propValleys["left_ips"][j]
                     valley["right_ips"] = propValleys["right_ips"][j]
-                    interval["end"] = valley
+                    interval["index_right_valley"] = valley
             else:
                 valley = {}
-                valley["index_right_valley"] = len(x)-1
-                interval["end"] = valley
+                valley["index"] = len(x)-1
+                interval["index_right_valley"] = valley
             i += 1
 
-            start = interval["start"]["index_left_valley"]
-            end = interval["end"]["index_right_valley"]
+            start = interval["index_left_valley"]["index"]
+            end = interval["index_right_valley"]["index"]
             interval ["index_in_interval"] = list(range(start+1,end))
             response.append(interval)
 
@@ -95,9 +95,9 @@ def plotGraph(x, peaks, valleys, properties, propValleys, vector, invvector, thr
 
     xcoords = []
     for i in response:
-        a = i["start"]["index_left_valley"]
+        a = i["index_left_valley"]["index"]
         xcoords.append(a)
-        a = i["end"]["index_right_valley"]
+        a = i["index_right_valley"]["index"]
         xcoords.append(a)
 
     for xc in xcoords:

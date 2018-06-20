@@ -69,6 +69,7 @@ type CriticalInterval struct {
 type ProcessedForecast struct {
 	NeedToScale       bool
 	CriticalIntervals [] CriticalInterval
+	RawForecast		Forecast
 }
 
 type ForecastedValue struct {
@@ -119,6 +120,16 @@ type PerformanceModel struct {
 	VmProfiles [] VmProfile `json:"profiles" bson:"profiles"`
 }
 
+func  (model PerformanceModel) MapTypeCapacity() map[string] int{
+	mapTypesCapacity := make(map[string]int)
+
+	for _,vm := range model.VmProfiles {
+		mapTypesCapacity [vm.VmInfo.Type] = vm.TRN
+	}
+	return  mapTypesCapacity
+}
+
+
 type PerformanceProfile struct {
 	ID          	  bson.ObjectId 	  `bson:"_id" json:"id"`
 	AppType           string              `json:"app_type" bson:"app_type"`
@@ -133,4 +144,23 @@ type PoI struct {
 	Index 	int  	 `json:"index"`
 	Start 	float64  `json:"start"`
 	End 	float64  `json:"end"`
+}
+
+type PriceModel struct{
+	VMPrices []VMPrice	`yaml:"vm-prices"`
+}
+
+type VMPrice struct{
+	VmType string	`yaml:"type"`
+	Price float64	`yaml:"price"`
+	Unit string	`yaml:"unit"`
+}
+
+
+func (priceModel PriceModel) MapPrices() (map[string] float64, string) {
+	mapPrices := make(map[string]float64)
+	for _,vmPrice := range priceModel.VMPrices {
+		mapPrices [vmPrice.VmType ] = vmPrice.Price
+	}
+	return mapPrices, priceModel.VMPrices[0].Unit
 }
