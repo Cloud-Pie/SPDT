@@ -14,7 +14,7 @@ func TestCreateState(t *testing.T) {
 	}
 
 	state := types.State{
-		ISOTime: time.Now(),
+		ISODate: time.Now(),
 		Services: []types.Service{
 			{
 				Name:  "myservice",
@@ -26,7 +26,7 @@ func TestCreateState(t *testing.T) {
 			},
 		},
 		Name:    "test from SPDT",
-		Vms: []types.VmScale{
+		VMs: []types.VmScale{
 			{
 				Type:  "myvm1",
 				Scale: 2,

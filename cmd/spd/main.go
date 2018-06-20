@@ -14,10 +14,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/Cloud-Pie/SPDT/types"
 	"net/http"
+	"github.com/Cloud-Pie/SPDT/pkg/reconfiguration"
 )
 
 var Log = util.NewLogger()
 var FlagsVar = util.ParseFlags()
+var priceModel types.PriceModel
 
 func main () {
 
@@ -35,7 +37,8 @@ func main () {
 		Log.Info.Printf("Prices file not specified. Default pricing file will be used.")
 		FlagsVar.PricesFile = util.PRICES_FILE
 	} else {
-		_,err := policy_evaluation.ParsePricesFile(util.PRICES_FILE)
+		var err error
+		priceModel,err = policy_evaluation.ParsePricesFile(util.PRICES_FILE)
 		if err != nil {
 			Log.Error.Fatalf("Prices file could not be processed %s", err)
 		}
@@ -89,24 +92,28 @@ func startPolicyDerivation() [] types.Policy {
 	Log.Trace.Printf("Finish request Forecasting")
 
 	Log.Trace.Printf("Start processing time serie")
-	forecast := forecast_processing.ProcessData(data)
+	processedForecast := forecast_processing.ProcessData(data)
 	Log.Trace.Printf("Finish processing time serie")
 
 	var policies []types.Policy
-	if (forecast.NeedToScale) {
+	if (processedForecast.NeedToScale) {
 		//Derive Strategies
 		Log.Trace.Printf("Start policies derivation")
-		policies = policies_derivation.Policies(forecast, vmProfiles, configuration)
+		policies = policies_derivation.Policies(processedForecast, vmProfiles, configuration, priceModel)
 		Log.Trace.Printf("Finish policies derivation")
 
 		Log.Trace.Printf("Start policies evaluation")
-		policy := policy_evaluation.SelectPolicy(policies)
+		policy,err := policy_evaluation.SelectPolicy(policies)
 		Log.Trace.Printf("Finish policies evaluation")
 
-		Log.Trace.Printf("Start request Scheduler")
-		//reconfiguration.TriggerScheduler(policy)
-		fmt.Sprintf(string(policy.ID))
-		Log.Trace.Printf("Finish request Scheduler")
+		if err != nil {
+			Log.Trace.Printf("No policy found")
+		} else {
+			Log.Trace.Printf("Start request Scheduler")
+			reconfiguration.TriggerScheduler(policy, configuration.SchedulerComponent.Endpoint)
+			fmt.Sprintf(string(policy.ID))
+			Log.Trace.Printf("Finish request Scheduler")
+		}
 
 	} else {
 		Log.Trace.Printf("No need to startPolicyDerivation for the requested time window")
@@ -117,5 +124,5 @@ func startPolicyDerivation() [] types.Policy {
 
 func serverCall(c *gin.Context) {
 	policiy := startPolicyDerivation()
-	c.JSON(http.StatusOK, policiy)
+	c.JSON(http.StatusOK, policiy[0])
 }

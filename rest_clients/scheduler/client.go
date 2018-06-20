@@ -2,14 +2,13 @@ package scheduler
 
 import (
 	"github.com/Cloud-Pie/SPDT/types"
-	"github.com/Cloud-Pie/SPDT/util"
 	"encoding/json"
 	"net/http"
 	"bytes"
 )
 
-func CreateState(state types.State) error{
+func CreateState(state types.State, endpoint string) error{
 	jsonValue, _ := json.Marshal(state)
-	_, err := http.Post(util.URL_SCHEDULER, "application/json", bytes.NewBuffer(jsonValue))
+	_, err := http.Post(endpoint, "application/json", bytes.NewBuffer(jsonValue))
 	return err
 }
