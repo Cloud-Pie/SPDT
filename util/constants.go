@@ -16,3 +16,4 @@ const DEFAULT_DB_SERVER_POLICIES = "localhost"
 //Algorithms names
 const NAIVE_ALGORITHM = "naive"
 const INTEGER_PROGRAMMING_ALGORITHM = "integer-programming"
+const SMALL_STEP_ALGORITHM = "sstep"
