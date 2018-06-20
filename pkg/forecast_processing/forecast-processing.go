@@ -8,28 +8,40 @@ import (
 	"math"
 )
 
-func ProcessData(forecast types.Forecast) types.ProcessedForecast {
+func ProcessData(forecast types.Forecast) (types.ProcessedForecast) {
 	values := [] int {}
 	times := [] time.Time {}
 	for _,x := range forecast.ForecastedValues {
 		values = append(values,x.Requests)
 		times = append(times,x.TimeStamp)
 	}
-	threshold := 12		//TODO: Get current TRN
+	threshold := 1200		//TODO: Get current TRN
 	poiList,_ := SProcessing.ProcessData(values, threshold, util.URL_SERIE_PROCESSING)
-
 	intervals := []types.CriticalInterval{}
 
 	for _,item := range poiList {
 		interval := types.CriticalInterval{}
 		interval.Requests = values[item.Index]
 		interval.TimePeak = times[item.Index]
-		interval.TimeStart = adjustTime(times[int(item.Start)], math.Floor(item.Start) - item.Start)
-		interval.TimeEnd = adjustTime(times[int(item.End)], math.Floor(item.End) - item.End)
+		//interval.TimeStart = adjustTime(times[int(item.Start.Index)], math.Floor(item.Start.) - item.Start)
+		//interval.TimeEnd = adjustTime(times[int(item.End.Index)], math.Floor(item.End) - item.End)
+
+		interSize := len(intervals)
+		if (interSize > 1){
+			//start time is equal to the end time from previous interval
+			interval.TimeStart = intervals[interSize-1].TimeEnd
+		}else {
+			interval.TimeStart = times[int(item.Start.Index)]
+		}
+
+		//Calculate End Time using the ips_left
+		 //timeValley := times[int(item.End.Index)]
+		 timeValleyIpsRight := adjustTime(times[int(item.End.Index)], math.Floor(item.End.Right_ips) - item.End.Right_ips)
+		 interval.TimeEnd = timeValleyIpsRight
 		interval.AboveThreshold = item.Peak
 		intervals = append(intervals, interval)
 	}
-	processedForecast := types.ProcessedForecast{true, intervals}
+	processedForecast := types.ProcessedForecast{true, intervals, forecast}
 
 	return processedForecast
 }

@@ -12,7 +12,7 @@ type PolicyDerivation interface {
 	CreatePolicies()
 }
 
-func Policies(forecasting types.ProcessedForecast, performance_profile types.PerformanceProfile, configuration config.SystemConfiguration) []types.Policy {
+func Policies(forecasting types.ProcessedForecast, performance_profile types.PerformanceProfile, configuration config.SystemConfiguration, priceModel types.PriceModel) []types.Policy {
 	var policies []types.Policy
 
 	switch configuration.PreferredAlgorithm {
@@ -22,6 +22,9 @@ func Policies(forecasting types.ProcessedForecast, performance_profile types.Per
 	case util.INTEGER_PROGRAMMING_ALGORITHM:
 		integer := IntegerPolicy{forecasting, performance_profile}
 		policies = integer.CreatePolicies()
+	case util.SMALL_STEP_ALGORITHM:
+		sstep := SStepPolicy{forecasting, performance_profile, priceModel}
+		policies = sstep.CreatePolicies()
 	default:
 		naive := NaivePolicy {forecasting, performance_profile}
 		integer := IntegerPolicy{forecasting, performance_profile}
