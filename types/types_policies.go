@@ -17,8 +17,6 @@ type State struct {
 	Services [] Service `json:Services`
 	Name     string     `json:Name`
 	VMs      [] VmScale `json:VMs`
-	Time     string     `json:Time`
-
 }
 /*
 func  (state State) MapTypesScale() map[string] int{

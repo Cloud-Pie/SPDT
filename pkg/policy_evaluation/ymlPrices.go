@@ -4,6 +4,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"log"
 	"io/ioutil"
+	"github.com/Cloud-Pie/SPDT/types"
 )
 
 type VMPrice struct{
@@ -16,8 +17,8 @@ type PriceModel struct{
 	VMPrices []VMPrice	`yaml:"vm-prices"`
 }
 
-func ParsePricesFile(configFile string) (PriceModel,error) {
-	prices := PriceModel{}
+func ParsePricesFile(configFile string) (types.PriceModel,error) {
+	prices := types.PriceModel{}
 	source, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		panic(err)
@@ -27,12 +28,4 @@ func ParsePricesFile(configFile string) (PriceModel,error) {
 		log.Fatalf("error: %v", err)
 	}
 	return prices,err
-}
-
-func (priceModel PriceModel) MapPrices() (map[string] float64, string) {
-	mapPrices := make(map[string]float64)
-	for _,vmPrice := range priceModel.VMPrices {
-		mapPrices [vmPrice.VmType ] = vmPrice.Price
-	}
-	return mapPrices, priceModel.VMPrices[0].Unit
 }

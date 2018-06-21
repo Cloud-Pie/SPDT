@@ -8,6 +8,7 @@ import (
 	"math"
 )
 
+//DEPRECATED
 func ProcessData(forecast types.Forecast) (types.ProcessedForecast) {
 	values := [] int {}
 	times := [] time.Time {}
@@ -41,7 +42,8 @@ func ProcessData(forecast types.Forecast) (types.ProcessedForecast) {
 		interval.AboveThreshold = item.Peak
 		intervals = append(intervals, interval)
 	}
-	processedForecast := types.ProcessedForecast{true, intervals, forecast}
+	processedForecast := types.ProcessedForecast{}
+	processedForecast.CriticalIntervals = intervals
 
 	return processedForecast
 }
@@ -49,6 +51,18 @@ func ProcessData(forecast types.Forecast) (types.ProcessedForecast) {
 func adjustTime(t time.Time, factor float64) time.Time{
 	f := factor*3600
 	return t.Add(time.Duration(f) * time.Second)
+}
+
+func PointsOfInterest(forecast types.Forecast) ([]types.PoI, []int, [] time.Time){
+	values := [] int {}
+	times := [] time.Time {}
+	for _,x := range forecast.ForecastedValues {
+		values = append(values,x.Requests)
+		times = append(times,x.TimeStamp)
+	}
+	threshold := 1200		//TODO: Get current TRN
+	poiList,_ := SProcessing.ProcessData(values, threshold, util.URL_SERIE_PROCESSING)
+	return  poiList,values,times
 }
 func detectBurst(forecast types.Forecast, threshold int) [] types.CriticalInterval{
 

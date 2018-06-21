@@ -27,7 +27,6 @@ type Forecast struct {
 
 /*ProcessedForecast metadata after processing the time serie*/
 type ProcessedForecast struct {
-	NeedToScale       bool
 	CriticalIntervals [] CriticalInterval
 	RawForecast		Forecast
 }
@@ -52,5 +51,4 @@ type PoI struct {
 		Right_ips	float64		`json:"right_ips"`
 		Widht_heights	float64	`json:"widht_heights"`
 	}							`json:"index_right_valley"`
-
 }

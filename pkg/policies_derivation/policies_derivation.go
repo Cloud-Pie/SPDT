@@ -4,32 +4,57 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"github.com/Cloud-Pie/SPDT/util"
 	"github.com/Cloud-Pie/SPDT/config"
+	"time"
 )
 
 //TODO: Profile for Current config
 
 type PolicyDerivation interface {
-	CreatePolicies()
+	CreatePolicies(poiList []types.PoI, values []int, times [] time.Time, profile types.PerformanceProfile)
 }
 
-func Policies(forecasting types.ProcessedForecast, performance_profile types.PerformanceProfile, configuration config.SystemConfiguration, priceModel types.PriceModel) []types.Policy {
+func Policies(poiList []types.PoI, values []int, times [] time.Time, performance_profile types.PerformanceProfile, configuration config.SystemConfiguration, priceModel types.PriceModel) []types.Policy {
 	var policies []types.Policy
 
 	switch configuration.PreferredAlgorithm {
 	case util.NAIVE_ALGORITHM:
-		naive := NaivePolicy {forecasting, performance_profile}
-		policies = naive.CreatePolicies()
+		naive := NaivePolicy {algorithm:util.NAIVE_ALGORITHM}
+		policies = naive.CreatePolicies(poiList,values,times, performance_profile)
 	case util.INTEGER_PROGRAMMING_ALGORITHM:
-		integer := IntegerPolicy{forecasting, performance_profile}
-		policies = integer.CreatePolicies()
+		integer := IntegerPolicy{util.INTEGER_PROGRAMMING_ALGORITHM}
+		policies = integer.CreatePolicies(poiList,values,times, performance_profile)
 	case util.SMALL_STEP_ALGORITHM:
-		sstep := SStepPolicy{forecasting, performance_profile, priceModel}
-		policies = sstep.CreatePolicies()
+		sstep := SStepPolicy{priceModel, util.SMALL_STEP_ALGORITHM}
+		policies = sstep.CreatePolicies(poiList,values,times, performance_profile)
 	default:
-		naive := NaivePolicy {forecasting, performance_profile}
-		integer := IntegerPolicy{forecasting, performance_profile}
-		policies = append(naive.CreatePolicies(),integer.CreatePolicies()...)
+		naive := NaivePolicy {algorithm:util.NAIVE_ALGORITHM}
+		integer := IntegerPolicy{algorithm:util.INTEGER_PROGRAMMING_ALGORITHM}
+		policies = append(naive.CreatePolicies(poiList,values,times, performance_profile),integer.CreatePolicies(poiList,values,times, performance_profile)...)
 	}
-
 	return policies
+}
+
+func adjustTime(t time.Time, factor float64) time.Time{
+	f := factor*3600
+	return t.Add(time.Duration(f) * time.Second)
+}
+
+func compare(s1 types.State, s2 types.State) bool {
+	if len(s1.VMs) != len(s2.VMs) {
+		return false
+	}
+	for i, v := range s1.VMs {
+		if v != s2.VMs[i] {
+			return false
+		}
+	}
+	if len(s1.Services) != len(s2.Services) {
+		return false
+	}
+	for i, v := range s1.Services {
+		if v != s2.Services[i] {
+			return false
+		}
+	}
+	return true
 }

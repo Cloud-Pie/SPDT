@@ -7,14 +7,13 @@ import (
 	"github.com/Cloud-Pie/SPDT/pkg/policy_evaluation"
 	"github.com/Cloud-Pie/SPDT/util"
 	"github.com/Cloud-Pie/SPDT/config"
-	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
 	"github.com/Cloud-Pie/SPDT/pkg/performance_profiles"
 	"gopkg.in/mgo.v2/bson"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/Cloud-Pie/SPDT/types"
 	"net/http"
-	"github.com/Cloud-Pie/SPDT/pkg/reconfiguration"
+	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
 )
 
 var Log = util.NewLogger()
@@ -91,32 +90,30 @@ func startPolicyDerivation() [] types.Policy {
 	}
 	Log.Trace.Printf("Finish request Forecasting")
 
-	Log.Trace.Printf("Start processing time serie")
-	processedForecast := forecast_processing.ProcessData(data)
-	Log.Trace.Printf("Finish processing time serie")
+
+	Log.Trace.Printf("Start points of interest search in time serie")
+	poiList, values, times := forecast_processing.PointsOfInterest(data)
+	Log.Trace.Printf("Finish points of interest search in time serie")
+
 
 	var policies []types.Policy
-	if (processedForecast.NeedToScale) {
-		//Derive Strategies
-		Log.Trace.Printf("Start policies derivation")
-		policies = policies_derivation.Policies(processedForecast, vmProfiles, configuration, priceModel)
-		Log.Trace.Printf("Finish policies derivation")
 
-		Log.Trace.Printf("Start policies evaluation")
-		policy,err := policy_evaluation.SelectPolicy(policies)
-		Log.Trace.Printf("Finish policies evaluation")
+	//Derive Strategies
+	Log.Trace.Printf("Start policies derivation")
+	policies = policies_derivation.Policies(poiList, values, times, vmProfiles, configuration, priceModel)
+	Log.Trace.Printf("Finish policies derivation")
 
-		if err != nil {
-			Log.Trace.Printf("No policy found")
-		} else {
-			Log.Trace.Printf("Start request Scheduler")
-			reconfiguration.TriggerScheduler(policy, configuration.SchedulerComponent.Endpoint)
-			fmt.Sprintf(string(policy.ID))
-			Log.Trace.Printf("Finish request Scheduler")
-		}
+	Log.Trace.Printf("Start policies evaluation")
+	policy,err := policy_evaluation.SelectPolicy(policies)
+	Log.Trace.Printf("Finish policies evaluation")
 
+	if err != nil {
+		Log.Trace.Printf("No policy found")
 	} else {
-		Log.Trace.Printf("No need to startPolicyDerivation for the requested time window")
+		Log.Trace.Printf("Start request Scheduler")
+		//reconfiguration.TriggerScheduler(policy, configuration.SchedulerComponent.Endpoint)
+		fmt.Sprintf(string(policy.ID))
+		Log.Trace.Printf("Finish request Scheduler")
 	}
 
 	return  policies
