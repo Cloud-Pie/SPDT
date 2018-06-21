@@ -14,6 +14,7 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"net/http"
 	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
+	"time"
 )
 
 var Log = util.NewLogger()
@@ -84,7 +85,9 @@ func startPolicyDerivation() [] types.Policy {
 
 	//Request Forecasting
 	Log.Trace.Printf("Start request Forecasting")
-	data,err := Fservice.GetForecast(configuration.ForecastingComponent.Endpoint)
+	timeStart := time.Now().Add(time.Hour)			//TODO: Adjust real times
+	timeEnd := timeStart.Add(time.Hour * 24)
+	data,err := Fservice.GetForecast(configuration.ForecastingComponent.Endpoint, timeStart, timeEnd)
 	if err != nil {
 		Log.Error.Fatalf(err.Error())
 	}

@@ -5,16 +5,28 @@ import (
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
+	"net/url"
+	"time"
 )
 
-func GetForecast(endpoint string) (types.Forecast, error){
+func GetForecast(endpoint string, startTime time.Time, endTime time.Time) (types.Forecast, error){
+
 	forecast := types.Forecast{}
-	response, err := http.Get(endpoint)
+	q := url.Values{}
+	q.Add("timestamp-start", startTime.String())
+	q.Add("timestamp-end", endTime.String())
+
+	req, err := http.NewRequest("GET",endpoint,nil)
 	if err != nil {
 		return forecast,err
 	}
-	defer response.Body.Close()
-	data, err := ioutil.ReadAll(response.Body)
+	req.URL.RawQuery = q.Encode()
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return forecast,err
 	}
