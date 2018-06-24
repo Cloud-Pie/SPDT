@@ -52,11 +52,60 @@ def getMeassures(x, threshold):
 
             start = interval["index_left_valley"]["index"]
             end = interval["index_right_valley"]["index"]
-            interval ["index_in_interval"] = list(range(start+1,end))
+            interval ["index_in_interval_left"] = list(range(start+1,interval["index"]))
+            interval["index_in_interval_right"] = list(range(interval["index"] + 1, end))
             response.append(interval)
+
+
 
         except IndexError:
             print("IndexError ","i:", i, " j:", j)
+
+    # Add points before first valley
+    firstIndex = response[0]["index_left_valley"]["index"]
+    if (firstIndex > 0):
+        interval = {}
+        #First Interval does not include a peak
+        interval["peak"] = False
+        #Start with the first position
+        interval["index"] = 0
+        valley = {}
+        valley["index"] = 0
+        interval["index_left_valley"] = valley
+        start = interval["index_left_valley"]["index"]
+
+        valley = {}
+        valley["index"] = firstIndex
+        interval["index_right_valley"] = valley
+        end = interval["index_right_valley"]["index"]
+        # all indices between the second element and the first valley
+        interval["index_in_interval_left"] = list(range(start + 1, interval["index"]))
+        interval["index_in_interval_right"] = list(range(interval["index"] + 1, end))
+        response.insert(0,interval)
+
+    #Add points after the first valley
+    lenResponse = len(response)
+    lastIndex = response[lenResponse-1]["index_right_valley"]["index"]
+    nSamples = len(x)
+    if(nSamples - 1 > lastIndex):
+        interval = {}
+        # First Interval does not include a peak
+        interval["peak"] = False
+        # Start with the first position
+        interval["index"] = nSamples - 1
+        valley = {}
+        valley["index"] = lastIndex
+        interval["index_left_valley"] = valley
+        start = interval["index_left_valley"]["index"]
+        valley = {}
+        valley["index"] = nSamples - 1
+        interval["index_left_valley"] = valley
+        end = interval["index_left_valley"]["index"]
+
+        # all indices between the last valley to the right and the last element
+        interval["index_in_interval_left"] = list(range(start + 1, interval["index"]))
+        interval["index_in_interval_right"] = list(range(interval["index"] + 1, end))
+        response.append(interval)
 
     return response,peaks, valleys, properties, propValleys, vector, invvector
 
@@ -81,9 +130,10 @@ def calculateX(y,y1,x1,y2,x2):
     return x
 
 def plotGraph(x, peaks, valleys, properties, propValleys, vector, invvector, threshold, response):
+    plt.plot(x,"x", color="C9")
     plt.plot(x)
     plt.hlines(y=threshold, xmin=0, xmax=25, color="C6")
-    plt.plot(peaks, vector[peaks], "x", color="C1")
+    plt.plot(peaks, vector[peaks], "o", color="C1")
    #plt.vlines(x=peaks, ymin=vector[peaks] - properties["prominences"], ymax=vector[peaks], color="C1")
    #plt.hlines(y=vector[peaks] - properties["prominences"], xmin=properties["left_bases"], xmax=properties["right_bases"],color="C4")
     plt.hlines(y=properties["width_heights"], xmin=properties["left_ips"], xmax=properties["right_ips"], color = "C1")
@@ -95,10 +145,12 @@ def plotGraph(x, peaks, valleys, properties, propValleys, vector, invvector, thr
 
     xcoords = []
     for i in response:
-        a = i["index_left_valley"]["index"]
-        xcoords.append(a)
-        a = i["index_right_valley"]["index"]
-        xcoords.append(a)
+        if "index_left_valley" in i:
+            a = i["index_left_valley"]["index"]
+            xcoords.append(a)
+        if "index_right_valley" in i:
+            a = i["index_right_valley"]["index"]
+            xcoords.append(a)
 
     for xc in xcoords:
         plt.axvline(x=xc, color="C8")
