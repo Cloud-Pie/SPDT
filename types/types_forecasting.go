@@ -38,7 +38,8 @@ type PoI struct {
 	Left_ips		float64	 `json:"left_ips"`
 	Right_ips		float64	 `json:"right_ips"`
 	Widht_heights	float64	 `json:"widht_heights"`
-	Index_in_interval []int	 `json:"index_in_interval"`
+	Index_in_interval_right []int	 `json:"index_in_interval_right"`
+	Index_in_interval_left []int	 `json:"index_in_interval_left"`
 	Start  struct {
 		Index		int			`json:"index"`
 		Left_ips	float64		`json:"left_ips"`

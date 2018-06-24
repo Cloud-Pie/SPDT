@@ -9,9 +9,17 @@ import (
 
 //TODO: Profile for Current config
 
+//Interface for strategies of how to scale
 type PolicyDerivation interface {
 	CreatePolicies(poiList []types.PoI, values []int, times [] time.Time, profile types.PerformanceProfile)
 }
+
+//Interface for strategies of when to scale
+type TimeWindowDerivaton interface {
+	NumberIntervals()	int
+	WindowDerivation(values []int, times [] time.Time)	types.ProcessedForecast
+}
+
 
 func Policies(poiList []types.PoI, values []int, times [] time.Time, performance_profile types.PerformanceProfile, configuration config.SystemConfiguration, priceModel types.PriceModel) []types.Policy {
 	var policies []types.Policy
@@ -21,24 +29,26 @@ func Policies(poiList []types.PoI, values []int, times [] time.Time, performance
 		naive := NaivePolicy {algorithm:util.NAIVE_ALGORITHM}
 		policies = naive.CreatePolicies(poiList,values,times, performance_profile)
 	case util.INTEGER_PROGRAMMING_ALGORITHM:
-		integer := IntegerPolicy{util.INTEGER_PROGRAMMING_ALGORITHM}
+		integer := IntegerPolicy{util.INTEGER_PROGRAMMING_ALGORITHM, priceModel}
 		policies = integer.CreatePolicies(poiList,values,times, performance_profile)
 	case util.SMALL_STEP_ALGORITHM:
 		sstep := SStepPolicy{priceModel, util.SMALL_STEP_ALGORITHM}
 		policies = sstep.CreatePolicies(poiList,values,times, performance_profile)
 	default:
 		naive := NaivePolicy {algorithm:util.NAIVE_ALGORITHM}
-		integer := IntegerPolicy{algorithm:util.INTEGER_PROGRAMMING_ALGORITHM}
-		policies = append(naive.CreatePolicies(poiList,values,times, performance_profile),integer.CreatePolicies(poiList,values,times, performance_profile)...)
+		sstep := SStepPolicy{priceModel, util.SMALL_STEP_ALGORITHM}
+		policies = append(naive.CreatePolicies(poiList,values,times, performance_profile),sstep.CreatePolicies(poiList,values,times, performance_profile)...)
 	}
 	return policies
 }
 
+//Adjust the times that were interpolated
 func adjustTime(t time.Time, factor float64) time.Time{
 	f := factor*3600
 	return t.Add(time.Duration(f) * time.Second)
 }
 
+//Compare two states
 func compare(s1 types.State, s2 types.State) bool {
 	if len(s1.VMs) != len(s2.VMs) {
 		return false
