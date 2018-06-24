@@ -4,7 +4,8 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"time"
 	"gopkg.in/mgo.v2/bson"
-	"fmt"
+	"math"
+	"github.com/Cloud-Pie/SPDT/util"
 )
 
 type SStepPolicy struct {
@@ -14,33 +15,56 @@ type SStepPolicy struct {
 
 func (policy SStepPolicy) CreatePolicies(poiList []types.PoI, values []int, times [] time.Time, performanceProfile types.PerformanceProfile) [] types.Policy {
 	listVm := performanceProfile.PerformanceModels[0].VmProfiles; //TODO: Change according to CSP
-	service := performanceProfile.DockerImageApp
 	policies := []types.Policy {}
 
 	new_policy := types.Policy{}
 	new_policy.StartTimeDerivation = time.Now()
 
-	mapTypeCapacity := performanceProfile.PerformanceModels[0].MapTypeCapacity()
-	mapTypePrice,_ := policy.priceModel.MapPrices()
-	listPricesTrn(mapTypeCapacity,mapTypePrice )
+	timeWindows := SmallStepOverProvision{}
+	timeWindows.PoIList = poiList
+	processedForecast := timeWindows.WindowDerivation(values,times)
 
 	for i := range listVm {
 		new_policy := types.Policy{}
 		new_policy.StartTimeDerivation = time.Now()
 		configurations := []types.Configuration {}
+		stateName := performanceProfile.DockerImageApp + time.Now().Format(util.TIME_LAYOUT)
 
-		processedForecast := types.ProcessedForecast{}
-
-		for _, it := range processedForecast.CriticalIntervals {
+		for ind, it := range  processedForecast.CriticalIntervals {
 			requests := it.Requests
-			n_vms := requests / listVm[i].TRN
-			services := [] types.Service{{ service, n_vms}} //TODO: Change according to # Services
-			vms := [] types.VmScale {{listVm[i].VmInfo.Type, n_vms}}
-			transitionTime := -10*time.Minute		//TODO: Calculate booting time
-			startTime := it.TimeStart.Add(transitionTime)
-			state :=  types.State{startTime,services,"unknown", vms}
-			configurations = append(configurations, types.Configuration{-1, state, it.TimeStart, it.TimeEnd})
+			nVms := int(math.Ceil(float64(requests) / float64(listVm[i].TRN)))
+			servicesList := listVm[i].ServiceInfo
+			services := [] types.Service{}
+			totalServicesBootingTime := 0
+			for _,s := range servicesList {
+				services = append(services, types.Service{ s.Name, s.NumReplicas})
+				totalServicesBootingTime += s.ContainerStartTime
+			}
+			vms := [] types.VmScale {{listVm[i].VmInfo.Type, nVms}}
 
+			state :=  types.State{}
+			state.Services = services
+			state.VMs = vms
+			state.Name = stateName
+			nConfigurations := len(configurations)
+			if (nConfigurations >= 1){
+				keepState := compare(configurations[nConfigurations-1].State, state)
+				if (keepState) {
+					configurations[nConfigurations-1].TimeEnd = times[ind]
+				} else {
+					transitionTime := listVm[i].VmInfo.BootTimeSec		//TODO: Validate booting time
+					startTime :=  times[ind].Add(-1*time.Duration(transitionTime) * time.Second)		//Booting time VM
+					startTime = startTime.Add(-1*time.Duration(totalServicesBootingTime) * time.Second)	//Start time containers
+					state.ISODate = startTime
+					configurations = append(configurations, types.Configuration{-1, state, times[ind-1],  times[ind]})
+				}
+			} else {
+				transitionTime := listVm[i].VmInfo.BootTimeSec
+				startTime := times[ind].Add(-1*time.Duration(transitionTime) * time.Second)		//Booting time VM
+				startTime = startTime.Add(-1*time.Duration(totalServicesBootingTime) * time.Second)	//Start time containers
+				state.ISODate = startTime
+				configurations = append(configurations, types.Configuration{-1, state, startTime,  times[ind]})
+			}
 		}
 		new_policy.Configurations = configurations
 		new_policy.FinishTimeDerivation = time.Now()
@@ -53,17 +77,6 @@ func (policy SStepPolicy) CreatePolicies(poiList []types.PoI, values []int, time
 	return policies
 }
 
-func listPricesTrn(mapTypeCapacity map[string] int, mapTypePrice map[string] float64) ([]float64, []float64) {
-	prices := [] float64{}
-	trnList := [] float64{}
 
-	for k, v := range mapTypeCapacity {
-		fmt.Println("k:", k, "v:", v)
-		prices = append(prices, mapTypePrice[k])
-		trnList = append(trnList, float64(mapTypeCapacity[k]))
-	}
-
-	return  prices, trnList
-}
 
 

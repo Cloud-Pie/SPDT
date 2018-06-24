@@ -37,21 +37,25 @@ func (derivationStrategy SmallStepOverProvision) WindowDerivation(values []int, 
 		}
 
 		for ind := range it.Index_in_interval_right {
-			interval := types.CriticalInterval{}
-			interval.Requests = values[ind]
-			interval.TimePeak = times[ind]
-			interval.TimeStart = times[ind]
-			interval.TimeEnd = times[ind+1]
-			intervals = append(intervals, interval)
+			if ((ind+1) < nValues) {
+				interval := types.CriticalInterval{}
+				interval.Requests = values[ind]
+				interval.TimePeak = times[ind]
+				interval.TimeStart = times[ind]
+				interval.TimeEnd = times[ind+1]
+				intervals = append(intervals, interval)
+			}
 		}
 
 		for ind := range it.Index_in_interval_left {
-			interval := types.CriticalInterval{}
-			interval.Requests = values[ind]
-			interval.TimePeak = times[ind]
-			interval.TimeStart = times[ind-1]
-			interval.TimeEnd = times[ind ]
-			intervals = append(intervals, interval)
+			if (ind > 1) {
+				interval := types.CriticalInterval{}
+				interval.Requests = values[ind]
+				interval.TimePeak = times[ind]
+				interval.TimeStart = times[ind-1]
+				interval.TimeEnd = times[ind ]
+				intervals = append(intervals, interval)
+			}
 		}
 	}
 

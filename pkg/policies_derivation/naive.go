@@ -3,9 +3,9 @@ package policies_derivation
 import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"time"
-	"github.com/Cloud-Pie/SPDT/util"
 	"gopkg.in/mgo.v2/bson"
 	"math"
+	"github.com/Cloud-Pie/SPDT/util"
 )
 
 type NaivePolicy struct {
@@ -15,10 +15,12 @@ type NaivePolicy struct {
 func (naive NaivePolicy) CreatePolicies(poiList []types.PoI, values []int, times [] time.Time, performanceProfile types.PerformanceProfile) [] types.Policy {
 
 	listVm := performanceProfile.PerformanceModels[0].VmProfiles; //TODO: Change according to CSP
-	stateName := performanceProfile.DockerImageApp + time.Now().Format(util.TIME_LAYOUT)
+
 	policies := []types.Policy {}
 
-	processedForecast := naive.ProcessData(poiList,values,times)		//TODO: Fix for maintenance
+	timeWindows := MediumStepOverprovision{}
+	timeWindows.PoIList = poiList
+	processedForecast := timeWindows.WindowDerivation(values,times)
 
 	for i := range listVm {
 		new_policy := types.Policy{}
@@ -40,7 +42,7 @@ func (naive NaivePolicy) CreatePolicies(poiList []types.PoI, values []int, times
 			state :=  types.State{}
 			state.Services = services
 			state.VMs = vms
-			state.Name = stateName
+			state.Name = performanceProfile.DockerImageApp + time.Now().Format(util.TIME_LAYOUT)
 
 			nConfigurations := len(configurations)
 			if (nConfigurations >= 1){
@@ -55,7 +57,7 @@ func (naive NaivePolicy) CreatePolicies(poiList []types.PoI, values []int, times
 					configurations = append(configurations, types.Configuration{-1, state, it.TimeStart, it.TimeEnd})
 				}
 			} else {
-				transitionTime := listVm[i].VmInfo.BootTimeSec		
+				transitionTime := listVm[i].VmInfo.BootTimeSec
 				startTime := it.TimeStart.Add(-1*time.Duration(transitionTime) * time.Second)		//Booting time VM
 				startTime = startTime.Add(-1*time.Duration(totalServicesBootingTime) * time.Second)	//Start time containers
 				state.ISODate = startTime
@@ -72,38 +74,4 @@ func (naive NaivePolicy) CreatePolicies(poiList []types.PoI, values []int, times
 		policies = append(policies, new_policy)
 	}
 	return policies
-}
-
-/*Given the points of interest split the time serie into the intervals where a scaling needs to be perfomed*/
-func (naive NaivePolicy)ProcessData(poiList [] types.PoI, values []int, times []time.Time) (types.ProcessedForecast) {
-
-	intervals := []types.CriticalInterval{}
-
-	for _,item := range poiList {
-		interval := types.CriticalInterval{}
-		interval.Requests = values[item.Index]
-		interval.TimePeak = times[item.Index]
-
-		interSize := len(intervals)
-		if (interSize > 1){
-			//start time is equal to the end time from previous interval
-			interval.TimeStart = intervals[interSize-1].TimeEnd
-		}else {
-			interval.TimeStart = times[int(item.Start.Index)]
-		}
-
-		//Calculate End Time using the ips_right
-		timeValleyIpsRight := adjustTime(times[int(item.End.Index)], item.End.Left_ips - math.Floor(item.End.Left_ips))
-		if timeValleyIpsRight.After(interval.TimePeak) {
-			interval.TimeEnd = timeValleyIpsRight
-		} else {
-			interval.TimeEnd = times[int(item.End.Index)]
-		}
-		interval.AboveThreshold = item.Peak
-		intervals = append(intervals, interval)
-	}
-	processedForecast := types.ProcessedForecast{}
-	processedForecast.CriticalIntervals = intervals
-
-	return processedForecast
 }
