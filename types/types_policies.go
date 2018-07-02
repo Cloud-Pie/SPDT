@@ -18,14 +18,14 @@ type State struct {
 	Name     string     `json:Name`
 	VMs      [] VmScale `json:VMs`
 }
-/*
-func  (state State) MapTypesScale() map[string] int{
+
+func (state State) MapTypesScale() map[string] int{
 	mapTypesScale := make(map[string]int)
 	for _,vm := range state.VMs {
 		mapTypesScale [vm.Type] = vm.Scale
 	}
 	return  mapTypesScale
-}*/
+}
 
 /*VmScale is the factor for which a type of VM is scales*/
 type VmScale struct {
@@ -35,18 +35,22 @@ type VmScale struct {
 
 /*Resource configuration*/
 type Configuration struct {
-	TransitionCost float64
-	State	State
-	TimeStart time.Time
-	TimeEnd	time.Time
+	TransitionCost 			float64
+	State					State
+	TimeStart 				time.Time
+	TimeEnd					time.Time
+	OverProvision			float32
+	UnderProvision 			float32
 }
 
 //Policy states the scaling transitions
 type Policy struct {
-	ID     bson.ObjectId 	  `bson:"_id" json:"id"`
-	Algorithm 	string		  `json:"algorithm" bson:"algorithm"`
-	TotalCost float64		`json:"total_cost" bson:"total_cost"`
-	Configurations    [] Configuration	`json:"configuration" bson:"configuration"`
-	StartTimeDerivation	time.Time	`json:"start_derivation_time" bson:"start_derivation_time"`
-	FinishTimeDerivation time.Time	`json:"finish_derivation_time" bson:"finish_derivation_time"`
+	ID     					bson.ObjectId 	  `bson:"_id" json:"id"`
+	Algorithm 				string		  	  `json:"algorithm" bson:"algorithm"`
+	TotalCost 				float64			  `json:"total_cost" bson:"total_cost"`
+	Configurations    		[]Configuration	  `json:"configuration" bson:"configuration"`
+	StartTimeDerivation		time.Time		  `json:"start_derivation_time" bson:"start_derivation_time"`
+	FinishTimeDerivation 	time.Time		  `json:"finish_derivation_time" bson:"finish_derivation_time"`
+	TotalOverProvision 		float32				  `json:"total_overprovision" bson:"total_overprovision"`
+	TotalUnderProvision 	float32				  `json:"total_underprovision" bson:"total_underprovision"`
 }

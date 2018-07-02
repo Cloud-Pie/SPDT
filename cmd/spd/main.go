@@ -23,6 +23,8 @@ var priceModel types.PriceModel
 
 func main () {
 
+	styleEntry()
+
 	if FlagsVar.LogFile {
 		Log.Info.Printf("Logs can be accessed in %s", util.DEFAULT_LOGFILE)
 		Log.SetLogFile(util.DEFAULT_LOGFILE)
@@ -64,21 +66,28 @@ func startPolicyDerivation() [] types.Policy {
 	}
 
 	//Request Performance Profiles
+	Log.Trace.Printf("Start request VMs Profiles")
+	vmProfiles,err := Pservice.GetVMsProfiles(configuration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VMS_PROFILES)
+	if err != nil {
+		Log.Error.Fatalf(err.Error())
+	}
+	Log.Trace.Printf("Finish request VMs Profiles")
+
 	Log.Trace.Printf("Start request Performance Profiles")
-	vmProfiles,err := Pservice.GetPerformanceProfiles(configuration.PerformanceProfilesComponent.Endpoint)
+	servicesProfiles,err := Pservice.GetPerformanceProfiles(configuration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILES)
 	if err != nil {
 		Log.Error.Fatalf(err.Error())
 	}
 	Log.Trace.Printf("Finish request Performance Profiles")
 
 	//Store received information about Performance Profiles
-	vmProfiles.ID = bson.NewObjectId()
-	vmProfileDAO := performance_profiles.PerformanceProfileDAO{
+	servicesProfiles.ID = bson.NewObjectId()
+	serviceProfileDAO := performance_profiles.PerformanceProfileDAO{
 		util.DEFAULT_DB_SERVER_PROFILES,
 		util.DEFAULT_DB_PROFILES,
 	}
-	vmProfileDAO.Connect()
-	err = vmProfileDAO.Insert(vmProfiles)
+	serviceProfileDAO.Connect()
+	err = serviceProfileDAO.Insert(servicesProfiles)
 	if err != nil {
 		Log.Error.Fatalf(err.Error())
 	}
@@ -87,7 +96,7 @@ func startPolicyDerivation() [] types.Policy {
 	Log.Trace.Printf("Start request Forecasting")
 	timeStart := time.Now().Add(time.Hour)			//TODO: Adjust real times
 	timeEnd := timeStart.Add(time.Hour * 24)
-	data,err := Fservice.GetForecast(configuration.ForecastingComponent.Endpoint, timeStart, timeEnd)
+	data,err := Fservice.GetForecast(configuration.ForecastingComponent.Endpoint + util.ENDPOINT_FORECAST, timeStart, timeEnd)
 	if err != nil {
 		Log.Error.Fatalf(err.Error())
 	}
@@ -99,11 +108,23 @@ func startPolicyDerivation() [] types.Policy {
 	Log.Trace.Printf("Finish points of interest search in time serie")
 
 
+	//match prices to available VMs
+	priceModel,err = policy_evaluation.ParsePricesFile(util.PRICES_FILE)
+	mapVm, unit := priceModel.MapPrices()
+	l:= len(vmProfiles)
+	for i:=0; i<l; i++ {
+		vmProfiles[i].Pricing.Price = mapVm[vmProfiles[i].Type]
+		vmProfiles[i].Pricing.Unit = unit
+		if (vmProfiles[i].Pricing.Price == 0.0) {
+			Log.Warning.Printf("No price found for %s", vmProfiles[i].Type)
+		}
+	}
+
 	var policies []types.Policy
 
 	//Derive Strategies
 	Log.Trace.Printf("Start policies derivation")
-	policies = policies_derivation.Policies(poiList, values, times, vmProfiles, configuration, priceModel)
+	policies = policies_derivation.Policies(poiList, values, times, vmProfiles, servicesProfiles, configuration)
 	Log.Trace.Printf("Finish policies derivation")
 
 	Log.Trace.Printf("Start policies evaluation")
@@ -114,7 +135,7 @@ func startPolicyDerivation() [] types.Policy {
 		Log.Trace.Printf("No policy found")
 	} else {
 		Log.Trace.Printf("Start request Scheduler")
-		//reconfiguration.TriggerScheduler(policy, configuration.SchedulerComponent.Endpoint)
+		//reconfiguration.TriggerScheduler(policy, configuration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES)
 		fmt.Sprintf(string(policy.ID))
 		Log.Trace.Printf("Finish request Scheduler")
 	}
@@ -123,6 +144,19 @@ func startPolicyDerivation() [] types.Policy {
 }
 
 func serverCall(c *gin.Context) {
-	policiy := startPolicyDerivation()
-	c.JSON(http.StatusOK, policiy[0])
+	policies := startPolicyDerivation()
+	c.JSON(http.StatusOK, policies)
+}
+
+
+
+func styleEntry() {
+	fmt.Println(`
+   _____ ____  ____  ______
+  / ___// __ \/ __ \/_  __/
+  \__ \/ /_/ / / / / / /   
+ ___/ / ____/ /_/ / / /    
+/____/_/   /_____/ /_/     
+
+	`)
 }

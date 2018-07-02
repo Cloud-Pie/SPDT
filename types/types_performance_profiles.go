@@ -1,44 +1,51 @@
 package types
 
-import (
-	"gopkg.in/mgo.v2/bson"
-)
+import "gopkg.in/mgo.v2/bson"
 
 type QoSParams struct {
 	Request_time_out_sec int `json:"request_time_out_sec" bson:"request_time_out_sec"`
 	Request_availability_percent int `json:"request_availability_percent" bson:"request_availability_percent"`
 }
 
-type VmInfo struct {
-	Type   			string `json:"type" bson:"type"`
-	NumCores 		int    `json:"num_cores" bson:"num_cores"`
-	MemoryGb 		int    `json:"memory_gb" bson:"memory_gb"`
-	BootTimeSec     int    `json:"boot_time_sec" bson:"boot_time_sec"`
-	OS     			string `json:"os" bson:"os"`
-}
-
-type Limit struct {
-	NumCores	int		`json:"num_cores" bson:"num_cores"`
-	Memory		int		`json:"memory" bson:"memory"`
-}
-
-type ServiceInfo struct {
-	Name					string	`json:"name" bson:"name"`
-	NumReplicas				int		`json:"num_replicas" bson:"num_replicas"`
-	DockerImage				string		`json:"docker_image" bson:"docker_image"`
-	ContainerStartTime		int		`json:"container_start_time_sec" bson:"container_start_time_sec"`
-	Limits					Limit	`json:"limits" bson:"limits"`
+type Pricing struct {
+	Price float64
+	Unit string
 }
 
 type VmProfile struct {
-	VmInfo			VmInfo			`json:"vm_info" bson:"vm_info"`
-	ServiceInfo		[]ServiceInfo		`json:"services" bson:"services"`
-	TRN				int 			`json:"maximum_service_capacity_per_sec" bson:"maximum_service_capacity_per_sec"`
+	Type   			string 		`json:"type" bson:"type"`
+	NumCores 		int    		`json:"num_cores" bson:"num_cores"`
+	MemoryGb 		float32     `json:"mem_gb" bson:"mem_gb"`
+	BootTimeSec     int    		`json:"boot_time_sec" bson:"boot_time_sec"`
+	OS     			string 		`json:"os" bson:"os"`
+	Pricing			Pricing
+}
+
+
+type Limit struct {
+	NumCores	int			`json:"num_cores" bson:"num_cores"`
+	Memory		float32		`json:"mem_gb" bson:"mem_gb"`
+	RequestPerSecond	int `json:"request_per_sercond" bson:"request_per_sercond"`
+}
+
+type PerformanceProfile struct {
+	NumReplicas 		int   `json:"replicas" bson:"replicas"`
+	BootTimeSec 		int   `json:"pod_boot_time_sec" bson:"pod_boot_time_sec"`
+	Limit       		Limit `json:"resources_limit" bson:"resources_limit"`
+	TRN         		int   `json:"maximum_service_capacity_per_sec" bson:"maximum_service_capacity_per_sec"`
+	RankWithLimits		int   `json:"profiles_with_limits_rank" bson:"profiles_with_limits_rank"`
+}
+
+//DEPRECATED
+/*type VmProfile struct {
+	VmProfile			VmProfile                `json:"vm_info" bson:"vm_info"`
+	ServiceInfo		[]PerformanceProfile `json:"services" bson:"services"`
+	TRN				int                  `json:"maximum_service_capacity_per_sec" bson:"maximum_service_capacity_per_sec"`
 }
 
 type PerformanceModel struct {
 	CSP        string             `json:"CSP" bson:"CSP"`
-	VmProfiles [] VmProfile `json:"profiles" bson:"profiles"`
+	//VmProfiles [] VmProfile `json:"profiles" bson:"profiles"`
 }
 
 func  (model PerformanceModel) MapTypeCapacity() map[string] int{
@@ -49,13 +56,14 @@ func  (model PerformanceModel) MapTypeCapacity() map[string] int{
 	}
 	return  mapTypesCapacity
 }
+*/
 
-
-type PerformanceProfile struct {
-	ID          	  bson.ObjectId 	  `bson:"_id" json:"id"`
-	AppType           string              `json:"app_type" bson:"app_type"`
-	DockerImageApp    string              `json:"docker_image_app" bson:"docker_image_app"`
-	GitUrlApp         string              `json:"git_url_app" bson:"git_url_app"`
-	QoSParams         QoSParams           `json:"qos_params" bson:"qos_params"`
-	PerformanceModels [] PerformanceModel `json:"perf_model" bson:"perf_model"`
+type ServiceProfile struct {
+	ID                		bson.ObjectId       `bson:"_id" json:"id"`
+	Name					string				`json:"name" bson:"name"`
+	AppType          		string              `json:"app_type" bson:"app_type"`
+	DockerImage      		string              `json:"docker_image" bson:"docker_image"`
+	//GitUrlApp         string             		`json:"git_url_app" bson:"git_url_app"`
+	//QoSParams         QoSParams           	`json:"qos_params" bson:"qos_params"`
+	PerformanceProfiles []PerformanceProfile 	`json:"perf_profiles_with_limits" bson:"perf_profiles_with_limits"`
 }

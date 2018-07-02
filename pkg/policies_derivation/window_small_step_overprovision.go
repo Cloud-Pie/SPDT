@@ -69,3 +69,7 @@ func (derivationStrategy SmallStepOverProvision) WindowDerivation(values []int, 
 func (derivationStrategy SmallStepOverProvision) NumberIntervals() int{
 	return derivationStrategy.NIntervals
 }
+
+func (derivationStrategy SmallStepOverProvision) Cost() int {
+	return 0
+}
