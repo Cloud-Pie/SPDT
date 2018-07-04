@@ -13,8 +13,7 @@ import (
 
 //Interface for strategies of how to scale
 type PolicyDerivation interface {
-	CreatePolicies(poiList []types.PoI, values []int, times [] time.Time ,profile types.ServiceProfile)
-	FindSuitableVMs(vmsInfo []types.VmProfile, limit types.Limit)
+	CreatePolicies (processedForecast types.ProcessedForecast, mapVMProfiles map[string]types.VmProfile, serviceProfile types.ServiceProfile)
 }
 
 //Interface for strategies of when to scale
@@ -36,14 +35,20 @@ func Policies(poiList []types.PoI, values []int, times [] time.Time, mapVMProfil
 	case util.NAIVE_ALGORITHM:
 		timeWindows := SmallStepOverProvision{PoIList:poiList}
 		processedForecast := timeWindows.WindowDerivation(values,times)
-		naive := NaivePolicy {util.NAIVE_ALGORITHM, 100, timeWindows}
-		policies = naive.CreatePolicies(currentState, processedForecast, mapVMProfiles, ServiceProfiles)
+		naive := NaivePolicy {algorithm:util.NAIVE_ALGORITHM, limitNVMS:100, timeWindow:timeWindows, currentState:currentState}
+		policies = naive.CreatePolicies(processedForecast, mapVMProfiles, ServiceProfiles)
+
+	case util.NAIVE_TYPES_ALGORITHM:
+		timeWindows := SmallStepOverProvision{PoIList:poiList}
+		processedForecast := timeWindows.WindowDerivation(values,times)
+		naive := NaiveTypesPolicy {algorithm:util.NAIVE_ALGORITHM, timeWindow:timeWindows}
+		policies = naive.CreatePolicies(processedForecast, mapVMProfiles, ServiceProfiles)
 
 	case util.INTEGER_PROGRAMMING_ALGORITHM:
 		integer := IntegerPolicy{util.INTEGER_PROGRAMMING_ALGORITHM}
 		policies = integer.CreatePolicies(poiList,values,times, ServiceProfiles)
 	case util.SMALL_STEP_ALGORITHM:
-		//sstep := SStepPolicy{ util.SMALL_STEP_ALGORITHM}
+		//sstep := SStepRepackPolicy{ util.SMALL_STEP_ALGORITHM}
 		//policies = sstep.CreatePolicies(poiList,values,times, mapVMProfiles, ServiceProfiles)
 	default:
 		/*timeWindows := SmallStepOverProvision{}
@@ -51,7 +56,7 @@ func Policies(poiList []types.PoI, values []int, times [] time.Time, mapVMProfil
 		processedForecast := timeWindows.WindowDerivation(values,times)
 		naive := NaivePolicy {util.NAIVE_ALGORITHM, 100, timeWindows}
 		policies = naive.CreatePolicies(processedForecast, mapVMProfiles, ServiceProfiles)
-		sstep := SStepPolicy{ util.SMALL_STEP_ALGORITHM}
+		sstep := SStepRepackPolicy{ util.SMALL_STEP_ALGORITHM}
 		policies = append(naive.CreatePolicies(processedForecast, mapVMProfiles, ServiceProfiles),sstep.CreatePolicies(poiList,values,times, mapVMProfiles, ServiceProfiles)...)
 	*/
 	}
@@ -62,4 +67,16 @@ func Policies(poiList []types.PoI, values []int, times [] time.Time, mapVMProfil
 func adjustTime(t time.Time, factor float64) time.Time {
 	f := factor*3600
 	return t.Add(time.Duration(f) * time.Second)
+}
+
+func ComputeVMBootingTime(mapVMProfiles map[string]types.VmProfile, vmsScale []types.VmScale) int {
+	bootingTime := 0
+	//take the longestTime
+	for _,s := range vmsScale {
+		vmBootTime := mapVMProfiles[s.Type].BootTimeSec
+		if bootingTime <  vmBootTime{
+			bootingTime = vmBootTime
+		}
+	}
+	return bootingTime
 }

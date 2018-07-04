@@ -11,12 +11,13 @@ import (
 )
 
 type NaivePolicy struct {
-	algorithm  string               //Algorithm's name
-	limitNVMS  int                  //Max number of vms of the same type in a cluster
-	timeWindow TimeWindowDerivation //Algorithm used to process the forecasted time serie
+	algorithm  		string               //Algorithm's name
+	limitNVMS  		int                  //Max number of vms of the same type in a cluster
+	timeWindow 		TimeWindowDerivation //Algorithm used to process the forecasted time serie
+	currentState	types.State			 //Current State
 }
 
-func (naive NaivePolicy) CreatePolicies(currentState types.State, processedForecast types.ProcessedForecast, mapVMProfiles map[string]types.VmProfile, serviceProfile types.ServiceProfile) [] types.Policy {
+func (naive NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast, mapVMProfiles map[string]types.VmProfile, serviceProfile types.ServiceProfile) [] types.Policy {
 
 	policies := []types.Policy {}
 	newPolicy := types.Policy{}
@@ -53,7 +54,10 @@ func (naive NaivePolicy) CreatePolicies(currentState types.State, processedForec
 		limit.NumCores = performanceProfile.Limit.NumCores * nServiceReplicas
 
 		//Find suitable Vm(s) depending on resources limit and current state
-		vms := naive.findSuitableVMs(currentState, mapVMProfiles, limit)
+		//Assumption for naive approach: There is only 1 vm Type in current state
+		vmProfile := mapVMProfiles [naive.currentState.VMs[0].Type]
+
+		vms := naive.findSuitableVMs(vmProfile, limit)
 		totalServicesBootingTime := performanceProfile.BootTimeSec //TODO: It should include a booting rate
 
 		state := types.State{}
@@ -65,7 +69,7 @@ func (naive NaivePolicy) CreatePolicies(currentState types.State, processedForec
 		if nConfigurations >= 1 && state.Equal(configurations[nConfigurations-1].State) {
 			configurations[nConfigurations-1].TimeEnd = it.TimeEnd
 		} else {
-			transitionTime := computeVMBootingTime(mapVMProfiles, vms)                            //TODO: It should include a booting rate
+			transitionTime := ComputeVMBootingTime(mapVMProfiles, vms)                            //TODO: It should include a booting rate
 			startTime := it.TimeStart.Add(-1 * time.Duration(transitionTime) * time.Second)       //Booting time VM
 			startTime = startTime.Add(-1 * time.Duration(totalServicesBootingTime) * time.Second) //Start time containers
 			state.ISODate = startTime
@@ -98,18 +102,6 @@ func (naive NaivePolicy) CreatePolicies(currentState types.State, processedForec
 	return policies
 }
 
-func computeVMBootingTime(mapVMProfiles map[string]types.VmProfile, vmsScale []types.VmScale) int {
-	bootingTime := 0
-	//take the longestTime
-	for _,s := range vmsScale {
-		vmBootTime := mapVMProfiles[s.Type].BootTimeSec
-		if bootingTime <  vmBootTime{
-			bootingTime = vmBootTime
-		}
-	}
-	return bootingTime
-}
-
 func selectProfile(performanceProfiles []types.PerformanceProfile) types.PerformanceProfile {
 	//In a naive case, select the one with rank 1
 	for _,p := range performanceProfiles {
@@ -120,16 +112,12 @@ func selectProfile(performanceProfiles []types.PerformanceProfile) types.Perform
 	return performanceProfiles[0]
 }
 
-
-func (naive NaivePolicy) findSuitableVMs(currentState types.State, mapVMProfiles map[string]types.VmProfile, limit types.Limit) []types.VmScale {
+func (naive NaivePolicy) findSuitableVMs(vmProfile types.VmProfile, limit types.Limit) []types.VmScale {
 	vmscale := []types.VmScale{}
-	vm := mapVMProfiles [currentState.VMs[0].Type] //Naive case assumes that there is only 1 VM type
-	for nScale := 1; nScale < naive.limitNVMS; nScale++ {
-		if limit.NumCores <= vm.NumCores*nScale && limit.Memory <= vm.MemoryGb * float32(nScale) {
-			vmscale = append(vmscale, types.VmScale{Type:vm.Type, Scale:nScale})
-			return vmscale
-		}
-	}
+	m := math.Ceil(float64(vmProfile.NumCores) / float64(limit.NumCores))
+	n:=  math.Ceil(float64(vmProfile.MemoryGb) / float64(limit.Memory))
+	nScale := math.Max(n,m)
+	vmscale = append(vmscale, types.VmScale{Type:vmProfile.Type, Scale:int(nScale)})
 	return vmscale
 }
 
