@@ -110,21 +110,23 @@ func startPolicyDerivation() [] types.Policy {
 
 	//match prices to available VMs
 	priceModel,err = policy_evaluation.ParsePricesFile(util.PRICES_FILE)
-	mapVm, unit := priceModel.MapPrices()
-	l:= len(vmProfiles)
-	for i:=0; i<l; i++ {
-		vmProfiles[i].Pricing.Price = mapVm[vmProfiles[i].Type]
-		vmProfiles[i].Pricing.Unit = unit
-		if (vmProfiles[i].Pricing.Price == 0.0) {
-			Log.Warning.Printf("No price found for %s", vmProfiles[i].Type)
+	mapVmPrice, unit := priceModel.MapPrices()
+	mapVMProfiles := make(map[string]types.VmProfile)
+
+	for _,p := range vmProfiles {
+		p.Pricing.Price = mapVmPrice[p.Type]
+		p.Pricing.Unit = unit
+		if (p.Pricing.Price == 0.0) {
+			Log.Warning.Printf("No price found for %s", p.Type)
 		}
+		mapVMProfiles[p.Type] = p
 	}
 
 	var policies []types.Policy
 
 	//Derive Strategies
 	Log.Trace.Printf("Start policies derivation")
-	policies = policies_derivation.Policies(poiList, values, times, vmProfiles, servicesProfiles, configuration)
+	policies = policies_derivation.Policies(poiList, values, times, mapVMProfiles, servicesProfiles, configuration)
 	Log.Trace.Printf("Finish policies derivation")
 
 	Log.Trace.Printf("Start policies evaluation")
