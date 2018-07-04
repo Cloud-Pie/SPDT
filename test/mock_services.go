@@ -17,6 +17,8 @@ func main () {
 	router.GET("/api/profiles", profiles)
 	//Expected VMs json
 	router.GET("/api/vms", vms)
+	//Expected Current State json
+	router.GET("/api/current", currentState)
 	router.Run(":8081")
 }
 
@@ -59,4 +61,18 @@ func vms(c *gin.Context){
 	err = json.Unmarshal(data, &vms)
 
 	c.JSON(http.StatusOK, vms)
+}
+
+func currentState(c *gin.Context){
+	// Open jsonFile
+	data, err := ioutil.ReadFile("test/mock_current_state.json")
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+
+	var state interface{}
+	err = json.Unmarshal(data, &state)
+
+	c.JSON(http.StatusOK, state)
 }

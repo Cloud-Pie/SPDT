@@ -27,6 +27,28 @@ func (state State) MapTypesScale() map[string] int{
 	return  mapTypesScale
 }
 
+
+//Compare if two states are equal
+func (state State) Equal(s2 State) bool {
+	if len(state.VMs) != len(s2.VMs) {
+		return false
+	}
+	for i, v := range state.VMs {
+		if v != s2.VMs[i] {
+			return false
+		}
+	}
+	if len(state.Services) != len(s2.Services) {
+		return false
+	}
+	for i, v := range state.Services {
+		if v != s2.Services[i] {
+			return false
+		}
+	}
+	return true
+}
+
 /*VmScale is the factor for which a type of VM is scales*/
 type VmScale struct {
 	Type string `json:"Type"`

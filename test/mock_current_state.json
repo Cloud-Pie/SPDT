@@ -1,5 +1,5 @@
 {
-  "Time": "10",
+  "ISODate": "2019-08-08T16:15:00Z",
   "Services": [
     {
       "Name": "image_url",
@@ -9,7 +9,7 @@
   "Name": "unknown",
   "Vms": [
     {
-      "Type": "m2.micro",
+      "Type": "m1.micro",
       "Scale": 3
     }
   ]
