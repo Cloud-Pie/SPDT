@@ -91,16 +91,18 @@ def getMeassures(x, threshold):
         interval = {}
         # First Interval does not include a peak
         interval["peak"] = False
-        # Start with the first position
+        # Start with the last position
         interval["index"] = nSamples - 1
+
         valley = {}
         valley["index"] = lastIndex
         interval["index_left_valley"] = valley
         start = interval["index_left_valley"]["index"]
+
         valley = {}
         valley["index"] = nSamples - 1
-        interval["index_left_valley"] = valley
-        end = interval["index_left_valley"]["index"]
+        interval["index_right_valley"] = valley
+        end = interval["index_right_valley"]["index"]
 
         # all indices between the last valley to the right and the last element
         interval["index_in_interval_left"] = list(range(start + 1, interval["index"]))
