@@ -3,11 +3,11 @@ vm-prices:
   price: 0.0067
   unit: hour
 - type: m1.micro
-  price: 0.0268
+  price: 0.0134
   unit: hour
 - type: m1.small
-  price: 0.0368
+  price: 0.0268
   unit: hour
 - type: m1.medium
-  price: 0.0468
+  price: 0.0536
   unit: hour
