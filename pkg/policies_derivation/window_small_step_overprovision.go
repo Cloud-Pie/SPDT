@@ -14,16 +14,16 @@ func (derivationStrategy SmallStepOverProvision) WindowDerivation(values []int, 
 	intervals := []types.CriticalInterval{}
 	nValues := len(values)
 	for _, it:= range derivationStrategy.PoIList {
-		//Interval to the right after the peak
-
 		i:= it.Index
-		if(i+1 < nValues) {
-			interval := types.CriticalInterval{}
-			interval.Requests = values[i]
-			interval.TimePeak = times[i]
-			interval.TimeStart = times[i]
-			interval.TimeEnd = times[i+1]
-			intervals = append(intervals, interval)
+		for _,ind := range it.Index_in_interval_left {
+			if (ind >= 1) {
+				interval := types.CriticalInterval{}
+				interval.Requests = values[ind]
+				interval.TimePeak = times[ind]
+				interval.TimeStart = times[ind-1]
+				interval.TimeEnd = times[ind ]
+				intervals = append(intervals, interval)
+			}
 		}
 
 		if(i-1 > 0) {
@@ -36,24 +36,24 @@ func (derivationStrategy SmallStepOverProvision) WindowDerivation(values []int, 
 			intervals = append(intervals, interval)
 		}
 
-		for ind := range it.Index_in_interval_right {
+		if(i+1 < nValues) {
+			//Interval to the right after the peak
+			interval := types.CriticalInterval{}
+			interval.Requests = values[i]
+			interval.TimePeak = times[i]
+			interval.TimeStart = times[i]
+			interval.TimeEnd = times[i+1]
+			intervals = append(intervals, interval)
+		}
+
+
+		for _,ind := range it.Index_in_interval_right {
 			if ((ind+1) < nValues) {
 				interval := types.CriticalInterval{}
 				interval.Requests = values[ind]
 				interval.TimePeak = times[ind]
 				interval.TimeStart = times[ind]
 				interval.TimeEnd = times[ind+1]
-				intervals = append(intervals, interval)
-			}
-		}
-
-		for ind := range it.Index_in_interval_left {
-			if (ind > 1) {
-				interval := types.CriticalInterval{}
-				interval.Requests = values[ind]
-				interval.TimePeak = times[ind]
-				interval.TimeStart = times[ind-1]
-				interval.TimeEnd = times[ind ]
 				intervals = append(intervals, interval)
 			}
 		}
