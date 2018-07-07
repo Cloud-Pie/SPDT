@@ -1,20 +1,30 @@
 [
   {
-    "type": "m1.micro",
-    "num_cores": 2,
-    "mem_gb": 2,
-    "boot_time_ms": 300
+    "type": "m1.nano",
+    "num_cores": 1,
+    "mem_gb": 0.5,
+    "boot_time_sec": 200,
+    "term_time_sec": 2000
   },
   {
-  "type": "m1.nano",
-  "num_cores": 1,
-  "mem_gb": 1,
-  "boot_time_ms": 310
+    "type": "m1.micro",
+    "num_cores": 1,
+    "mem_gb": 1,
+    "boot_time_sec": 300,
+    "term_time_sec": 2000
+  },
+  {
+    "type": "m1.small",
+    "num_cores": 1,
+    "mem_gb": 2,
+    "boot_time_sec": 200,
+    "term_time_sec": 200
   },
   {
   "type": "m1.medium",
-  "num_cores": 4,
-  "mem_gb": 2,
-  "boot_time_ms": 300
+  "num_cores": 2,
+  "mem_gb": 4,
+  "boot_time_sec": 300,
+  "term_time_sec": 200
   }
 ]

@@ -19,6 +19,7 @@ type VmProfile struct {
 	BootTimeSec     int    		`json:"boot_time_sec" bson:"boot_time_sec"`
 	OS     			string 		`json:"os" bson:"os"`
 	Pricing			Pricing
+	TerminationTimeSec 	int   	`json:"term_time_sec" bson:"term_time_sec"`
 }
 
 

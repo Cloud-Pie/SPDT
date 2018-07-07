@@ -7,7 +7,7 @@ import (
 	"github.com/Cloud-Pie/SPDT/pkg/policy_evaluation"
 	"github.com/Cloud-Pie/SPDT/util"
 	"github.com/Cloud-Pie/SPDT/config"
-	"github.com/Cloud-Pie/SPDT/pkg/performance_profiles"
+	storage "github.com/Cloud-Pie/SPDT/storage/profile"
 	"gopkg.in/mgo.v2/bson"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -82,7 +82,7 @@ func startPolicyDerivation() [] types.Policy {
 
 	//Store received information about Performance Profiles
 	servicesProfiles.ID = bson.NewObjectId()
-	serviceProfileDAO := performance_profiles.PerformanceProfileDAO{
+	serviceProfileDAO := storage.PerformanceProfileDAO{
 		util.DEFAULT_DB_SERVER_PROFILES,
 		util.DEFAULT_DB_PROFILES,
 	}

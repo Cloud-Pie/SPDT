@@ -31,7 +31,7 @@ func ComputeConfigurationCost (cf types.Configuration, unit string, mapPrices ma
 	configurationCost := float64(0.0)
 	deltaTime := setDeltaTime(cf.TimeStart,cf.TimeEnd,unit)
 	for _,vm := range cf.State.VMs {
-		transitionTime := setDeltaTime(cf.State.ISODate, cf.TimeStart, unit)
+		transitionTime := setDeltaTime(cf.State.LaunchTime, cf.TimeStart, unit)
 		configurationCost += mapPrices [vm.Type] * float64(vm.Scale) * (deltaTime + transitionTime)
 	}
 	return  configurationCost

@@ -13,13 +13,13 @@ type Service struct {
 
 /*State is the metadata of the state expected to scale to*/
 type State struct {
-	ISODate  time.Time  `json:ISODate`
-	Services [] Service `json:Services`
-	Name     string     `json:Name`
-	VMs      [] VmScale `json:VMs`
+	LaunchTime time.Time  `json:ISODate`
+	Services   [] Service `json:Services`
+	Name       string     `json:Name`
+	VMs        [] VmScale `json:VMs`
 }
 
-func (state State) MapTypesScale() map[string] int{
+func (state State) MapTypesScale() map[string] int {
 	mapTypesScale := make(map[string]int)
 	for _,vm := range state.VMs {
 		mapTypesScale [vm.Type] = vm.Scale

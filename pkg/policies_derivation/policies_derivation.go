@@ -13,7 +13,7 @@ import (
 
 //Interface for strategies of how to scale
 type PolicyDerivation interface {
-	CreatePolicies (processedForecast types.ProcessedForecast, mapVMProfiles map[string]types.VmProfile, serviceProfile types.ServiceProfile)
+	CreatePolicies (processedForecast types.ProcessedForecast, mapVMProfiles map[string]types.VmProfile, serviceProfile types.ServiceProfile) []types.Policy
 }
 
 //Interface for strategies of when to scale
@@ -44,12 +44,18 @@ func Policies(poiList []types.PoI, values []int, times [] time.Time, mapVMProfil
 		naive := NaiveTypesPolicy {algorithm:util.NAIVE_ALGORITHM, timeWindow:timeWindows}
 		policies = naive.CreatePolicies(processedForecast, mapVMProfiles, ServiceProfiles)
 
-	case util.INTEGER_PROGRAMMING_ALGORITHM:
-		integer := IntegerPolicy{util.INTEGER_PROGRAMMING_ALGORITHM}
-		policies = integer.CreatePolicies(poiList,values,times, ServiceProfiles)
+	case util.LINEAR_PROGRAMMING_STEP_ALGORITHM:
+		timeWindows := SmallStepOverProvision{PoIList:poiList}
+		processedForecast := timeWindows.WindowDerivation(values,times)
+		policy := LPStepPolicy{algorithm:util.LINEAR_PROGRAMMING_STEP_ALGORITHM}
+		policies = policy.CreatePolicies(processedForecast, mapVMProfiles, ServiceProfiles)
+
 	case util.SMALL_STEP_ALGORITHM:
-		//sstep := SStepRepackPolicy{ util.SMALL_STEP_ALGORITHM}
-		//policies = sstep.CreatePolicies(poiList,values,times, mapVMProfiles, ServiceProfiles)
+		timeWindows := SmallStepOverProvision{PoIList:poiList}
+		processedForecast := timeWindows.WindowDerivation(values,times)
+		sstep := SStepRepackPolicy {algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows}
+		policies = sstep.CreatePolicies(processedForecast, mapVMProfiles, ServiceProfiles)
+
 	default:
 		/*timeWindows := SmallStepOverProvision{}
 		timeWindows.PoIList = poiList
@@ -79,4 +85,16 @@ func ComputeVMBootingTime(mapVMProfiles map[string]types.VmProfile, vmsScale []t
 		}
 	}
 	return bootingTime
+}
+
+func ComputeVMTerminationTime(mapVMProfiles map[string]types.VmProfile, vmsScale []types.VmScale) int {
+	terminationTime := 0
+	//take the longestTime
+	for _,s := range vmsScale {
+		vmTermTime := mapVMProfiles[s.Type].TerminationTimeSec
+		if terminationTime <  vmTermTime{
+			terminationTime = vmTermTime
+		}
+	}
+	return terminationTime
 }

@@ -8,6 +8,7 @@ import (
 	"sort"
 	"github.com/Cloud-Pie/SPDT/util"
 	"strconv"
+	db "github.com/Cloud-Pie/SPDT/storage/policies"
 )
 
 type NaivePolicy struct {
@@ -17,7 +18,7 @@ type NaivePolicy struct {
 	currentState	types.State			 //Current State
 }
 
-func (naive NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast, mapVMProfiles map[string]types.VmProfile, serviceProfile types.ServiceProfile) [] types.Policy {
+func (naive NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast, mapVMProfiles map[string]types.VmProfile, serviceProfile types.ServiceProfile) []types.Policy {
 
 	policies := []types.Policy {}
 	newPolicy := types.Policy{}
@@ -25,6 +26,8 @@ func (naive NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 	configurations := []types.Configuration {}
 	totalOverProvision := float32(0.0)
 	totalUnderProvision := float32(0.0)
+	peaksInConf := float32(0.0)
+	avgOver := float32(0.0)
 
 	for _, it := range processedForecast.CriticalIntervals {
 		requests := it.Requests
@@ -38,7 +41,7 @@ func (naive NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 		services = append(services, types.Service{Name:serviceProfile.Name,Scale:nServiceReplicas})
 
 		//Compute under/over provision
-		diff := (nProfileCopies* performanceProfile.TRN) - requests
+		diff := (nProfileCopies * performanceProfile.TRN) - requests		//TODO:Fix Wrong calculation
 		var over, under float32
 		if diff >= 0 {
 			over = float32(diff*100/requests)
@@ -47,6 +50,8 @@ func (naive NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 			over = 0
 			under = -1*float32(diff*100/requests)
 		}
+		peaksInConf+=1
+		avgOver+=over
 
 		//Set total resource limit needed
 		limit := types.Limit{}
@@ -64,31 +69,37 @@ func (naive NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 		state.Services = services
 		state.VMs = vms
 
-		//Adjust booting times for resources configuration
+		//Adjust termination times for resources configuration
+		terminationTime := ComputeVMTerminationTime(mapVMProfiles,vms)
+		finishTime := it.TimeEnd.Add(time.Duration(terminationTime) * time.Second)
+
 		nConfigurations := len(configurations)
 		if nConfigurations >= 1 && state.Equal(configurations[nConfigurations-1].State) {
-			configurations[nConfigurations-1].TimeEnd = it.TimeEnd
+			configurations[nConfigurations-1].TimeEnd = finishTime
+			configurations[nConfigurations-1].OverProvision = avgOver/peaksInConf
 		} else {
+			//Adjust booting times for resources configuration
 			transitionTime := ComputeVMBootingTime(mapVMProfiles, vms)                            //TODO: It should include a booting rate
 			startTime := it.TimeStart.Add(-1 * time.Duration(transitionTime) * time.Second)       //Booting time VM
 			startTime = startTime.Add(-1 * time.Duration(totalServicesBootingTime) * time.Second) //Start time containers
-			state.ISODate = startTime
+			state.LaunchTime = startTime
 			state.Name = strconv.Itoa(nConfigurations) + "__" + serviceProfile.Name + "__" + startTime.Format(util.TIME_LAYOUT)
 			configurations = append(configurations,
-				types.Configuration {
+				types.Configuration{
 					State:          state,
 					TimeStart:      it.TimeStart,
-					TimeEnd:        it.TimeEnd,
+					TimeEnd:        finishTime,
 					OverProvision:  over,
 					UnderProvision: under,
 				})
-
-			totalOverProvision += over
-			totalUnderProvision += under
+			peaksInConf = 0
+			avgOver = 0
 		}
+		totalOverProvision += over
+		totalUnderProvision += under
 	}
 
-	totalConfigurations := len(configurations)
+	totalConfigurations := len(processedForecast.CriticalIntervals)
 	//Add new policy
 	newPolicy.Configurations = configurations
 	newPolicy.FinishTimeDerivation = time.Now()
@@ -97,7 +108,7 @@ func (naive NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 	newPolicy.TotalOverProvision = totalOverProvision/float32(totalConfigurations)
 	newPolicy.TotalUnderProvision = totalUnderProvision/float32(totalConfigurations)
 	//store policy
-	Store(newPolicy)
+	db.Store(newPolicy)
 	policies = append(policies, newPolicy)
 	return policies
 }
@@ -114,8 +125,8 @@ func selectProfile(performanceProfiles []types.PerformanceProfile) types.Perform
 
 func (naive NaivePolicy) findSuitableVMs(vmProfile types.VmProfile, limit types.Limit) []types.VmScale {
 	vmscale := []types.VmScale{}
-	m := math.Ceil(float64(vmProfile.NumCores) / float64(limit.NumCores))
-	n:=  math.Ceil(float64(vmProfile.MemoryGb) / float64(limit.Memory))
+	m := math.Ceil(float64(limit.NumCores) / float64(vmProfile.NumCores))
+	n:=  math.Ceil(float64(limit.Memory) / float64(vmProfile.MemoryGb))
 	nScale := math.Max(n,m)
 	vmscale = append(vmscale, types.VmScale{Type:vmProfile.Type, Scale:int(nScale)})
 	return vmscale

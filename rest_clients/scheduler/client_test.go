@@ -14,7 +14,7 @@ func TestCreateState(t *testing.T) {
 	}
 
 	state := types.State{
-		ISODate: time.Now(),
+		LaunchTime: time.Now(),
 		Services: []types.Service{
 			{
 				Name:  "myservice",

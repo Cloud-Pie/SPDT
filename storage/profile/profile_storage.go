@@ -1,4 +1,4 @@
-package performance_profiles
+package profile
 
 import (
 	"gopkg.in/mgo.v2"
