@@ -41,7 +41,7 @@ func Policies(poiList []types.PoI, values []int, times [] time.Time, mapVMProfil
 	case util.NAIVE_TYPES_ALGORITHM:
 		timeWindows := SmallStepOverProvision{PoIList:poiList}
 		processedForecast := timeWindows.WindowDerivation(values,times)
-		naive := NaiveTypesPolicy {algorithm:util.NAIVE_ALGORITHM, timeWindow:timeWindows}
+		naive := NaiveTypesPolicy {algorithm:util.NAIVE_TYPES_ALGORITHM, timeWindow:timeWindows}
 		policies = naive.CreatePolicies(processedForecast, mapVMProfiles, ServiceProfiles)
 
 	case util.LINEAR_PROGRAMMING_STEP_ALGORITHM:
@@ -56,6 +56,11 @@ func Policies(poiList []types.PoI, values []int, times [] time.Time, mapVMProfil
 		sstep := SStepRepackPolicy {algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows}
 		policies = sstep.CreatePolicies(processedForecast, mapVMProfiles, ServiceProfiles)
 
+	case util.SEARCH_TREE_ALGORITHM:
+		timeWindows := SmallStepOverProvision{PoIList:poiList}
+		processedForecast := timeWindows.WindowDerivation(values,times)
+		tree := TreePolicy {algorithm:util.SEARCH_TREE_ALGORITHM, timeWindow:timeWindows, currentState:currentState}
+		policies = tree.CreatePolicies(processedForecast, mapVMProfiles, ServiceProfiles)
 	default:
 		/*timeWindows := SmallStepOverProvision{}
 		timeWindows.PoIList = poiList

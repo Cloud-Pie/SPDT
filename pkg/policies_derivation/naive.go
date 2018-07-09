@@ -5,7 +5,6 @@ import (
 	"time"
 	"math"
 	"gopkg.in/mgo.v2/bson"
-	"sort"
 	"github.com/Cloud-Pie/SPDT/util"
 	"strconv"
 	db "github.com/Cloud-Pie/SPDT/storage/policies"
@@ -55,8 +54,8 @@ func (naive NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 
 		//Set total resource limit needed
 		limit := types.Limit{}
-		limit.Memory = performanceProfile.Limit.Memory * float32(nServiceReplicas)
-		limit.NumCores = performanceProfile.Limit.NumCores * nServiceReplicas
+		limit.Memory = performanceProfile.Limit.Memory * float64(nServiceReplicas)
+		limit.NumCores = performanceProfile.Limit.NumCores * float64(nServiceReplicas)
 
 		//Find suitable Vm(s) depending on resources limit and current state
 		//Assumption for naive approach: There is only 1 vm Type in current state
@@ -126,23 +125,9 @@ func selectProfile(performanceProfiles []types.PerformanceProfile) types.Perform
 func (naive NaivePolicy) findSuitableVMs(vmProfile types.VmProfile, limit types.Limit) []types.VmScale {
 	vmscale := []types.VmScale{}
 	m := math.Ceil(float64(limit.NumCores) / float64(vmProfile.NumCores))
-	n:=  math.Ceil(float64(limit.Memory) / float64(vmProfile.MemoryGb))
+	n:=  math.Ceil(float64(limit.Memory) / float64(vmProfile.Memory))
 	nScale := math.Max(n,m)
 	vmscale = append(vmscale, types.VmScale{Type:vmProfile.Type, Scale:int(nScale)})
 	return vmscale
 }
 
-func (naive NaivePolicy) findCheapestVMs(vmProfiles []types.VmProfile, limit types.Limit) []types.VmScale {
-	vmscale := []types.VmScale{}
-	sort.Slice(vmProfiles, func(i, j int) bool {
-		return vmProfiles[i].Pricing.Price < vmProfiles[j].Pricing.Price
-	})
-	vms:= vmProfiles[0]		//Naive case choose the cheapest possible
-	for nScale := 1; nScale < naive.limitNVMS; nScale++ {
-		if limit.NumCores <= vms.NumCores*nScale && limit.Memory <= vms.MemoryGb * float32(nScale) {
-			vmscale = append(vmscale, types.VmScale{Type:vms.Type, Scale:nScale})
-			return vmscale
-		}
-	}
-	return vmscale
-}

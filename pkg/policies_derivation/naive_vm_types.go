@@ -50,8 +50,8 @@ func (naive NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedFo
 
 			//Set total resource limit needed
 			limit := types.Limit{}
-			limit.Memory = performanceProfile.Limit.Memory * float32(nServiceReplicas)
-			limit.NumCores = performanceProfile.Limit.NumCores * nServiceReplicas
+			limit.Memory = performanceProfile.Limit.Memory * float64(nServiceReplicas)
+			limit.NumCores = performanceProfile.Limit.NumCores * float64(nServiceReplicas)
 
 			//Find suitable Vm(s) depending on resources limit and current state
 			vms := naive.findSuitableVMs(v, limit)
@@ -117,7 +117,7 @@ func (naive NaiveTypesPolicy) selectProfile(performanceProfiles []types.Performa
 func (naive NaiveTypesPolicy) findSuitableVMs(vmProfile types.VmProfile, limit types.Limit) []types.VmScale {
 	vmscale := []types.VmScale{}
 	m := math.Ceil(float64(limit.NumCores) / float64(vmProfile.NumCores))
-	n:=  math.Ceil(float64(limit.Memory) / float64(vmProfile.MemoryGb))
+	n:=  math.Ceil(float64(limit.Memory) / float64(vmProfile.Memory))
 	nScale := math.Max(n,m)
 	vmscale = append(vmscale, types.VmScale{Type:vmProfile.Type, Scale:int(nScale)})
 	return vmscale
