@@ -1,16 +1,11 @@
 {
   "ISODate": "2019-08-08T16:15:00Z",
-  "Services": [
-    {
-      "Name": "image_url",
-      "Scale": 3
-    }
-  ],
-  "Name": "unknown",
-  "Vms": [
-    {
-      "Type": "m1.micro",
-      "Scale": 3
-    }
-  ]
+  "Services": {
+    "image_url":3
+  }
+  ,
+  "Name": "test",
+  "VMs": {
+    "m1.micro":3
+  }
 }

@@ -6,25 +6,17 @@ import (
 )
 
 /*Service keeps the name and scale of the scaled service*/
-type Service struct {
-	Name  string	`json:Name`
-	Scale int	`json:Scale`
-}
+type ServiceScale map[string]int
+
+/*VMScale is the factor for which a type of VM is scales*/
+type VMScale map[string]int
 
 /*State is the metadata of the state expected to scale to*/
 type State struct {
-	LaunchTime time.Time  `json:ISODate`
-	Services   [] Service `json:Services`
-	Name       string     `json:Name`
-	VMs        [] VmScale `json:VMs`
-}
-
-func (state State) MapTypesScale() map[string] int {
-	mapTypesScale := make(map[string]int)
-	for _,vm := range state.VMs {
-		mapTypesScale [vm.Type] = vm.Scale
-	}
-	return  mapTypesScale
+	LaunchTime time.Time 	  `json:ISODate`
+	Services   ServiceScale   `json:Services`
+	Name       string    	  `json:Name`
+	VMs        VMScale   	  `json:VMs`
 }
 
 
@@ -47,12 +39,6 @@ func (state State) Equal(s2 State) bool {
 		}
 	}
 	return true
-}
-
-/*VmScale is the factor for which a type of VM is scales*/
-type VmScale struct {
-	Type string `json:"Type"`
-	Scale int `json:"Scale"`
 }
 
 /*Resource configuration*/

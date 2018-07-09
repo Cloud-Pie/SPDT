@@ -4,22 +4,21 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"time"
 	"math"
-	"gopkg.in/mgo.v2/bson"
-	"github.com/Cloud-Pie/SPDT/util"
 	"strconv"
+	"github.com/Cloud-Pie/SPDT/util"
+	"gopkg.in/mgo.v2/bson"
 	db "github.com/Cloud-Pie/SPDT/storage/policies"
 )
 
-type NaiveTypesPolicy struct {
-	algorithm  string               //Algorithm's name
-	timeWindow TimeWindowDerivation //Algorithm used to process the forecasted time serie
+type SStepRepackPolicy struct {
+	algorithm string
+	timeWindow 		TimeWindowDerivation //Algorithm used to process the forecasted time serie
 }
 
-func (naive NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedForecast, mapVMProfiles map[string]types.VmProfile, serviceProfile types.ServiceProfile) [] types.Policy {
-
+func (policy SStepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForecast, mapVMProfiles map[string]types.VmProfile, serviceProfile types.ServiceProfile) [] types.Policy {
 	policies := []types.Policy{}
 	//Compute results for cluster of each type
-	for _, v := range mapVMProfiles {
+
 		newPolicy := types.Policy{}
 		newPolicy.StartTimeDerivation = time.Now()
 		configurations := []types.Configuration{}
@@ -54,8 +53,7 @@ func (naive NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedFo
 			limit.NumCores = performanceProfile.Limit.NumCores * float64(nServiceReplicas)
 
 			//Find suitable Vm(s) depending on resources limit and current state
-			vms := naive.findSuitableVMs(v, limit)
-
+			vms := policy.findSuitableVMs(mapVMProfiles, limit)
 			totalServicesBootingTime := performanceProfile.BootTimeSec //TODO: It should include a booting rate
 
 			state := types.State{}
@@ -84,27 +82,28 @@ func (naive NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedFo
 						OverProvision:  over,
 						UnderProvision: under,
 					})
-				totalOverProvision += over
-				totalUnderProvision += under
 			}
+			totalOverProvision += over
+			totalUnderProvision += under
 		}
 
 		totalConfigurations := len(processedForecast.CriticalIntervals)
 		//Add new policy
 		newPolicy.Configurations = configurations
 		newPolicy.FinishTimeDerivation = time.Now()
-		newPolicy.Algorithm = naive.algorithm
+		newPolicy.Algorithm = policy.algorithm
 		newPolicy.ID = bson.NewObjectId()
 		newPolicy.TotalOverProvision = totalOverProvision / float32(totalConfigurations)
 		newPolicy.TotalUnderProvision = totalUnderProvision / float32(totalConfigurations)
 		//store policy
 		db.Store(newPolicy)
+
 		policies = append(policies, newPolicy)
-	}
-	return policies
+		return policies
 }
 
-func (naive NaiveTypesPolicy) selectProfile(performanceProfiles []types.PerformanceProfile) types.PerformanceProfile {
+
+func (policy SStepRepackPolicy) selectProfile(performanceProfiles []types.PerformanceProfile) types.PerformanceProfile {
 	//In a naive case, select the one with rank 1
 	for _,p := range performanceProfiles {
 		if p.RankWithLimits == 1 {
@@ -114,11 +113,28 @@ func (naive NaiveTypesPolicy) selectProfile(performanceProfiles []types.Performa
 	return performanceProfiles[0]
 }
 
-func (naive NaiveTypesPolicy) findSuitableVMs(vmProfile types.VmProfile, limit types.Limit) types.VMScale {
-	vmScale := make(map[string]int)
-	m := math.Ceil(float64(limit.NumCores) / float64(vmProfile.NumCores))
-	n:=  math.Ceil(float64(limit.Memory) / float64(vmProfile.Memory))
-	nScale := math.Max(n,m)
-	vmScale[vmProfile.Type] = int(nScale)
-	return vmScale
+func (policy SStepRepackPolicy) findSuitableVMs(mapVMProfiles map[string]types.VmProfile, limit types.Limit) types.VMScale {
+	vmScale :=  make(map[string]int)
+	for _,v := range mapVMProfiles {
+		m := math.Ceil(float64(limit.NumCores) / float64(v.NumCores))
+		n:=  math.Ceil(float64(limit.Memory) / float64(v.Memory))
+		nScale := math.Max(n,m)
+		vmScale[v.Type] = int(nScale)
+	}
+	var cheapest string
+	cost := math.Inf(1)
+	//Search for the cheapest key,value pair
+	for k,v := range vmScale {
+		price := mapVMProfiles[k].Pricing.Price * float64(v)
+		if price < cost {
+			cost = price
+			cheapest = k
+		}
+	}
+	bestVmScale :=  make(map[string]int)
+	bestVmScale[cheapest] = vmScale[cheapest]
+
+	return bestVmScale
 }
+
+

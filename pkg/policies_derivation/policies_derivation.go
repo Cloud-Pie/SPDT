@@ -80,11 +80,11 @@ func adjustTime(t time.Time, factor float64) time.Time {
 	return t.Add(time.Duration(f) * time.Second)
 }
 
-func ComputeVMBootingTime(mapVMProfiles map[string]types.VmProfile, vmsScale []types.VmScale) int {
+func ComputeVMBootingTime(mapVMProfiles map[string]types.VmProfile, vmsScale types.VMScale) int {
 	bootingTime := 0
 	//take the longestTime
-	for _,s := range vmsScale {
-		vmBootTime := mapVMProfiles[s.Type].BootTimeSec
+	for k,_ := range vmsScale {
+		vmBootTime := mapVMProfiles[k].BootTimeSec
 		if bootingTime <  vmBootTime{
 			bootingTime = vmBootTime
 		}
@@ -92,11 +92,11 @@ func ComputeVMBootingTime(mapVMProfiles map[string]types.VmProfile, vmsScale []t
 	return bootingTime
 }
 
-func ComputeVMTerminationTime(mapVMProfiles map[string]types.VmProfile, vmsScale []types.VmScale) int {
+func ComputeVMTerminationTime(mapVMProfiles map[string]types.VmProfile, vmsScale types.VMScale) int {
 	terminationTime := 0
 	//take the longestTime
-	for _,s := range vmsScale {
-		vmTermTime := mapVMProfiles[s.Type].TerminationTimeSec
+	for k,_ := range vmsScale {
+		vmTermTime := mapVMProfiles[k].TerminationTimeSec
 		if terminationTime <  vmTermTime{
 			terminationTime = vmTermTime
 		}

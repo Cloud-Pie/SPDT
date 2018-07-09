@@ -30,14 +30,14 @@ func (naive NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 
 	for _, it := range processedForecast.CriticalIntervals {
 		requests := it.Requests
-		services := [] types.Service{}
+		services :=  make(map[string]int)
 
 		//Select the performance profile that fits better
 		performanceProfile := selectProfile(serviceProfile.PerformanceProfiles)
 		//Compute number of replicas needed depending on requests
 		nProfileCopies := int(math.Ceil(float64(requests) / float64(performanceProfile.TRN)))
 		nServiceReplicas := nProfileCopies * performanceProfile.NumReplicas
-		services = append(services, types.Service{Name:serviceProfile.Name,Scale:nServiceReplicas})
+		services[serviceProfile.Name] = nServiceReplicas
 
 		//Compute under/over provision
 		diff := (nProfileCopies * performanceProfile.TRN) - requests		//TODO:Fix Wrong calculation
@@ -59,7 +59,10 @@ func (naive NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 
 		//Find suitable Vm(s) depending on resources limit and current state
 		//Assumption for naive approach: There is only 1 vm Type in current state
-		vmProfile := mapVMProfiles [naive.currentState.VMs[0].Type]
+		var vmProfile types.VmProfile
+		for k,_ := range naive.currentState.VMs {
+			vmProfile = mapVMProfiles [k]
+		}
 
 		vms := naive.findSuitableVMs(vmProfile, limit)
 		totalServicesBootingTime := performanceProfile.BootTimeSec //TODO: It should include a booting rate
@@ -112,7 +115,7 @@ func (naive NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 	return policies
 }
 
-func selectProfile(performanceProfiles []types.PerformanceProfile) types.PerformanceProfile {
+func selectProfile(performanceProfiles []types.PerformanceProfile) types.PerformanceProfile{
 	//In a naive case, select the one with rank 1
 	for _,p := range performanceProfiles {
 		if p.RankWithLimits == 1 {
@@ -122,12 +125,12 @@ func selectProfile(performanceProfiles []types.PerformanceProfile) types.Perform
 	return performanceProfiles[0]
 }
 
-func (naive NaivePolicy) findSuitableVMs(vmProfile types.VmProfile, limit types.Limit) []types.VmScale {
-	vmscale := []types.VmScale{}
+func (naive NaivePolicy) findSuitableVMs(vmProfile types.VmProfile, limit types.Limit) types.VMScale{
+	vmScale :=  make(map[string]int)
 	m := math.Ceil(float64(limit.NumCores) / float64(vmProfile.NumCores))
 	n:=  math.Ceil(float64(limit.Memory) / float64(vmProfile.Memory))
 	nScale := math.Max(n,m)
-	vmscale = append(vmscale, types.VmScale{Type:vmProfile.Type, Scale:int(nScale)})
-	return vmscale
+	vmScale[vmProfile.Type] = int(nScale)
+	return  vmScale
 }
 

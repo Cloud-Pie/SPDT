@@ -30,9 +30,9 @@ func ComputeTotalCost(policies [] types.Policy) [] types.Policy {
 func ComputeConfigurationCost (cf types.Configuration, unit string, mapPrices map[string] float64) float64 {
 	configurationCost := float64(0.0)
 	deltaTime := setDeltaTime(cf.TimeStart,cf.TimeEnd,unit)
-	for _,vm := range cf.State.VMs {
+	for k,v := range cf.State.VMs {
 		transitionTime := setDeltaTime(cf.State.LaunchTime, cf.TimeStart, unit)
-		configurationCost += mapPrices [vm.Type] * float64(vm.Scale) * (deltaTime + transitionTime)
+		configurationCost += mapPrices [k] * float64(v) * (deltaTime + transitionTime)
 	}
 	return  configurationCost
 }

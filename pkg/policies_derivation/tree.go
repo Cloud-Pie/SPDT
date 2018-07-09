@@ -30,8 +30,6 @@ type Tree struct {
 	Root *Node
 }
 
-
-
 func (policy TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, mapVMProfiles map[string]types.VmProfile, serviceProfile types.ServiceProfile) []types.Policy {
 
 	policies := []types.Policy {}
@@ -45,14 +43,14 @@ func (policy TreePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 
 	for _, it := range processedForecast.CriticalIntervals {
 		requests := it.Requests
-		services := [] types.Service{}
+		services :=  make(map[string]int)
 
 		//Select the performance profile that fits better
 		performanceProfile := policy.selectProfile(serviceProfile.PerformanceProfiles)
 		//Compute number of replicas needed depending on requests
 		nProfileCopies := int(math.Ceil(float64(requests) / float64(performanceProfile.TRN)))
 		nServiceReplicas := nProfileCopies * performanceProfile.NumReplicas
-		services = append(services, types.Service{Name:serviceProfile.Name,Scale:nServiceReplicas})
+		services[serviceProfile.Name] = nServiceReplicas
 
 		//Compute under/over provision
 		diff := (nProfileCopies * performanceProfile.TRN) - requests		//TODO:Fix Wrong calculation
@@ -76,31 +74,42 @@ func (policy TreePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 		state.Services = services
 
 		//Compare with current state
-		currentNReplicas := policy.currentState.Services[0].Scale
+		var currentNReplicas int
+		for _,v := range policy.currentState.Services {
+			currentNReplicas = v
+		}
 		diffReplicas := nServiceReplicas - currentNReplicas
-		var vms []types.VmScale
+		var vms types.VMScale
 		if diffReplicas == 0 {
 			break	//no need to scale
 		}else if diffReplicas > 0 {
 			//Need to increase resources
 			var totalPossibleReplica int
-			for _, vm := range policy.currentState.VMs {
-				totalPossibleReplica += policy.maxReplicasInVM(mapVMProfiles[vm.Type], performanceProfile.Limit) * vm.Scale
+			for k, v := range policy.currentState.VMs {
+				totalPossibleReplica += policy.maxReplicasInVM(mapVMProfiles[k],performanceProfile.Limit) * v
 			}
 			//The new replicas fit into the current set of VMs
 			if diffReplicas <= totalPossibleReplica - currentNReplicas {
 				vms = policy.currentState.VMs
 				state.VMs = vms
-			}else {
+			}else{
 				//Find new suitable Vm(s) depending on resources limit and current state
-				vms = policy.findSuitableVMs(mapVMProfiles, diffReplicas,performanceProfile.Limit)
-				vms = append(vms, policy.currentState.VMs...)
+				vms = policy.findSuitableVMs(mapVMProfiles, nServiceReplicas,performanceProfile.Limit)
+				vmsold := policy.currentState.VMs
+				for k,v :=  range vmsold{
+					if _,ok := vms[k]; ok {
+						vms[k] += v
+					}else {
+						vms[k] = v
+					}
+				}
 				state.VMs = vms
 			}
 
 		}else {
 			//Need to decrease resources
-
+			vms = policy.currentState.VMs
+			state.VMs = vms
 		}
 
 		totalServicesBootingTime := performanceProfile.BootTimeSec //TODO: It should include a booting rate
@@ -159,8 +168,8 @@ func (policy TreePolicy) selectProfile(performanceProfiles []types.PerformancePr
 	return performanceProfiles[0]
 }
 
-func (policy TreePolicy) findSuitableVMs(mapVMProfiles map[string]types.VmProfile, nReplicas int, limit types.Limit) []types.VmScale {
-	vmscale := []types.VmScale{}
+func (policy TreePolicy) findSuitableVMs(mapVMProfiles map[string]types.VmProfile, nReplicas int, limit types.Limit) types.VMScale {
+
 	tree := &Tree{}
 	node := new(Node)
 	node.NReplicas = nReplicas
@@ -170,12 +179,10 @@ func (policy TreePolicy) findSuitableVMs(mapVMProfiles map[string]types.VmProfil
 	policy.buildTree(tree.Root, mapVMProfiles,nReplicas,limit, &mapVMScaleList)
 
 	sort.Slice(mapVMScaleList, func(i, j int) bool {
-		return MapPrice(mapVMScaleList[i], mapVMProfiles) <  MapPrice(mapVMScaleList[j], mapVMProfiles)
+		return MapPrice(mapVMScaleList[i], mapVMProfiles) <=  MapPrice(mapVMScaleList[j], mapVMProfiles)
 	})
-	for k,v := range mapVMScaleList[0]{
-		vmscale = append(vmscale, types.VmScale{Type: k, Scale:v})
-	}
-	return vmscale
+
+	return mapVMScaleList[0]
 }
 
 //TODO: Delete after debugging
