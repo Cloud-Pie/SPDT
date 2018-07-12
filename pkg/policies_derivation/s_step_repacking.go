@@ -53,7 +53,7 @@ func (policy SStepRepackPolicy) CreatePolicies(processedForecast types.Processed
 			limit.NumCores = performanceProfile.Limit.NumCores * float64(nServiceReplicas)
 
 			//Find suitable Vm(s) depending on resources limit and current state
-			vms := policy.findSuitableVMs(mapVMProfiles, limit)
+			vms := FindSuitableVMs(mapVMProfiles, nServiceReplicas,performanceProfile.Limit,"")
 			totalServicesBootingTime := performanceProfile.BootTimeSec //TODO: It should include a booting rate
 
 			state := types.State{}
@@ -113,28 +113,5 @@ func (policy SStepRepackPolicy) selectProfile(performanceProfiles []types.Perfor
 	return performanceProfiles[0]
 }
 
-func (policy SStepRepackPolicy) findSuitableVMs(mapVMProfiles map[string]types.VmProfile, limit types.Limit) types.VMScale {
-	vmScale :=  make(map[string]int)
-	for _,v := range mapVMProfiles {
-		m := math.Ceil(float64(limit.NumCores) / float64(v.NumCores))
-		n:=  math.Ceil(float64(limit.Memory) / float64(v.Memory))
-		nScale := math.Max(n,m)
-		vmScale[v.Type] = int(nScale)
-	}
-	var cheapest string
-	cost := math.Inf(1)
-	//Search for the cheapest key,value pair
-	for k,v := range vmScale {
-		price := mapVMProfiles[k].Pricing.Price * float64(v)
-		if price < cost {
-			cost = price
-			cheapest = k
-		}
-	}
-	bestVmScale :=  make(map[string]int)
-	bestVmScale[cheapest] = vmScale[cheapest]
-
-	return bestVmScale
-}
 
 

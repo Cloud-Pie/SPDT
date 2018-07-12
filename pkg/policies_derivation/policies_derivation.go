@@ -7,6 +7,7 @@ import (
 	"time"
 	"github.com/Cloud-Pie/SPDT/rest_clients/scheduler"
 	"log"
+	"math"
 )
 
 //TODO: Profile for Current config
@@ -102,4 +103,53 @@ func ComputeVMTerminationTime(mapVMProfiles map[string]types.VmProfile, vmsScale
 		}
 	}
 	return terminationTime
+}
+
+func MaxReplicasInVM(vmProfile types.VmProfile, limit types.Limit) int {
+	m := float64(vmProfile.NumCores) / float64(limit.NumCores)
+	n := float64(vmProfile.Memory) / float64(limit.Memory)
+	nScale := math.Min(n,m)
+	return int(nScale)
+}
+
+func FindSuitableVMs(mapVMProfiles map[string]types.VmProfile, nReplicas int, limit types.Limit, preDefinedType string) types.VMScale {
+	vmScale :=  make(map[string]int)
+	bestVmScale :=  make(map[string]int)
+
+	//Case when is restricted to a unique type of VM
+	if preDefinedType != "" {
+		profile := mapVMProfiles[preDefinedType]
+		maxReplicas := MaxReplicasInVM(profile, limit)
+		if maxReplicas > nReplicas {
+			vmScale[preDefinedType] = 1
+			return vmScale
+		} else if maxReplicas > 0 {
+			nScale := nReplicas / maxReplicas
+			vmScale[preDefinedType] = int(nScale)
+			return vmScale
+		}
+		//Case when it searches through all the types
+	} else {
+		for _,v := range mapVMProfiles {
+			maxReplicas := MaxReplicasInVM(v, limit)
+			if maxReplicas > nReplicas {
+				vmScale[v.Type] = 1
+			} else if maxReplicas > 0 {
+				nScale := nReplicas / maxReplicas
+				vmScale[v.Type] = int(nScale)
+			}
+		}
+		var cheapest string
+		cost := math.Inf(1)
+		//Search for the cheapest key,value pair
+		for k,v := range vmScale {
+			price := mapVMProfiles[k].Pricing.Price * float64(v)
+			if price < cost {
+				cost = price
+				cheapest = k
+			}
+		}
+		bestVmScale[cheapest] = vmScale[cheapest]
+	}
+	return bestVmScale
 }

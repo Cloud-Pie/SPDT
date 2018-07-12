@@ -63,7 +63,7 @@
         "overall_perf_profile_rank": 1,
         "replicas": 2,
         "resources_limit": {
-          "num_cores": 2,
+          "num_cores": 0.1,
           "mem_gb": 0.2,
           "request_per_sercond": 0
         },
