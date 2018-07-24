@@ -10,7 +10,6 @@ type VMPrice struct{
 	Unit string	`yaml:"unit"`
 }
 
-
 func (priceModel PriceModel) MapPrices() (map[string] float64, string) {
 	mapPrices := make(map[string]float64)
 	for _,vmPrice := range priceModel.VMPrices {

@@ -3,16 +3,17 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"sort"
 	"errors"
+	"github.com/Cloud-Pie/SPDT/config"
 )
 
 //TODO: Include as criteria for the selection time
 
-func SelectPolicy(policies [] types.Policy) (types.Policy, error) {
+func SelectPolicy(policies [] types.Policy, sysConfig config.SystemConfiguration) (types.Policy, error) {
 
-	policies = ComputeTotalCost(policies)
+	policies = ComputeTotalCost(policies, sysConfig)
 
 	sort.Slice(policies, func(i, j int) bool {
-		return policies[i].TotalCost < policies[j].TotalCost
+		return policies[i].Metrics.Cost < policies[j].Metrics.Cost
 	})
 
 	if len(policies)>0{

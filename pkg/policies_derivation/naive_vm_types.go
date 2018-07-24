@@ -25,6 +25,9 @@ func (naive NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedFo
 		configurations := []types.Configuration{}
 		totalOverProvision := float32(0.0)
 		totalUnderProvision := float32(0.0)
+		nPeaksInConfiguration := float32(0.0)
+		avgOver := float32(0.0)
+		avgUnder := float32(0.0)
 
 		for _, it := range processedForecast.CriticalIntervals {
 			requests := it.Requests
@@ -47,18 +50,13 @@ func (naive NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedFo
 				over = 0
 				under = -1 * float32(diff*100/requests)
 			}
-
-			//Set total resource limit needed
-			limit := types.Limit{}
-			limit.Memory = performanceProfile.Limit.Memory * float64(nServiceReplicas)
-			limit.NumCores = performanceProfile.Limit.NumCores * float64(nServiceReplicas)
+			nPeaksInConfiguration +=1
+			avgOver += over
+			avgUnder += under
 
 			//Find suitable Vm(s) depending on resources limit and current state
 			vms := FindSuitableVMs(mapVMProfiles,nServiceReplicas,performanceProfile.Limit,vmType)
-			if len(vms) == 0 {
-				break
-			}
-			totalServicesBootingTime := performanceProfile.BootTimeSec //TODO: It should include a booting rate
+			if len(vms) == 0 { break }	//The VM Type doesn't fit for the limits
 
 			state := types.State{}
 			state.Services = services
@@ -68,12 +66,14 @@ func (naive NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedFo
 			terminationTime := ComputeVMTerminationTime(mapVMProfiles,vms)
 			finishTime := it.TimeEnd.Add(time.Duration(terminationTime) * time.Second)
 
-			//Adjust booting times for resources configuration
 			nConfigurations := len(configurations)
 			if nConfigurations >= 1 && state.Equal(configurations[nConfigurations-1].State) {
 				configurations[nConfigurations-1].TimeEnd = finishTime
+				configurations[nConfigurations-1].Metrics.OverProvision = avgOver/ nPeaksInConfiguration
 			} else {
+				//Adjust booting times for resources configuration
 				transitionTime := ComputeVMBootingTime(mapVMProfiles, vms)                            //TODO: It should include a booting rate
+				totalServicesBootingTime := performanceProfile.BootTimeSec //TODO: It should include a booting rate
 				startTime := it.TimeStart.Add(-1 * time.Duration(transitionTime) * time.Second)       //Booting time VM
 				startTime = startTime.Add(-1 * time.Duration(totalServicesBootingTime) * time.Second) //Start time containers
 				state.LaunchTime = startTime
@@ -83,37 +83,36 @@ func (naive NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedFo
 						State:          state,
 						TimeStart:      it.TimeStart,
 						TimeEnd:        finishTime,
-						OverProvision:  over,
-						UnderProvision: under,
+						Metrics: types.Metrics{
+							OverProvision:  over,
+							UnderProvision: under,
+						},
 					})
-				totalOverProvision += over
-				totalUnderProvision += under
+				nPeaksInConfiguration = 0
+				avgOver = 0
 			}
+			totalOverProvision += over
+			totalUnderProvision += under
 		}
 
-		totalConfigurations := len(processedForecast.CriticalIntervals)
+		totalConfigurations := len(configurations)
+		totalIntervals := len(processedForecast.CriticalIntervals)
+
 		if len(configurations) > 0 {
 			//Add new policy
 			newPolicy.Configurations = configurations
 			newPolicy.FinishTimeDerivation = time.Now()
 			newPolicy.Algorithm = naive.algorithm
 			newPolicy.ID = bson.NewObjectId()
-			newPolicy.TotalOverProvision = totalOverProvision / float32(totalConfigurations)
-			newPolicy.TotalUnderProvision = totalUnderProvision / float32(totalConfigurations)
+			newPolicy.Metrics = types.Metrics {
+				OverProvision:totalOverProvision/float32(totalIntervals),
+				UnderProvision:totalUnderProvision/float32(totalIntervals),
+				NumberConfigurations:totalConfigurations,
+			}
 			//store policy
 			db.Store(newPolicy)
 			policies = append(policies, newPolicy)
 		}
 	}
 	return policies
-}
-
-func (naive NaiveTypesPolicy) selectProfile(performanceProfiles []types.PerformanceProfile) types.PerformanceProfile {
-	//In a naive case, select the one with rank 1
-	for _,p := range performanceProfiles {
-		if p.RankWithLimits == 1 {
-			return p
-		}
-	}
-	return performanceProfiles[0]
 }

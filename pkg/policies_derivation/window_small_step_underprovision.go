@@ -11,16 +11,13 @@ type SmallStepUnderProvision struct {
 
 func (derivationStrategy SmallStepUnderProvision) WindowDerivation(values []int, times [] time.Time) (types.ProcessedForecast) {
 	intervals := []types.CriticalInterval{}
-
-	for ind, requests := range values {
-		if (ind == 0){
-			break
-		}
+	lenValues := len(values)
+	for i:=1; i<lenValues-1;i++ {
 		interval := types.CriticalInterval{}
-		interval.Requests = requests
-		interval.TimePeak = times[ind]
-		interval.TimeStart = times[ind-1]
-		interval.TimeEnd = times[ind]
+		interval.Requests = values[i]
+		interval.TimePeak = times[i]
+		interval.TimeStart = times[i-1]
+		interval.TimeEnd = times[i]
 		intervals = append(intervals, interval)
 	}
 	derivationStrategy.NIntervals = len(intervals)

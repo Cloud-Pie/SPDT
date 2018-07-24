@@ -12,7 +12,6 @@ import (
 
 type NaivePolicy struct {
 	algorithm  		string               //Algorithm's name
-	limitNVMS  		int                  //Max number of vms of the same type in a cluster
 	timeWindow 		TimeWindowDerivation //Algorithm used to process the forecasted time serie
 	currentState	types.State			 //Current State
 }
@@ -25,8 +24,9 @@ func (naive NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 	configurations := []types.Configuration {}
 	totalOverProvision := float32(0.0)
 	totalUnderProvision := float32(0.0)
-	peaksInConf := float32(0.0)
+	nPeaksInConfiguration := float32(0.0)
 	avgOver := float32(0.0)
+	avgUnder := float32(0.0)
 
 	for _, it := range processedForecast.CriticalIntervals {
 		requests := it.Requests
@@ -40,7 +40,7 @@ func (naive NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 		services[serviceProfile.Name] = nServiceReplicas
 
 		//Compute under/over provision
-		diff := (nProfileCopies * performanceProfile.TRN) - requests		//TODO:Fix Wrong calculation
+		diff := (nProfileCopies * performanceProfile.TRN) - requests
 		var over, under float32
 		if diff >= 0 {
 			over = float32(diff*100/requests)
@@ -49,13 +49,9 @@ func (naive NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 			over = 0
 			under = -1*float32(diff*100/requests)
 		}
-		peaksInConf+=1
-		avgOver+=over
-
-		//Set total resource limit needed
-		/*limit := types.Limit{}
-		limit.Memory = performanceProfile.Limit.Memory * float64(nServiceReplicas)
-		limit.NumCores = performanceProfile.Limit.NumCores * float64(nServiceReplicas)*/
+		nPeaksInConfiguration +=1
+		avgOver += over
+		avgUnder += under
 
 		//Find suitable Vm(s) depending on resources limit and current state
 		//Assumption for naive approach: There is only 1 vm Type in current state
@@ -65,7 +61,6 @@ func (naive NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 		}
 
 		vms := FindSuitableVMs(mapVMProfiles,nServiceReplicas, performanceProfile.Limit,vmType)
-		totalServicesBootingTime := performanceProfile.BootTimeSec //TODO: It should include a booting rate
 
 		state := types.State{}
 		state.Services = services
@@ -78,51 +73,51 @@ func (naive NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 		nConfigurations := len(configurations)
 		if nConfigurations >= 1 && state.Equal(configurations[nConfigurations-1].State) {
 			configurations[nConfigurations-1].TimeEnd = finishTime
-			configurations[nConfigurations-1].OverProvision = avgOver/peaksInConf
+			configurations[nConfigurations-1].Metrics.OverProvision = avgOver/ nPeaksInConfiguration
 		} else {
 			//Adjust booting times for resources configuration
 			transitionTime := ComputeVMBootingTime(mapVMProfiles, vms)                            //TODO: It should include a booting rate
+			totalServicesBootingTime := performanceProfile.BootTimeSec //TODO: It should include a booting rate
 			startTime := it.TimeStart.Add(-1 * time.Duration(transitionTime) * time.Second)       //Booting time VM
 			startTime = startTime.Add(-1 * time.Duration(totalServicesBootingTime) * time.Second) //Start time containers
 			state.LaunchTime = startTime
 			state.Name = strconv.Itoa(nConfigurations) + "__" + serviceProfile.Name + "__" + startTime.Format(util.TIME_LAYOUT)
 			configurations = append(configurations,
-				types.Configuration{
+				types.Configuration {
 					State:          state,
 					TimeStart:      it.TimeStart,
 					TimeEnd:        finishTime,
-					OverProvision:  over,
-					UnderProvision: under,
+					Metrics: types.Metrics {
+						OverProvision:  over,
+						UnderProvision: under,
+					},
 				})
-			peaksInConf = 0
+			nPeaksInConfiguration = 0
 			avgOver = 0
+			avgUnder = 0
 		}
 		totalOverProvision += over
 		totalUnderProvision += under
 	}
 
-	totalConfigurations := len(processedForecast.CriticalIntervals)
+	totalConfigurations := len(configurations)
+	totalPeaks := len(processedForecast.CriticalIntervals)
+
 	//Add new policy
 	newPolicy.Configurations = configurations
 	newPolicy.FinishTimeDerivation = time.Now()
 	newPolicy.Algorithm = naive.algorithm
 	newPolicy.ID = bson.NewObjectId()
-	newPolicy.TotalOverProvision = totalOverProvision/float32(totalConfigurations)
-	newPolicy.TotalUnderProvision = totalUnderProvision/float32(totalConfigurations)
+	newPolicy.Metrics = types.Metrics {
+		OverProvision:totalOverProvision/float32(totalPeaks),
+		UnderProvision:totalUnderProvision/float32(totalPeaks),
+		NumberConfigurations:totalConfigurations,
+	}
 	//store policy
 	db.Store(newPolicy)
 	policies = append(policies, newPolicy)
 	return policies
 }
 
-func selectProfile(performanceProfiles []types.PerformanceProfile) types.PerformanceProfile{
-	//In a naive case, select the one with rank 1
-	for _,p := range performanceProfiles {
-		if p.RankWithLimits == 1 {
-			return p
-		}
-	}
-	return performanceProfiles[0]
-}
 
 

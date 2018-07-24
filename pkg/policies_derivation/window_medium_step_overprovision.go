@@ -7,11 +7,11 @@ import (
 )
 
 type MediumStepOverprovision struct {
-	PoIList []types.PoI
 	NIntervals	int
+	PoIList []types.PoI
 }
 
-func (derivationStrategy MediumStepOverprovision) WindowDerivation(values []int, times [] time.Time) (types.ProcessedForecast,[][]int,[][]time.Time){
+func (derivationStrategy MediumStepOverprovision) WindowDerivation(values []int, times [] time.Time) (types.ProcessedForecast) {
 
 	intervals := []types.CriticalInterval{}
 	valuesIntervals := [][]int{}
@@ -50,10 +50,9 @@ func (derivationStrategy MediumStepOverprovision) WindowDerivation(values []int,
 	processedForecast := types.ProcessedForecast{}
 	processedForecast.CriticalIntervals = intervals
 
-	return processedForecast, valuesIntervals, timeIntervals
+	return processedForecast
 }
 
 func (derivationStrategy MediumStepOverprovision) NumberIntervals() int{
 	return derivationStrategy.NIntervals
 }
-

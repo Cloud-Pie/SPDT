@@ -10,4 +10,5 @@ const DEFAULT_DB_PROFILES = "VMProfiles"
 const DEFAULT_DB_SERVER_PROFILES = "localhost"
 const DEFAULT_DB_POLICIES = "Policies"
 const DEFAULT_DB_SERVER_POLICIES = "localhost"
-
+const DEFAULT_DB_FORECAST = "Forecast"
+const DEFAULT_DB_SERVER_FORECAST = "localhost"

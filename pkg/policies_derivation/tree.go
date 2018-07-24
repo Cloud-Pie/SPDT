@@ -38,15 +38,18 @@ func (policy TreePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 	configurations := []types.Configuration {}
 	totalOverProvision := float32(0.0)
 	totalUnderProvision := float32(0.0)
-	peaksInConf := float32(0.0)
+
+	nPeaksInConfiguration := float32(0.0)
 	avgOver := float32(0.0)
+	avgUnder := float32(0.0)
 
 	for _, it := range processedForecast.CriticalIntervals {
 		requests := it.Requests
 		services :=  make(map[string]int)
 		shouldScale := true
+
 		//Select the performance profile that fits better
-		performanceProfile := policy.selectProfile(serviceProfile.PerformanceProfiles)
+		performanceProfile := selectProfile(serviceProfile.PerformanceProfiles)
 		//Compute number of replicas needed depending on requests
 		nProfileCopies := int(math.Ceil(float64(requests) / float64(performanceProfile.TRN)))
 		nServiceReplicas := nProfileCopies * performanceProfile.NumReplicas
@@ -62,13 +65,9 @@ func (policy TreePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 			over = 0
 			under = -1*float32(diff*100/requests)
 		}
-		peaksInConf+=1
-		avgOver+=over
-
-		//Set total resource limit needed
-		/*limit := types.Limit{}
-		limit.Memory = performanceProfile.Limit.Memory * float64(nServiceReplicas)
-		limit.NumCores = performanceProfile.Limit.NumCores * float64(nServiceReplicas)*/
+		nPeaksInConfiguration +=1
+		avgOver += over
+		avgUnder += under
 
 		state := types.State{}
 		state.Services = services
@@ -78,6 +77,7 @@ func (policy TreePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 		for _,v := range policy.currentState.Services {
 			currentNReplicas = v
 		}
+
 		diffReplicas := nServiceReplicas - currentNReplicas
 		var vms types.VMScale
 		if diffReplicas == 0 {
@@ -95,9 +95,10 @@ func (policy TreePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 				vms = policy.currentState.VMs
 				state.VMs = vms
 			} else {
-				//Find new suitable Vm(s) depending on resources limit and current state
+				//Find new suitable Vm(s) to cover the number of replicas missing.
 				vms = policy.findSuitableVMs(mapVMProfiles, diffReplicas,performanceProfile.Limit)
 				vmsold := policy.currentState.VMs
+				//Merge the current configuration with configuration for the new replicas
 				for k,v :=  range vmsold{
 					if _,ok := vms[k]; ok {
 						vms[k] += v
@@ -116,8 +117,6 @@ func (policy TreePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 			state.VMs = vms
 		}
 
-		totalServicesBootingTime := performanceProfile.BootTimeSec //TODO: It should include a booting rate
-
 		//Adjust termination times for resources configuration
 		terminationTime := ComputeVMTerminationTime(mapVMProfiles,vms)
 		finishTime := it.TimeEnd.Add(time.Duration(terminationTime) * time.Second)
@@ -125,11 +124,12 @@ func (policy TreePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 		nConfigurations := len(configurations)
 		if nConfigurations >= 1 && state.Equal(configurations[nConfigurations-1].State) || !shouldScale {
 			configurations[nConfigurations-1].TimeEnd = finishTime
-			configurations[nConfigurations-1].OverProvision = avgOver/peaksInConf
+			configurations[nConfigurations-1].Metrics.OverProvision = avgOver/nPeaksInConfiguration
 			policy.currentState = state
 		} else {
 			//Adjust booting times for resources configuration
 			transitionTime := ComputeVMBootingTime(mapVMProfiles, vms)                            //TODO: It should include a booting rate
+			totalServicesBootingTime := performanceProfile.BootTimeSec //TODO: It should include a booting rate
 			startTime := it.TimeStart.Add(-1 * time.Duration(transitionTime) * time.Second)       //Booting time VM
 			startTime = startTime.Add(-1 * time.Duration(totalServicesBootingTime) * time.Second) //Start time containers
 			state.LaunchTime = startTime
@@ -139,39 +139,36 @@ func (policy TreePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 					State:          state,
 					TimeStart:      it.TimeStart,
 					TimeEnd:        finishTime,
-					OverProvision:  over,
-					UnderProvision: under,
+					Metrics: types.Metrics{
+						OverProvision:  over,
+						UnderProvision: under,
+					},
 				})
-			peaksInConf = 0
+			nPeaksInConfiguration = 0
 			avgOver = 0
+			avgUnder = 0
 			policy.currentState = state
 		}
 		totalOverProvision += over
 		totalUnderProvision += under
 	}
 
-	totalConfigurations := len(processedForecast.CriticalIntervals)
+	totalConfigurations := len(configurations)
+	totalIntervals := len(processedForecast.CriticalIntervals)
 	//Add new policy
 	newPolicy.Configurations = configurations
 	newPolicy.FinishTimeDerivation = time.Now()
 	newPolicy.Algorithm = policy.algorithm
 	newPolicy.ID = bson.NewObjectId()
-	newPolicy.TotalOverProvision = totalOverProvision/float32(totalConfigurations)
-	newPolicy.TotalUnderProvision = totalUnderProvision/float32(totalConfigurations)
+	newPolicy.Metrics = types.Metrics {
+		OverProvision:totalOverProvision/float32(totalIntervals),
+		UnderProvision:totalUnderProvision/float32(totalIntervals),
+		NumberConfigurations:totalConfigurations,
+	}
 	//store policy
 	db.Store(newPolicy)
 	policies = append(policies, newPolicy)
 	return policies
-}
-
-func (policy TreePolicy) selectProfile(performanceProfiles []types.PerformanceProfile) types.PerformanceProfile {
-	//In a naive case, select the one with rank 1
-	for _,p := range performanceProfiles {
-		if p.RankWithLimits == 1 {
-			return p
-		}
-	}
-	return performanceProfiles[0]
 }
 
 func (policy TreePolicy) findSuitableVMs(mapVMProfiles map[string]types.VmProfile, nReplicas int, limit types.Limit) types.VMScale {
@@ -240,7 +237,7 @@ func (policy TreePolicy) buildTree(node *Node, mapVMProfiles map[string]types.Vm
 	return node
 }
 
-func CopyMap( m map[string]int) map[string]int {
+func CopyMap(m map[string]int) map[string]int {
 	newM := make(map[string] int)
 	for k,v := range m {
 		newM[k]=v

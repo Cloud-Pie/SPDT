@@ -1,11 +1,11 @@
 {
   "ISODate": "2019-08-08T16:15:00Z",
   "Services": {
-    "image_url":3
+    "hello_world":2
   }
   ,
   "Name": "test",
   "VMs": {
-    "m1.micro":3
+    "m1.small":1
   }
 }

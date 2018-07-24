@@ -8,10 +8,8 @@ import (
 	"github.com/Cloud-Pie/SPDT/rest_clients/scheduler"
 	"log"
 	"math"
+	"sort"
 )
-
-//TODO: Profile for Current config
-
 //Interface for strategies of how to scale
 type PolicyDerivation interface {
 	CreatePolicies (processedForecast types.ProcessedForecast, mapVMProfiles map[string]types.VmProfile, serviceProfile types.ServiceProfile) []types.Policy
@@ -19,7 +17,6 @@ type PolicyDerivation interface {
 
 //Interface for strategies of when to scale
 type TimeWindowDerivation interface {
-	Cost()	int
 	NumberIntervals()	int
 	WindowDerivation(values []int, times [] time.Time)	types.ProcessedForecast
 }
@@ -31,44 +28,48 @@ func Policies(poiList []types.PoI, values []int, times [] time.Time, mapVMProfil
 		log.Printf("Error to get current state")
 	}
 
-	switch configuration.PreferredAlgorithm {
+	timeWindows := SmallStepOverProvision{PoIList:poiList}
+	processedForecast := timeWindows.WindowDerivation(values,times)
 
+	var orderedProfiles []types.VmProfile
+	for _,v := range mapVMProfiles {
+		orderedProfiles = append(orderedProfiles,v)
+	}
+	sort.Slice(orderedProfiles, func(i, j int) bool {
+		return orderedProfiles[i].Pricing.Price <=  orderedProfiles[j].Pricing.Price
+	})
+
+	switch configuration.PreferredAlgorithm {
 	case util.NAIVE_ALGORITHM:
-		timeWindows := SmallStepOverProvision{PoIList:poiList}
-		processedForecast := timeWindows.WindowDerivation(values,times)
-		naive := NaivePolicy {algorithm:util.NAIVE_ALGORITHM, limitNVMS:100, timeWindow:timeWindows, currentState:currentState}
+		naive := NaivePolicy {algorithm:util.NAIVE_ALGORITHM, timeWindow:timeWindows, currentState:currentState}
 		policies = naive.CreatePolicies(processedForecast, mapVMProfiles, ServiceProfiles)
 
 	case util.NAIVE_TYPES_ALGORITHM:
-		timeWindows := SmallStepOverProvision{PoIList:poiList}
-		processedForecast := timeWindows.WindowDerivation(values,times)
 		naive := NaiveTypesPolicy {algorithm:util.NAIVE_TYPES_ALGORITHM, timeWindow:timeWindows}
 		policies = naive.CreatePolicies(processedForecast, mapVMProfiles, ServiceProfiles)
 
 	case util.LINEAR_PROGRAMMING_STEP_ALGORITHM:
-		timeWindows := SmallStepOverProvision{PoIList:poiList}
-		processedForecast := timeWindows.WindowDerivation(values,times)
 		policy := LPStepPolicy{algorithm:util.LINEAR_PROGRAMMING_STEP_ALGORITHM}
 		policies = policy.CreatePolicies(processedForecast, mapVMProfiles, ServiceProfiles)
 
 	case util.SMALL_STEP_ALGORITHM:
-		timeWindows := SmallStepOverProvision{PoIList:poiList}
-		processedForecast := timeWindows.WindowDerivation(values,times)
-		sstep := SStepRepackPolicy {algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows}
+		sstep := SStepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows}
 		policies = sstep.CreatePolicies(processedForecast, mapVMProfiles, ServiceProfiles)
 
 	case util.SEARCH_TREE_ALGORITHM:
-		timeWindows := SmallStepOverProvision{PoIList:poiList}
-		processedForecast := timeWindows.WindowDerivation(values,times)
 		tree := TreePolicy {algorithm:util.SEARCH_TREE_ALGORITHM, timeWindow:timeWindows, currentState:currentState}
 		policies = tree.CreatePolicies(processedForecast, mapVMProfiles, ServiceProfiles)
+
+	case util.DELTA_REPACKED:
+		algorithm := DeltaRepackedPolicy {algorithm:util.DELTA_REPACKED, timeWindow:timeWindows, currentState:currentState, sortedVMProfiles:orderedProfiles, mapVMProfiles:mapVMProfiles}
+		policies = algorithm.CreatePolicies(processedForecast, ServiceProfiles)
 	default:
 		/*timeWindows := SmallStepOverProvision{}
 		timeWindows.PoIList = poiList
 		processedForecast := timeWindows.WindowDerivation(values,times)
 		naive := NaivePolicy {util.NAIVE_ALGORITHM, 100, timeWindows}
 		policies = naive.CreatePolicies(processedForecast, mapVMProfiles, ServiceProfiles)
-		sstep := SStepRepackPolicy{ util.SMALL_STEP_ALGORITHM}
+		sstep := DeltaRepackedPolicy{ util.SMALL_STEP_ALGORITHM}
 		policies = append(naive.CreatePolicies(processedForecast, mapVMProfiles, ServiceProfiles),sstep.CreatePolicies(poiList,values,times, mapVMProfiles, ServiceProfiles)...)
 	*/
 	}
@@ -110,6 +111,16 @@ func MaxReplicasInVM(vmProfile types.VmProfile, limit types.Limit) int {
 	n := float64(vmProfile.Memory) / float64(limit.Memory)
 	nScale := math.Min(n,m)
 	return int(nScale)
+}
+
+func selectProfile(performanceProfiles []types.PerformanceProfile) types.PerformanceProfile{
+	//select the one with rank 1
+	for _,p := range performanceProfiles {
+		if p.RankWithLimits == 1 {
+			return p
+		}
+	}
+	return performanceProfiles[0]
 }
 
 func FindSuitableVMs(mapVMProfiles map[string]types.VmProfile, nReplicas int, limit types.Limit, preDefinedType string) types.VMScale {

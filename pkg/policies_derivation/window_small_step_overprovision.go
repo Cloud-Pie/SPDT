@@ -70,6 +70,3 @@ func (derivationStrategy SmallStepOverProvision) NumberIntervals() int{
 	return derivationStrategy.NIntervals
 }
 
-func (derivationStrategy SmallStepOverProvision) Cost() int {
-	return 0
-}

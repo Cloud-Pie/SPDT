@@ -40,25 +40,27 @@ func (state State) Equal(s2 State) bool {
 	}
 	return true
 }
+type Metrics struct {
+	Cost 					float64
+	OverProvision			float32
+	UnderProvision			float32
+	NumberConfigurations	int
+}
 
 /*Resource configuration*/
 type Configuration struct {
-	TransitionCost 			float64
 	State					State
 	TimeStart 				time.Time
 	TimeEnd					time.Time
-	OverProvision			float32
-	UnderProvision 			float32
+	Metrics					Metrics
 }
 
 //Policy states the scaling transitions
 type Policy struct {
 	ID     					bson.ObjectId 	  `bson:"_id" json:"id"`
 	Algorithm 				string		  	  `json:"algorithm" bson:"algorithm"`
-	TotalCost 				float64			  `json:"total_cost" bson:"total_cost"`
+	Metrics					Metrics			  `json:"metrics" bson:"metrics"`
 	Configurations    		[]Configuration	  `json:"configuration" bson:"configuration"`
 	StartTimeDerivation		time.Time		  `json:"start_derivation_time" bson:"start_derivation_time"`
 	FinishTimeDerivation 	time.Time		  `json:"finish_derivation_time" bson:"finish_derivation_time"`
-	TotalOverProvision 		float32				  `json:"total_overprovision" bson:"total_overprovision"`
-	TotalUnderProvision 	float32				  `json:"total_underprovision" bson:"total_underprovision"`
 }
