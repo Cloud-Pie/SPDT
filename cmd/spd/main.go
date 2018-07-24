@@ -60,21 +60,21 @@ func main () {
 
 func startPolicyDerivation() [] types.Policy {
 
-	configuration,err := config.ParseConfigFile(FlagsVar.ConfigFile)
+	sysConfiguration,err := config.ParseConfigFile(FlagsVar.ConfigFile)
 	if err != nil {
 		Log.Error.Fatalf("Configuration file could not be processed %s", err)
 	}
 
 	//Request Performance Profiles
 	Log.Trace.Printf("Start request VMs Profiles")
-	vmProfiles,err := Pservice.GetVMsProfiles(configuration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VMS_PROFILES)
+	vmProfiles,err := Pservice.GetVMsProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VMS_PROFILES)
 	if err != nil {
 		Log.Error.Fatalf(err.Error())
 	}
 	Log.Trace.Printf("Finish request VMs Profiles")
 
 	Log.Trace.Printf("Start request Performance Profiles")
-	servicesProfiles,err := Pservice.GetPerformanceProfiles(configuration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILES)
+	servicesProfiles,err := Pservice.GetPerformanceProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILES)
 	if err != nil {
 		Log.Error.Fatalf(err.Error())
 	}
@@ -96,7 +96,7 @@ func startPolicyDerivation() [] types.Policy {
 	Log.Trace.Printf("Start request Forecasting")
 	timeStart := time.Now().Add(time.Hour)			//TODO: Adjust real times
 	timeEnd := timeStart.Add(time.Hour * 24)
-	data,err := Fservice.GetForecast(configuration.ForecastingComponent.Endpoint + util.ENDPOINT_FORECAST, timeStart, timeEnd)
+	data,err := Fservice.GetForecast(sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_FORECAST, timeStart, timeEnd)
 	if err != nil {
 		Log.Error.Fatalf(err.Error())
 	}
@@ -126,18 +126,18 @@ func startPolicyDerivation() [] types.Policy {
 
 	//Derive Strategies
 	Log.Trace.Printf("Start policies derivation")
-	policies = policies_derivation.Policies(poiList, values, times, mapVMProfiles, servicesProfiles, configuration)
+	policies = policies_derivation.Policies(poiList, values, times, mapVMProfiles, servicesProfiles, sysConfiguration)
 	Log.Trace.Printf("Finish policies derivation")
 
 	Log.Trace.Printf("Start policies evaluation")
-	policy,err := policy_evaluation.SelectPolicy(policies)
+	policy,err := policy_evaluation.SelectPolicy(policies, sysConfiguration)
 	Log.Trace.Printf("Finish policies evaluation")
 
 	if err != nil {
 		Log.Trace.Printf("No policy found")
 	} else {
 		Log.Trace.Printf("Start request Scheduler")
-		//reconfiguration.TriggerScheduler(policy, configuration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES)
+		//reconfiguration.TriggerScheduler(policy, sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES)
 		fmt.Sprintf(string(policy.ID))
 		Log.Trace.Printf("Finish request Scheduler")
 	}

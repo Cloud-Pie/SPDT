@@ -32,6 +32,7 @@ type SystemConfiguration struct {
 	PreferredAlgorithm string	`yaml:"preferred-algorithm"`
 	PolicySettings PolicySettings	`yaml:"policy-settings"`
 	MonthlyBudget float64	`yaml:"monthly-budget"`
+	PriceUnit string	`yaml:"price-unit"`
 }
 
 func ParseConfigFile(configFile string) (SystemConfiguration, error) {
