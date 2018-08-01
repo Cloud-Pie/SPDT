@@ -8,18 +8,20 @@ import (
 	"strconv"
 	"gopkg.in/mgo.v2/bson"
 	db "github.com/Cloud-Pie/SPDT/storage/policies"
+	"github.com/Cloud-Pie/SPDT/config"
 )
 
 type NaiveTypesPolicy struct {
 	algorithm  string               //Algorithm's name
 	timeWindow TimeWindowDerivation //Algorithm used to process the forecasted time serie
+	mapVMProfiles   map[string]types.VmProfile
+	sysConfiguration	config.SystemConfiguration
 }
 
-func (naive NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedForecast, mapVMProfiles map[string]types.VmProfile, serviceProfile types.ServiceProfile) [] types.Policy {
-
+func (p NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedForecast, serviceProfile types.ServiceProfile) [] types.Policy {
 	policies := []types.Policy{}
 	//Compute results for cluster of each type
-	for vmType, _ := range mapVMProfiles {
+	for vmType, _ := range p.mapVMProfiles {
 		newPolicy := types.Policy{}
 		newPolicy.StartTimeDerivation = time.Now()
 		configurations := []types.Configuration{}
@@ -41,7 +43,7 @@ func (naive NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedFo
 			services[serviceProfile.Name] = nServiceReplicas
 
 			//Compute under/over provision
-			diff := (nProfileCopies * performanceProfile.TRN) - requests
+			diff := (float64(nProfileCopies) * performanceProfile.TRN) - requests
 			var over, under float32
 			if diff >= 0 {
 				over = float32(diff * 100 / requests)
@@ -55,7 +57,7 @@ func (naive NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedFo
 			avgUnder += under
 
 			//Find suitable Vm(s) depending on resources limit and current state
-			vms := FindSuitableVMs(mapVMProfiles,nServiceReplicas,performanceProfile.Limit,vmType)
+			vms := p.FindSuitableVMs(nServiceReplicas,performanceProfile.Limit,vmType)
 			if len(vms) == 0 { break }	//The VM Type doesn't fit for the limits
 
 			state := types.State{}
@@ -63,7 +65,7 @@ func (naive NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedFo
 			state.VMs = vms
 
 			//Adjust termination times for resources configuration
-			terminationTime := ComputeVMTerminationTime(mapVMProfiles,vms)
+			terminationTime := computeVMTerminationTime(vms, p.sysConfiguration)
 			finishTime := it.TimeEnd.Add(time.Duration(terminationTime) * time.Second)
 
 			nConfigurations := len(configurations)
@@ -72,8 +74,8 @@ func (naive NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedFo
 				configurations[nConfigurations-1].Metrics.OverProvision = avgOver/ nPeaksInConfiguration
 			} else {
 				//Adjust booting times for resources configuration
-				transitionTime := ComputeVMBootingTime(mapVMProfiles, vms)                            //TODO: It should include a booting rate
-				totalServicesBootingTime := performanceProfile.BootTimeSec //TODO: It should include a booting rate
+				transitionTime := computeVMBootingTime(vms, p.sysConfiguration)                       //TODO: It should include a booting rate
+				totalServicesBootingTime := performanceProfile.BootTimeSec                            //TODO: It should include a booting rate
 				startTime := it.TimeStart.Add(-1 * time.Duration(transitionTime) * time.Second)       //Booting time VM
 				startTime = startTime.Add(-1 * time.Duration(totalServicesBootingTime) * time.Second) //Start time containers
 				state.LaunchTime = startTime
@@ -102,7 +104,7 @@ func (naive NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedFo
 			//Add new policy
 			newPolicy.Configurations = configurations
 			newPolicy.FinishTimeDerivation = time.Now()
-			newPolicy.Algorithm = naive.algorithm
+			newPolicy.Algorithm = p.algorithm
 			newPolicy.ID = bson.NewObjectId()
 			newPolicy.Metrics = types.Metrics {
 				OverProvision:totalOverProvision/float32(totalIntervals),
@@ -115,4 +117,19 @@ func (naive NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedFo
 		}
 	}
 	return policies
+}
+
+func (p NaiveTypesPolicy) FindSuitableVMs(numReplicas int, resourceslimit types.Limit, vmType string) types.VMScale {
+	vmScale := make(map[string]int)
+	profile := p.mapVMProfiles[vmType]
+	maxReplicas := maxReplicasCapacityInVM(profile, resourceslimit)
+	if maxReplicas > numReplicas {
+		vmScale[vmType] = 1
+		return vmScale
+	} else if maxReplicas > 0 {
+		numVMs := numReplicas / maxReplicas
+		vmScale[vmType] = int(numVMs)
+		return vmScale
+	}
+	return vmScale
 }

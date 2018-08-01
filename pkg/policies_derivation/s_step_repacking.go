@@ -4,31 +4,26 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"time"
 	"math"
-	"strconv"
-	"github.com/Cloud-Pie/SPDT/util"
 	"gopkg.in/mgo.v2/bson"
 	db "github.com/Cloud-Pie/SPDT/storage/policies"
+	"github.com/Cloud-Pie/SPDT/config"
 )
 
 type SStepRepackPolicy struct {
 	algorithm 		string				 //Algorithm's name
 	timeWindow 		TimeWindowDerivation //Algorithm used to process the forecasted time serie
+	mapVMProfiles map[string]types.VmProfile
+	sysConfiguration	config.SystemConfiguration
 }
 
-func (policy SStepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForecast, mapVMProfiles map[string]types.VmProfile, serviceProfile types.ServiceProfile) [] types.Policy {
+func (p SStepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForecast, serviceProfile types.ServiceProfile) [] types.Policy {
 
 	policies := []types.Policy{}
 	//Compute results for cluster of each type
-	maxPolicies := 100
-	for maxPolicies > 0 {
+
 		newPolicy := types.Policy{}
 		newPolicy.StartTimeDerivation = time.Now()
 		configurations := []types.Configuration{}
-		totalOverProvision := float32(0.0)
-		totalUnderProvision := float32(0.0)
-		nPeaksInConfiguration := float32(0.0)
-		avgOver := float32(0.0)
-		avgUnder := float32(0.0)
 
 		for _, it := range processedForecast.CriticalIntervals {
 			requests := it.Requests
@@ -41,80 +36,58 @@ func (policy SStepRepackPolicy) CreatePolicies(processedForecast types.Processed
 			nServiceReplicas := nProfileCopies * performanceProfile.NumReplicas
 			services[serviceProfile.Name] = nServiceReplicas
 
-			//Compute under/over provision
-			diff := (nProfileCopies * performanceProfile.TRN) - requests
-			var over, under float32
-			if diff >= 0 {
-				over = float32(diff * 100 / requests)
-				under = 0
-			} else {
-				over = 0
-				under = -1 * float32(diff*100/requests)
-			}
-			nPeaksInConfiguration +=1
-			avgOver += over
-			avgUnder += under
-
 			//Find suitable Vm(s) depending on resources limit and current state
-			vms := FindSuitableVMs(mapVMProfiles, nServiceReplicas, performanceProfile.Limit, "")
+			vms := p.FindSuitableVMs(p.mapVMProfiles, nServiceReplicas, performanceProfile.Limit)
 
 			state := types.State{}
 			state.Services = services
 			state.VMs = vms
 
-			//Adjust termination times for resources configuration
-			terminationTime := ComputeVMTerminationTime(mapVMProfiles, vms)
-			finishTime := it.TimeEnd.Add(time.Duration(terminationTime) * time.Second)
-
-			nConfigurations := len(configurations)
-			if nConfigurations >= 1 && state.Equal(configurations[nConfigurations-1].State) {
-				configurations[nConfigurations-1].TimeEnd = finishTime
-				configurations[nConfigurations-1].Metrics.OverProvision = avgOver/ nPeaksInConfiguration
-			} else {
-				//Adjust booting times for resources configuration
-				transitionTime := ComputeVMBootingTime(mapVMProfiles, vms)                            //TODO: It should include a booting rate
-				totalServicesBootingTime := performanceProfile.BootTimeSec //TODO: It should include a booting rate
-				startTime := it.TimeStart.Add(-1 * time.Duration(transitionTime) * time.Second)       //Booting time VM
-				startTime = startTime.Add(-1 * time.Duration(totalServicesBootingTime) * time.Second) //Start time containers
-				state.LaunchTime = startTime
-				state.Name = strconv.Itoa(nConfigurations) + "__" + serviceProfile.Name + "__" + startTime.Format(util.TIME_LAYOUT)
-				configurations = append(configurations,
-					types.Configuration{
-						State:     state,
-						TimeStart: it.TimeStart,
-						TimeEnd:   finishTime,
-						Metrics: types.Metrics{
-							OverProvision:  over,
-							UnderProvision: under,
-						},
-					})
-				nPeaksInConfiguration = 0
-				avgOver = 0
-			}
-			totalOverProvision += over
-			totalUnderProvision += under
+			timeStart := it.TimeStart
+			timeEnd := it.TimeEnd
+			totalServicesBootingTime := performanceProfile.BootTimeSec
+			setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration)
 		}
 
-		totalConfigurations := len(configurations)
-		totalPeaks := len(processedForecast.CriticalIntervals)
 		//Add new policy
 		newPolicy.Configurations = configurations
 		newPolicy.FinishTimeDerivation = time.Now()
-		newPolicy.Algorithm = policy.algorithm
+		newPolicy.Algorithm = p.algorithm
 		newPolicy.ID = bson.NewObjectId()
 		newPolicy.Metrics = types.Metrics{
-			OverProvision:        totalOverProvision / float32(totalPeaks),
-			UnderProvision:       totalUnderProvision / float32(totalPeaks),
-			NumberConfigurations: totalConfigurations,
+			NumberConfigurations: len(configurations),
 		}
-		//store policy
+		//store p
 		db.Store(newPolicy)
 		policies = append(policies, newPolicy)
-
-		maxPolicies -=1
-		}
 		return policies
 }
 
+func (p SStepRepackPolicy) FindSuitableVMs(mapVMProfiles map[string]types.VmProfile, nReplicas int, limit types.Limit) types.VMScale {
+	vmScale :=  make(map[string]int)
+	bestVmScale :=  make(map[string]int)
 
+		for _,v := range mapVMProfiles {
+			maxReplicas := maxReplicasCapacityInVM(v, limit)
+			if maxReplicas > nReplicas {
+				vmScale[v.Type] = 1
+			} else if maxReplicas > 0 {
+				nScale := nReplicas / maxReplicas
+				vmScale[v.Type] = int(nScale)
+			}
+		}
+		var cheapest string
+		cost := math.Inf(1)
+		//Search for the cheapest key,value pair
+		for k,v := range vmScale {
+			price := mapVMProfiles[k].Pricing.Price * float64(v)
+			if price < cost {
+				cost = price
+				cheapest = k
+			}
+		}
+		bestVmScale[cheapest] = vmScale[cheapest]
+
+	return bestVmScale
+}
 

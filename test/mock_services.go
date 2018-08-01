@@ -19,6 +19,10 @@ func main () {
 	router.GET("/api/vms", vms)
 	//Expected Current State json
 	router.GET("/api/current", currentState)
+	//Expected  All VM  Times
+	router.GET("/getAllVMTypesBootShutDownDataAvg",allVMsTimes )
+	//Expected   VM  Times
+	router.GET("/GetPerVMTypeOneBootShutDownData", vmsTimes)
 	router.Run(":8081")
 }
 
@@ -66,6 +70,34 @@ func vms(c *gin.Context){
 func currentState(c *gin.Context){
 	// Open jsonFile
 	data, err := ioutil.ReadFile("test/mock_current_state.json")
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+
+	var state interface{}
+	err = json.Unmarshal(data, &state)
+
+	c.JSON(http.StatusOK, state)
+}
+
+func allVMsTimes(c *gin.Context){
+	// Open jsonFile
+	data, err := ioutil.ReadFile("test/mock_vms_all_times.json")
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+
+	var state interface{}
+	err = json.Unmarshal(data, &state)
+
+	c.JSON(http.StatusOK, state)
+}
+
+func vmsTimes(c *gin.Context){
+	// Open jsonFile
+	data, err := ioutil.ReadFile("test/mock_vms_times.json")
 	if err != nil {
 		fmt.Println(err)
 		panic(err)

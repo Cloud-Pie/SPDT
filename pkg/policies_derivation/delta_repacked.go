@@ -3,12 +3,11 @@ package policies_derivation
 import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"time"
-	"strconv"
-	"github.com/Cloud-Pie/SPDT/util"
 	"gopkg.in/mgo.v2/bson"
 	db "github.com/Cloud-Pie/SPDT/storage/policies"
 	"math"
 	"sort"
+	"github.com/Cloud-Pie/SPDT/config"
 )
 
 type DeltaRepackedPolicy struct {
@@ -17,6 +16,7 @@ type DeltaRepackedPolicy struct {
 	currentState     types.State          			//Current State
 	sortedVMProfiles []types.VmProfile    			//List of VM profiles sorted by price
 	mapVMProfiles    map[string]types.VmProfile		//Map with VM profiles with VM.Type as key
+	sysConfiguration	config.SystemConfiguration
 }
 
 type OptimalVMSet struct {
@@ -33,18 +33,13 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		newPolicy := types.Policy{}
 		newPolicy.StartTimeDerivation = time.Now()
 		configurations := []types.Configuration{}
-		totalOverProvision := float32(0.0)
-		totalUnderProvision := float32(0.0)
-		nPeaksInConfiguration := float32(0.0)
-		avgOver := float32(0.0)
-		avgUnder := float32(0.0)
 
 		//Select the performance profile that fits better
 		performanceProfile := selectProfile(serviceProfile.PerformanceProfiles)
 
 		//calculate the capacity of services replicas to each VM type
 		for i,v := range p.sortedVMProfiles {
-			cap := MaxReplicasInVM(v,performanceProfile.Limit)
+			cap := maxReplicasCapacityInVM(v,performanceProfile.Limit)
 			p.sortedVMProfiles[i].ReplicasCapacity = cap
 			profile := p.mapVMProfiles[v.Type]
 			profile.ReplicasCapacity = cap
@@ -62,7 +57,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 			for _,v := range p.currentState.Services {	currentNServices = v }
 
 			//Compute deltaLoad
-			currentCapacity := (currentNServices/performanceProfile.NumReplicas) * performanceProfile.TRN
+			currentCapacity := float64(currentNServices/performanceProfile.NumReplicas) * performanceProfile.TRN
 			deltaLoad := totalLoad - currentCapacity
 
 			//By default keep current configuration
@@ -121,7 +116,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 					nServiceReplicas = nProfileCopies * performanceProfile.NumReplicas
 					tmp := currentNServices - nServiceReplicas
 					//validate if after removing those replicas still SLA is met
-					if tmp*(performanceProfile.TRN/performanceProfile.NumReplicas) >= totalLoad {
+					if float64(tmp)*(performanceProfile.TRN/float64(performanceProfile.NumReplicas)) >= totalLoad {
 
 						//Decreases number of replicas
 						services = make(map[string]int)
@@ -141,83 +136,24 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 				}
 			}
 
-			//Compute under/over provision
-			var ns int
-			for _,v := range services {	ns = v }
-			cc := ns*(performanceProfile.TRN/performanceProfile.NumReplicas)
-			diff := cc - totalLoad
-
-			var over, under float32
-			if diff >= 0 {
-				over = float32(diff * 100) / float32(totalLoad)
-				under = 0
-			} else {
-				over = 0
-				under = -1 * float32(diff*100) / float32(totalLoad)
-			}
-			nPeaksInConfiguration +=1
-			avgOver += over
-			avgUnder += under
-
 			//Create a new state
 			state := types.State{}
 			state.Services = services
 			state.VMs = vms
 
-			/*
 			timeStart := it.TimeStart
 			timeEnd := it.TimeEnd
 			totalServicesBootingTime := performanceProfile.BootTimeSec
-			p.setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime)
-			*/
-
-			//Adjust termination times for resources configuration
-			terminationTime := ComputeVMTerminationTime(p.mapVMProfiles, vms)
-			finishTime := it.TimeEnd.Add(time.Duration(terminationTime) * time.Second)
-
-			nConfigurations := len(configurations)
-			if nConfigurations >= 1 && state.Equal(configurations[nConfigurations-1].State) {
-				configurations[nConfigurations-1].TimeEnd = finishTime
-				configurations[nConfigurations-1].Metrics.OverProvision = avgOver/ nPeaksInConfiguration
-				p.currentState = state
-			} else {
-				//Adjust booting times for resources configuration
-				transitionTime := ComputeVMBootingTime(p.mapVMProfiles, vms)
-				totalServicesBootingTime := performanceProfile.BootTimeSec 								//TODO: It should include a booting rate
-				startTime := it.TimeStart.Add(-1 * time.Duration(transitionTime) * time.Second)       //Booting time VM
-				startTime = startTime.Add(-1 * time.Duration(totalServicesBootingTime) * time.Second) //Start time containers
-				state.LaunchTime = startTime
-				state.Name = strconv.Itoa(nConfigurations) + "__" + serviceProfile.Name + "__" + startTime.Format(util.TIME_LAYOUT)
-				configurations = append(configurations,
-					types.Configuration {
-						State:     state,
-						TimeStart: it.TimeStart,
-						TimeEnd:   finishTime,
-						Metrics: types.Metrics{
-							OverProvision:  over,
-							UnderProvision: under,
-						},
-					})
-				nPeaksInConfiguration = 0
-				avgOver = 0
-				p.currentState = state
-			}
-
-			totalOverProvision += over
-			totalUnderProvision += under
+			setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration)
 		}
 
-		totalConfigurations := len(configurations)
-		totalPeaks := len(processedForecast.CriticalIntervals)
 		//Add new policy
 		newPolicy.Configurations = configurations
 		newPolicy.FinishTimeDerivation = time.Now()
 		newPolicy.Algorithm = p.algorithm
 		newPolicy.ID = bson.NewObjectId()
 		newPolicy.Metrics = types.Metrics{
-			OverProvision:        totalOverProvision / float32(totalPeaks),
-			UnderProvision:       totalUnderProvision / float32(totalPeaks),
-			NumberConfigurations: totalConfigurations,
+			NumberConfigurations:  len(configurations),
 		}
 		//store policy
 		db.Store(newPolicy)
@@ -275,7 +211,7 @@ func (p DeltaRepackedPolicy) findOptimalVMSet(nReplicas int) types.VMScale {
 		if solutions[i].Cost < solutions[j].Cost {
 			return true
 		} else if solutions[i].Cost ==  solutions[j].Cost {
-			return solutions[i].TotalNVMs <= solutions[j].TotalNVMs
+			return solutions[i].TotalNVMs >= solutions[j].TotalNVMs
 		}
 		return false
 	})
@@ -303,7 +239,7 @@ func hetCandidateSet(nReplicas int, typeVM1 string, capacityVM1 int, typeVM2 str
 
 //Remove the virtual machines that are supporting the deployment of nReplicas from the current configuration. if possible.
 func (p DeltaRepackedPolicy) releaseResources(nReplicas int, currentVMSet types.VMScale) types.VMScale {
-	newVMSet := CopyMap(currentVMSet)
+	newVMSet := copyMap(currentVMSet)
 
 	type kv struct {
 		Key   string
@@ -345,9 +281,9 @@ func(p DeltaRepackedPolicy) repackVMSet(requiredReplicasCapacity int, currentOpt
 	newOptimalSet := OptimalVMSet {VMSet:newSet}
 	newOptimalSet.setValues(p.mapVMProfiles)
 
-	factor := performanceProfile.TRN / performanceProfile.NumReplicas
+	factor := performanceProfile.TRN / float64(performanceProfile.NumReplicas)
 
-	if (newOptimalSet.Cost < currentOptimalSet.Cost) {
+	if (newOptimalSet.Cost <= currentOptimalSet.Cost) {
 		//By default the tranisition policy would be to shut down VMs after launch new ones
 		//Calculate reconfiguration time
 
@@ -358,8 +294,9 @@ func(p DeltaRepackedPolicy) repackVMSet(requiredReplicasCapacity int, currentOpt
 
 		//Compute duration for new set
 		for idx < lenInterval {
-			if timeIntervals[idx].Requests > newOptimalSet.TotalReplicasCapacity*int(factor) {
+			if timeIntervals[idx].Requests > float64(newOptimalSet.TotalReplicasCapacity)*factor {
 				timeEnd = timeIntervals[idx].TimeStart
+				break
 			}
 			idx+=1
 		}
@@ -369,8 +306,9 @@ func(p DeltaRepackedPolicy) repackVMSet(requiredReplicasCapacity int, currentOpt
 		//Compute duration for current set
 		jdx := indexTimeInterval
 		for jdx < lenInterval {
-			if timeIntervals[jdx].Requests > currentOptimalSet.TotalReplicasCapacity*int(factor) {
+			if timeIntervals[jdx].Requests > float64(currentOptimalSet.TotalReplicasCapacity)*factor {
 				timeEnd = timeIntervals[jdx].TimeStart
+				break
 			}
 			jdx+=1
 		}
@@ -384,76 +322,15 @@ func(p DeltaRepackedPolicy) repackVMSet(requiredReplicasCapacity int, currentOpt
 	return nil, false
 }
 
-//Compare 2 VM Sets and returns a set of the new machines and one set with the machines that were removed
-func deltaVMSet(current types.VMScale, candidate types.VMScale) (types.VMScale, types.VMScale){
-		delta := types.VMScale{}
-		startSet := types.VMScale{}
-		shutdownSet := types.VMScale{}
 
-		for k,_ :=  range current{
-			if _,ok := candidate[k]; ok {
-				delta[k] = -1 * (current[k] - candidate[k])
-				if (delta[k]> 0) {
-					startSet[k] = delta[k]
-				} else if (delta[k] < 0) {
-					shutdownSet[k] = delta[k]
-				}
-			}else {
-				delta[k] = -1 * current[k]
-				shutdownSet[k] = current[k]
-			}
-		}
-
-		for k,_ :=  range candidate {
-			if _,ok := current[k]; !ok {
-				delta[k] = candidate[k]
-				startSet[k] = candidate[k]
-			}
-		}
-		return startSet, shutdownSet
-}
 
 //Calculate the cost of a reconfiguration
 func(p DeltaRepackedPolicy) calculateReconfigurationCost(newSet types.VMScale) float64 {
 	//Compute reconfiguration cost
 	_, deletedVMS := deltaVMSet(p.currentState.VMs, newSet)
-	reconfigTime := ComputeVMTerminationTime(p.mapVMProfiles, deletedVMS)
+	reconfigTime := computeVMTerminationTime(deletedVMS, p.sysConfiguration)
 
 	deletedSet := OptimalVMSet{VMSet : deletedVMS}
 	deletedSet.setValues(p.mapVMProfiles)
 	return deletedSet.Cost * float64(reconfigTime)
-}
-
-//TODO: Fix
-func (p DeltaRepackedPolicy) setConfiguration(configurations *[]types.Configuration, state types.State, timeStart time.Time, timeEnd time.Time, name string, totalServicesBootingTime int){
-	//Adjust termination times for resources configuration
-	terminationTime := ComputeVMTerminationTime(p.mapVMProfiles, state.VMs)
-	finishTime := timeEnd.Add(time.Duration(terminationTime) * time.Second)
-
-	nConfigurations := len(*configurations)
-	if nConfigurations >= 1 && state.Equal(((*configurations)[nConfigurations-1]).State) {
-		(*configurations)[nConfigurations-1].TimeEnd = finishTime
-		//configurations[nConfigurations-1].Metrics.OverProvision = avgOver/ nPeaksInConfiguration
-		p.currentState = state
-	} else {
-		//Adjust booting times for resources configuration
-		transitionTime := ComputeVMBootingTime(p.mapVMProfiles, state.VMs)
-		startTime := timeStart.Add(-1 * time.Duration(transitionTime) * time.Second)       //Booting time VM
-		startTime = startTime.Add(-1 * time.Duration(totalServicesBootingTime) * time.Second) //Start time containers
-		state.LaunchTime = startTime
-		state.Name = strconv.Itoa(nConfigurations) + "__" + name + "__" + startTime.Format(util.TIME_LAYOUT)
-		*configurations = append(*configurations,
-			types.Configuration {
-				State:     state,
-				TimeStart: timeStart,
-				TimeEnd:   finishTime,
-				/*Metrics: types.Metrics{
-					OverProvision:  over,
-					UnderProvision: under,
-				},*/
-			})
-		//nPeaksInConfiguration = 0
-		//avgOver = 0
-		p.currentState = state
-	}
 }

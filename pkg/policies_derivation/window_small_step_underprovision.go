@@ -14,7 +14,7 @@ func (derivationStrategy SmallStepUnderProvision) WindowDerivation(values []int,
 	lenValues := len(values)
 	for i:=1; i<lenValues-1;i++ {
 		interval := types.CriticalInterval{}
-		interval.Requests = values[i]
+		interval.Requests = float64(values[i])
 		interval.TimePeak = times[i]
 		interval.TimeStart = times[i-1]
 		interval.TimeEnd = times[i]

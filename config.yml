@@ -16,17 +16,15 @@ scheduler-component:
 scaling-horizon:
   start-time: 2001-12-15T02:59:43.1Z
   end-time: 2001-12-15T02:59:43.1Z
-preferred-algorithm: delta-repacked
+preferred-algorithm: sstep
 policy-settings:
-  horizontal-enabled: true
-  vertical-enabled: false
-  underprovisioning-enabled : false
-  hetereogeneos-cluster-enabled: true
+  underprovisioning-allowed : false
+  hetereogeneos-cluster-allowed: true
+  threshold-delta-increase: 25
+  max_underprovision_allowed: 50
 monthly-budget: 2000.0
 CSP: AWS
 app-deployed: true
 price-unit: Hour
-threshold-delta-increase: 25
-threshold-delta-decrease: 50
 
 

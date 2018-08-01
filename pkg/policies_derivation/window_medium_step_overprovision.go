@@ -11,10 +11,10 @@ type MediumStepOverprovision struct {
 	PoIList []types.PoI
 }
 
-func (derivationStrategy MediumStepOverprovision) WindowDerivation(values []int, times [] time.Time) (types.ProcessedForecast) {
+func (derivationStrategy MediumStepOverprovision) WindowDerivation(values []float64, times [] time.Time) (types.ProcessedForecast) {
 
 	intervals := []types.CriticalInterval{}
-	valuesIntervals := [][]int{}
+	valuesIntervals := [][]float64{}
 	timeIntervals := [][]time.Time{}
 
 	for _,item := range derivationStrategy.PoIList {
@@ -55,4 +55,10 @@ func (derivationStrategy MediumStepOverprovision) WindowDerivation(values []int,
 
 func (derivationStrategy MediumStepOverprovision) NumberIntervals() int{
 	return derivationStrategy.NIntervals
+}
+
+//Adjust the times that were interpolated
+func adjustTime(t time.Time, factor float64) time.Time {
+	f := factor*3600
+	return t.Add(time.Duration(f) * time.Second)
 }

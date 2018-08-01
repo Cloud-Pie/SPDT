@@ -7,3 +7,6 @@ const ENDPOINT_VMS_PROFILES = "/api/vms"
 const ENDPOINT_STATES = "/api/states"
 const ENDPOINT_CURRENT_STATE = "/api/current"
 const ENDPOINT_FORECAST = "/api/forecast"
+const ENDPOINT_VM_TIMES = "/GetPerVMTypeOneBootShutDownData"
+const ENDPOINT_ALL_VM_TIMES = "/getAllVMTypesBootShutDownDataAvg"
+

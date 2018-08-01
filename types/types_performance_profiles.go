@@ -23,6 +23,12 @@ type VmProfile struct {
 	ReplicasCapacity   int
 }
 
+//Times in seconds
+type BootShutDownTime struct {
+	BootTime			int		`json:"BootTime" bson:"boot_time"`
+	ShutDownTime		int		`json:"ShutDownTime" bson:"shutdown_time"`
+	NumInstances		int		`json:"NumInstances" bson:"num_instances"`
+}
 
 type Limit struct {
 	NumCores	float64			`json:"num_cores" bson:"num_cores"`
@@ -31,34 +37,12 @@ type Limit struct {
 }
 
 type PerformanceProfile struct {
-	NumReplicas 		int   `json:"replicas" bson:"replicas"`
-	BootTimeSec 		int   `json:"pod_boot_time_sec" bson:"pod_boot_time_sec"`
-	Limit       		Limit `json:"resources_limit" bson:"resources_limit"`
-	TRN         		int   `json:"maximum_service_capacity_per_sec" bson:"maximum_service_capacity_per_sec"`
-	RankWithLimits		int   `json:"profiles_with_limits_rank" bson:"profiles_with_limits_rank"`
+	NumReplicas 		int   		`json:"replicas" bson:"replicas"`
+	BootTimeSec 		int   		`json:"pod_boot_time_sec" bson:"pod_boot_time_sec"`
+	Limit       		Limit 		`json:"resources_limit" bson:"resources_limit"`
+	TRN         		float64   	`json:"maximum_service_capacity_per_sec" bson:"maximum_service_capacity_per_sec"`
+	RankWithLimits		int   		`json:"profiles_with_limits_rank" bson:"profiles_with_limits_rank"`
 }
-
-//DEPRECATED
-/*type VmProfile struct {
-	VmProfile			VmProfile                `json:"vm_info" bson:"vm_info"`
-	ServiceInfo		[]PerformanceProfile `json:"services" bson:"services"`
-	TRN				int                  `json:"maximum_service_capacity_per_sec" bson:"maximum_service_capacity_per_sec"`
-}
-
-type PerformanceModel struct {
-	CSP        string             `json:"CSP" bson:"CSP"`
-	//VmProfiles [] VmProfile `json:"profiles" bson:"profiles"`
-}
-
-func  (model PerformanceModel) MapTypeCapacity() map[string] int{
-	mapTypesCapacity := make(map[string]int)
-
-	for _,vm := range model.VmProfiles {
-		mapTypesCapacity [vm.VmInfo.Type] = vm.TRN
-	}
-	return  mapTypesCapacity
-}
-*/
 
 type ServiceProfile struct {
 	ID                		bson.ObjectId       `bson:"_id" json:"id"`

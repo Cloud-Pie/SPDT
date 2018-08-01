@@ -8,8 +8,8 @@ import (
 )
 
 //Calls the service to process the forecast received and return the points of interest  found
-func PointsOfInterest(forecast types.Forecast) ([]types.PoI, []int, [] time.Time){
-	values := [] int {}
+func PointsOfInterest(forecast types.Forecast) ([]types.PoI, []float64, [] time.Time){
+	values := [] float64 {}
 	times := [] time.Time {}
 	for _,x := range forecast.ForecastedValues {
 		values = append(values,x.Requests)

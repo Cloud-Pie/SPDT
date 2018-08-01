@@ -2,12 +2,13 @@ package types
 
 import (
 	"time"
+	"gopkg.in/mgo.v2/bson"
 )
 
 /*Critical Interval is the interval of time analyzed to take a scaling decision*/
 type CriticalInterval struct {
 	TimeStart	time.Time	`json:"TimeStart"`
-	Requests	int	`json:"Requests"`	//max/min point in the interval
+	Requests	float64	`json:"Requests"`	//max/min point in the interval
 	AboveThreshold	bool `json:"AboveThreshold"`	//1:= aboveThreshold; -1:= below
 	TimeEnd	time.Time	`json:"TimeEnd"`
 	TimePeak time.Time
@@ -16,12 +17,12 @@ type CriticalInterval struct {
 /*Represent the number of requests for a time T*/
 type ForecastedValue struct {
 	TimeStamp   time.Time	`json:"time-stamp"`
-	Requests	int         `json:"requests"`
+	Requests	float64         `json:"requests"`
 }
 
-/*Set of values received from from the Forecasting component*/
+/*Set of values received from the Forecasting component*/
 type Forecast struct {
-	ID	string							`json:"id"`
+	ID               bson.ObjectId      `bson:"_id"`
 	ForecastedValues []ForecastedValue	`json:"values"`
 }
 

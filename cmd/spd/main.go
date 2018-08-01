@@ -7,7 +7,8 @@ import (
 	"github.com/Cloud-Pie/SPDT/pkg/policy_evaluation"
 	"github.com/Cloud-Pie/SPDT/util"
 	"github.com/Cloud-Pie/SPDT/config"
-	storage "github.com/Cloud-Pie/SPDT/storage/profile"
+	storageProfile "github.com/Cloud-Pie/SPDT/storage/profile"
+	storageForecast "github.com/Cloud-Pie/SPDT/storage/forecast"
 	"gopkg.in/mgo.v2/bson"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -15,6 +16,7 @@ import (
 	"net/http"
 	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
 	"time"
+	"sort"
 )
 
 var Log = util.NewLogger()
@@ -82,7 +84,7 @@ func startPolicyDerivation() [] types.Policy {
 
 	//Store received information about Performance Profiles
 	servicesProfiles.ID = bson.NewObjectId()
-	serviceProfileDAO := storage.PerformanceProfileDAO{
+	serviceProfileDAO := storageProfile.PerformanceProfileDAO{
 		util.DEFAULT_DB_SERVER_PROFILES,
 		util.DEFAULT_DB_PROFILES,
 	}
@@ -96,37 +98,51 @@ func startPolicyDerivation() [] types.Policy {
 	Log.Trace.Printf("Start request Forecasting")
 	timeStart := time.Now().Add(time.Hour)			//TODO: Adjust real times
 	timeEnd := timeStart.Add(time.Hour * 24)
-	data,err := Fservice.GetForecast(sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_FORECAST, timeStart, timeEnd)
+	forecast,err := Fservice.GetForecast(sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_FORECAST, timeStart, timeEnd)
 	if err != nil {
 		Log.Error.Fatalf(err.Error())
 	}
 	Log.Trace.Printf("Finish request Forecasting")
 
+	//Store received information about forecast
+	forecast.ID = bson.NewObjectId()
+	forecastDAO := storageForecast.ForecastDAO{
+		util.DEFAULT_DB_SERVER_FORECAST,
+		util.DEFAULT_DB_FORECAST,
+	}
+	forecastDAO.Connect()
+	err = forecastDAO.Insert(forecast)
+	if err != nil {
+		Log.Error.Fatalf(err.Error())
+	}
 
 	Log.Trace.Printf("Start points of interest search in time serie")
-	poiList, values, times := forecast_processing.PointsOfInterest(data)
+	poiList, values, times := forecast_processing.PointsOfInterest(forecast)
 	Log.Trace.Printf("Finish points of interest search in time serie")
 
 
 	//match prices to available VMs
 	priceModel,err = policy_evaluation.ParsePricesFile(util.PRICES_FILE)
 	mapVmPrice, unit := priceModel.MapPrices()
-	mapVMProfiles := make(map[string]types.VmProfile)
+	//mapVMProfiles := make(map[string]types.VmProfile)
 
-	for _,p := range vmProfiles {
-		p.Pricing.Price = mapVmPrice[p.Type]
-		p.Pricing.Unit = unit
-		if (p.Pricing.Price == 0.0) {
+	for i,p := range vmProfiles {
+		vmProfiles[i].Pricing.Price = mapVmPrice[p.Type]
+		vmProfiles[i].Pricing.Unit = unit
+		if (vmProfiles[i].Pricing.Price == 0.0) {
 			Log.Warning.Printf("No price found for %s", p.Type)
 		}
-		mapVMProfiles[p.Type] = p
 	}
+
+	sort.Slice(vmProfiles, func(i, j int) bool {
+		return vmProfiles[i].Pricing.Price <=  vmProfiles[j].Pricing.Price
+	})
 
 	var policies []types.Policy
 
 	//Derive Strategies
 	Log.Trace.Printf("Start policies derivation")
-	policies = policies_derivation.Policies(poiList, values, times, mapVMProfiles, servicesProfiles, sysConfiguration)
+	policies = policies_derivation.Policies(poiList, values, times, vmProfiles, servicesProfiles, sysConfiguration)
 	Log.Trace.Printf("Finish policies derivation")
 
 	Log.Trace.Printf("Start policies evaluation")

@@ -1,0 +1,24 @@
+{
+  "InstanceValues": [
+    {
+      "BootTime": 240,
+      "NumInstances": 1,
+      "ShutDownTime": 200
+    },
+    {
+      "BootTime": 300,
+      "NumInstances": 2,
+      "ShutDownTime": 240
+    },
+    {
+      "BootTime": 300,
+      "NumInstances": 3,
+      "ShutDownTime": 240
+    },
+    {
+      "BootTime": 400,
+      "NumInstances": 4,
+      "ShutDownTime": 240
+    }
+  ]
+}

@@ -64,3 +64,8 @@ type Policy struct {
 	StartTimeDerivation		time.Time		  `json:"start_derivation_time" bson:"start_derivation_time"`
 	FinishTimeDerivation 	time.Time		  `json:"finish_derivation_time" bson:"finish_derivation_time"`
 }
+
+type StructMap struct {
+	Key   string
+	Value int
+}

@@ -10,7 +10,7 @@ type SmallStepOverProvision struct {
 	PoIList []types.PoI
 }
 
-func (derivationStrategy SmallStepOverProvision) WindowDerivation(values []int, times [] time.Time) (types.ProcessedForecast) {
+func (derivationStrategy SmallStepOverProvision) WindowDerivation(values []float64, times [] time.Time) (types.ProcessedForecast) {
 	intervals := []types.CriticalInterval{}
 	nValues := len(values)
 	for _, it:= range derivationStrategy.PoIList {

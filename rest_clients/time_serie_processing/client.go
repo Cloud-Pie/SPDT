@@ -9,7 +9,7 @@ import (
 )
 
 type Serie struct {
-	Serie	[]int	 `json:"serie"`
+	Serie	[]float64	 `json:"serie"`
 	Threshold int 	`json:"threshold"`
 }
 
@@ -18,7 +18,7 @@ type ResponsePoI struct {
 }
 
 
-func ProcessData(values []int, threshold int, endpoint string) ([]types.PoI, error){
+func ProcessData(values []float64, threshold int, endpoint string) ([]types.PoI, error){
 	poiList:= []types.PoI{}
 
 	serie := Serie{Serie:values, Threshold:threshold}

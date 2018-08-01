@@ -10,6 +10,7 @@ import (
 	db "github.com/Cloud-Pie/SPDT/storage/policies"
 	"fmt"
 	"sort"
+	"github.com/Cloud-Pie/SPDT/config"
 )
 
 type TreePolicy struct {
@@ -17,6 +18,8 @@ type TreePolicy struct {
 	limitNVMS  		int                  //Max number of vms of the same type in a cluster
 	timeWindow 		TimeWindowDerivation //Algorithm used to process the forecasted time serie
 	currentState	types.State			 //Current State
+	mapVMProfiles map[string]types.VmProfile
+	sysConfiguration	config.SystemConfiguration
 }
 
 type Node struct {
@@ -30,18 +33,12 @@ type Tree struct {
 	Root *Node
 }
 
-func (policy TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, mapVMProfiles map[string]types.VmProfile, serviceProfile types.ServiceProfile) []types.Policy {
+func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, serviceProfile types.ServiceProfile) []types.Policy {
 
 	policies := []types.Policy {}
 	newPolicy := types.Policy{}
 	newPolicy.StartTimeDerivation = time.Now()
 	configurations := []types.Configuration {}
-	totalOverProvision := float32(0.0)
-	totalUnderProvision := float32(0.0)
-
-	nPeaksInConfiguration := float32(0.0)
-	avgOver := float32(0.0)
-	avgUnder := float32(0.0)
 
 	for _, it := range processedForecast.CriticalIntervals {
 		requests := it.Requests
@@ -55,26 +52,12 @@ func (policy TreePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 		nServiceReplicas := nProfileCopies * performanceProfile.NumReplicas
 		services[serviceProfile.Name] = nServiceReplicas
 
-		//Compute under/over provision
-		diff := (nProfileCopies * performanceProfile.TRN) - requests		//TODO:Fix Wrong calculation
-		var over, under float32
-		if diff >= 0 {
-			over = float32(diff*100/requests)
-			under = 0
-		} else {
-			over = 0
-			under = -1*float32(diff*100/requests)
-		}
-		nPeaksInConfiguration +=1
-		avgOver += over
-		avgUnder += under
-
 		state := types.State{}
 		state.Services = services
 
 		//Compare with current state . It Assumes that there is only 1 service
 		var currentNReplicas int
-		for _,v := range policy.currentState.Services {
+		for _,v := range p.currentState.Services {
 			currentNReplicas = v
 		}
 
@@ -82,22 +65,22 @@ func (policy TreePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 		var vms types.VMScale
 		if diffReplicas == 0 {
 				shouldScale = false	//no need to scale
-				vms = policy.currentState.VMs
+				vms = p.currentState.VMs
 				state.VMs = vms
 		} else if diffReplicas > 0 {
 			//Need to increase resources
 			var totalPossibleReplica int
-			for k, v := range policy.currentState.VMs {
-				totalPossibleReplica += MaxReplicasInVM(mapVMProfiles[k],performanceProfile.Limit) * v
+			for k, v := range p.currentState.VMs {
+				totalPossibleReplica += maxReplicasCapacityInVM(p.mapVMProfiles[k],performanceProfile.Limit) * v
 			}
 			//The new replicas fit into the current set of VMs
 			if diffReplicas <= totalPossibleReplica - currentNReplicas {
-				vms = policy.currentState.VMs
+				vms = p.currentState.VMs
 				state.VMs = vms
 			} else {
 				//Find new suitable Vm(s) to cover the number of replicas missing.
-				vms = policy.findSuitableVMs(mapVMProfiles, diffReplicas,performanceProfile.Limit)
-				vmsold := policy.currentState.VMs
+				vms = p.findSuitableVMs(diffReplicas,performanceProfile.Limit)
+				vmsold := p.currentState.VMs
 				//Merge the current configuration with configuration for the new replicas
 				for k,v :=  range vmsold{
 					if _,ok := vms[k]; ok {
@@ -111,25 +94,29 @@ func (policy TreePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 
 		} else {
 			//Need to decrease resources
-			//vms = policy.currentState.VMs
-			vms = policy.findSuitableVMs(mapVMProfiles, nServiceReplicas,performanceProfile.Limit)
-			//vms = policy.removeVMs(mapVMProfiles, policy.currentState.VMs, -1*diffReplicas,performanceProfile.Limit)
+			//vms = p.currentState.VMs
+			vms = p.findSuitableVMs(nServiceReplicas,performanceProfile.Limit)
+			//vms = p.removeVMs(mapVMProfiles, p.currentState.VMs, -1*diffReplicas,performanceProfile.Limit)
 			state.VMs = vms
 		}
 
+		timeStart := it.TimeStart
+		timeEnd := it.TimeEnd
+		totalServicesBootingTime := performanceProfile.BootTimeSec
+		setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration)
+
 		//Adjust termination times for resources configuration
-		terminationTime := ComputeVMTerminationTime(mapVMProfiles,vms)
+		terminationTime := computeVMTerminationTime(vms, p.sysConfiguration)
 		finishTime := it.TimeEnd.Add(time.Duration(terminationTime) * time.Second)
 
 		nConfigurations := len(configurations)
 		if nConfigurations >= 1 && state.Equal(configurations[nConfigurations-1].State) || !shouldScale {
 			configurations[nConfigurations-1].TimeEnd = finishTime
-			configurations[nConfigurations-1].Metrics.OverProvision = avgOver/nPeaksInConfiguration
-			policy.currentState = state
+			p.currentState = state
 		} else {
 			//Adjust booting times for resources configuration
-			transitionTime := ComputeVMBootingTime(mapVMProfiles, vms)                            //TODO: It should include a booting rate
-			totalServicesBootingTime := performanceProfile.BootTimeSec //TODO: It should include a booting rate
+			transitionTime := computeVMBootingTime(vms, p.sysConfiguration)                       //TODO: It should include a booting rate
+			totalServicesBootingTime := performanceProfile.BootTimeSec                            //TODO: It should include a booting rate
 			startTime := it.TimeStart.Add(-1 * time.Duration(transitionTime) * time.Second)       //Booting time VM
 			startTime = startTime.Add(-1 * time.Duration(totalServicesBootingTime) * time.Second) //Start time containers
 			state.LaunchTime = startTime
@@ -139,52 +126,37 @@ func (policy TreePolicy) CreatePolicies(processedForecast types.ProcessedForecas
 					State:          state,
 					TimeStart:      it.TimeStart,
 					TimeEnd:        finishTime,
-					Metrics: types.Metrics{
-						OverProvision:  over,
-						UnderProvision: under,
-					},
 				})
-			nPeaksInConfiguration = 0
-			avgOver = 0
-			avgUnder = 0
-			policy.currentState = state
+			p.currentState = state
 		}
-		totalOverProvision += over
-		totalUnderProvision += under
 	}
 
-	totalConfigurations := len(configurations)
-	totalIntervals := len(processedForecast.CriticalIntervals)
 	//Add new policy
 	newPolicy.Configurations = configurations
 	newPolicy.FinishTimeDerivation = time.Now()
-	newPolicy.Algorithm = policy.algorithm
+	newPolicy.Algorithm = p.algorithm
 	newPolicy.ID = bson.NewObjectId()
 	newPolicy.Metrics = types.Metrics {
-		OverProvision:totalOverProvision/float32(totalIntervals),
-		UnderProvision:totalUnderProvision/float32(totalIntervals),
-		NumberConfigurations:totalConfigurations,
+		NumberConfigurations:len(configurations),
 	}
-	//store policy
+	//store p
 	db.Store(newPolicy)
 	policies = append(policies, newPolicy)
 	return policies
 }
 
-func (policy TreePolicy) findSuitableVMs(mapVMProfiles map[string]types.VmProfile, nReplicas int, limit types.Limit) types.VMScale {
-
+func (p TreePolicy) findSuitableVMs(nReplicas int, limit types.Limit) types.VMScale {
 	tree := &Tree{}
 	node := new(Node)
 	node.NReplicas = nReplicas
 	node.vmScale = make(map[string]int)
 	tree.Root = node
 	mapVMScaleList := []map[string]int {}
-	policy.buildTree(tree.Root, mapVMProfiles,nReplicas,limit, &mapVMScaleList)
+	p.buildTree(tree.Root, p.mapVMProfiles,nReplicas,limit, &mapVMScaleList)
 
 	sort.Slice(mapVMScaleList, func(i, j int) bool {
-		return MapPrice(mapVMScaleList[i], mapVMProfiles) <=  MapPrice(mapVMScaleList[j], mapVMProfiles)
+		return MapPrice(mapVMScaleList[i], p.mapVMProfiles) <=  MapPrice(mapVMScaleList[j], p.mapVMProfiles)
 	})
-
 	return mapVMScaleList[0]
 }
 
@@ -200,18 +172,17 @@ func Drucken (n *Node, level int) {
 	}
 }
 
-func (policy TreePolicy) buildTree(node *Node, mapVMProfiles map[string]types.VmProfile, nReplicas int, limit types.Limit, vmScaleList *[]map[string]int) *Node {
-
+func (p TreePolicy) buildTree(node *Node, mapVMProfiles map[string]types.VmProfile, nReplicas int, limit types.Limit, vmScaleList *[]map[string]int) *Node {
 	if node.NReplicas == 0 {
 		return node
 	}
 	for k,v := range mapVMProfiles {
-		maxReplicas := MaxReplicasInVM(mapVMProfiles[v.Type], limit)
+		maxReplicas := maxReplicasCapacityInVM(mapVMProfiles[v.Type], limit)
 		if maxReplicas >= nReplicas {
 			newNode := new(Node)
 			newNode.vmType = k
 			newNode.NReplicas = 0
-			newNode.vmScale = CopyMap(node.vmScale)
+			newNode.vmScale = copyMap(node.vmScale)
 			if _, ok := newNode.vmScale[newNode.vmType]; ok {
 				newNode.vmScale[newNode.vmType] = newNode.vmScale[newNode.vmType]+1
 			} else {
@@ -224,26 +195,20 @@ func (policy TreePolicy) buildTree(node *Node, mapVMProfiles map[string]types.Vm
 			newNode := new(Node)
 			newNode.vmType = k
 			newNode.NReplicas = nReplicas-maxReplicas
-			newNode.vmScale = CopyMap(node.vmScale)
+			newNode.vmScale = copyMap(node.vmScale)
 			if _, ok := newNode.vmScale[newNode.vmType]; ok {
 				newNode.vmScale[newNode.vmType] = newNode.vmScale[newNode.vmType] + 1
 			} else {
 				newNode.vmScale[newNode.vmType] = 1
 			}
-			newNode = policy.buildTree(newNode, mapVMProfiles, nReplicas-maxReplicas, limit, vmScaleList)
+			newNode = p.buildTree(newNode, mapVMProfiles, nReplicas-maxReplicas, limit, vmScaleList)
 			node.children = append(node.children, newNode)
 		}
 	}
 	return node
 }
 
-func CopyMap(m map[string]int) map[string]int {
-	newM := make(map[string] int)
-	for k,v := range m {
-		newM[k]=v
-	}
-	return newM
-}
+
 
 func MapPrice( m map[string]int, mapVMProfiles map [string]types.VmProfile ) float64{
 	price := float64(0.0)
@@ -253,7 +218,7 @@ func MapPrice( m map[string]int, mapVMProfiles map [string]types.VmProfile ) flo
 	return price
 }
 
-func (policy TreePolicy)removeVMs(mapVMProfiles map[string] types.VmProfile, currentConfig map[string] int, nReplicas int, limit types.Limit) types.VMScale{
+func (p TreePolicy)removeVMs(mapVMProfiles map[string] types.VmProfile, currentConfig map[string] int, nReplicas int, limit types.Limit) types.VMScale{
 	//Find the type with more machines
 	nVMS := 0
 	var typeVM string
@@ -264,7 +229,7 @@ func (policy TreePolicy)removeVMs(mapVMProfiles map[string] types.VmProfile, cur
 		}
 	}
 
-	maxNReplicas := MaxReplicasInVM(mapVMProfiles[typeVM],limit)
+	maxNReplicas := maxReplicasCapacityInVM(mapVMProfiles[typeVM],limit)
 	if maxNReplicas == nReplicas {
 		//Remove only 1 VM
 		currentConfig[typeVM] = nVMS - 1
@@ -280,8 +245,8 @@ func (policy TreePolicy)removeVMs(mapVMProfiles map[string] types.VmProfile, cur
 	}
 
 	/*var totalPossibleReplica int
-	for k, v := range policy.currentState.VMs {
-		totalPossibleReplica += MaxReplicasInVM(mapVMProfiles[k],limit) * v
+	for k, v := range p.currentState.VMs {
+		totalPossibleReplica += maxReplicasCapacityInVM(mapVMProfiles[k],limit) * v
 	}*/
 
 	return currentConfig

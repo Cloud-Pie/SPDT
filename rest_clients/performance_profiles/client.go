@@ -46,3 +46,41 @@ func GetVMsProfiles(endpoint string) ([]types.VmProfile, error){
 	}
 	return vmList,err
 }
+
+func GetAllBootShutDownProfiles(endpoint string, vmType string) ([]types.BootShutDownTime, error){
+	instanceValues := []types.BootShutDownTime{}
+	response, err := http.Get(endpoint)
+	if err != nil {
+		return instanceValues,err
+	}
+	defer response.Body.Close()
+	data, err := ioutil.ReadAll(response.Body)
+
+	if err != nil {
+		return instanceValues,err
+	}
+	err = json.Unmarshal(data, &instanceValues)
+	if err != nil {
+		return instanceValues,err
+	}
+	return instanceValues,err
+}
+
+func GetBootShutDownProfile(endpoint string, vmType string, numberInstance int) (types.BootShutDownTime, error){
+	instanceValues := types.BootShutDownTime{}
+	response, err := http.Get(endpoint)
+	if err != nil {
+		return instanceValues,err
+	}
+	defer response.Body.Close()
+	data, err := ioutil.ReadAll(response.Body)
+
+	if err != nil {
+		return instanceValues,err
+	}
+	err = json.Unmarshal(data, &instanceValues)
+	if err != nil {
+		return instanceValues,err
+	}
+	return instanceValues,err
+}
