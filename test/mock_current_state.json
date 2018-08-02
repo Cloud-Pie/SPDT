@@ -1,7 +1,11 @@
 {
   "ISODate": "2019-08-08T16:15:00Z",
   "Services": {
-    "hello_world":2
+    "hello_world": {
+      "Scale":2,
+      "CPU":0.2,
+      "Memory":0.2
+    }
   }
   ,
   "Name": "test",

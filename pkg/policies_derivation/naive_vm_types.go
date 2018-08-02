@@ -7,7 +7,6 @@ import (
 	"github.com/Cloud-Pie/SPDT/util"
 	"strconv"
 	"gopkg.in/mgo.v2/bson"
-	db "github.com/Cloud-Pie/SPDT/storage/policies"
 	"github.com/Cloud-Pie/SPDT/config"
 )
 
@@ -33,14 +32,17 @@ func (p NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 
 		for _, it := range processedForecast.CriticalIntervals {
 			requests := it.Requests
-			services :=  make(map[string]int)
+			services :=  make(map[string]types.ServiceInfo)
 
 			//Select the performance profile that fits better
 			performanceProfile := selectProfile(serviceProfile.PerformanceProfiles)
 			//Compute number of replicas needed depending on requests
 			nProfileCopies := int(math.Ceil(float64(requests) / float64(performanceProfile.TRN)))
 			nServiceReplicas := nProfileCopies * performanceProfile.NumReplicas
-			services[serviceProfile.Name] = nServiceReplicas
+			services[serviceProfile.Name] = types.ServiceInfo{
+											Scale: nServiceReplicas,
+											CPU: performanceProfile.Limit.NumCores,
+											Memory: performanceProfile.Limit.Memory, }
 
 			//Compute under/over provision
 			diff := (float64(nProfileCopies) * performanceProfile.TRN) - requests
@@ -111,8 +113,6 @@ func (p NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 				UnderProvision:totalUnderProvision/float32(totalIntervals),
 				NumberConfigurations:totalConfigurations,
 			}
-			//store policy
-			db.Store(newPolicy)
 			policies = append(policies, newPolicy)
 		}
 	}

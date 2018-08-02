@@ -36,3 +36,16 @@ func CurrentState(endpoint string) (types.State, error) {
 	return  currentState, err
 }
 
+func InvalidateStates(endpoint string) (error) {
+	response, err := http.Get(endpoint)
+	if err != nil {
+		return  err
+	}
+	defer response.Body.Close()
+	_,err = ioutil.ReadAll(response.Body)
+	if err != nil {
+		return   err
+	}
+	return   err
+}
+

@@ -4,7 +4,6 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"time"
 	"gopkg.in/mgo.v2/bson"
-	db "github.com/Cloud-Pie/SPDT/storage/policies"
 	"math"
 	"sort"
 	"github.com/Cloud-Pie/SPDT/config"
@@ -52,9 +51,9 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 			var vms 				types.VMScale
 			var currentNServices 	int
 			totalLoad := it.Requests
-			services := make(map[string]int)
+			services := make(map[string]types.ServiceInfo)
 
-			for _,v := range p.currentState.Services {	currentNServices = v }
+			for _,v := range p.currentState.Services {	currentNServices = v.Scale }
 
 			//Compute deltaLoad
 			currentCapacity := float64(currentNServices/performanceProfile.NumReplicas) * performanceProfile.TRN
@@ -71,8 +70,12 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 				nServiceReplicas = nProfileCopies * performanceProfile.NumReplicas
 
 				//increases number of replicas
-				services = make(map[string]int)
-				services[serviceProfile.Name] = currentNServices + nServiceReplicas
+				services = make(map[string]types.ServiceInfo)
+				services[serviceProfile.Name] = types.ServiceInfo{
+												Scale: currentNServices + nServiceReplicas,
+												CPU: performanceProfile.Limit.NumCores,
+												Memory: performanceProfile.Limit.Memory, }
+
 
 				//Validate if the current configuration is able to handle the new replicas
 				currentOpt := OptimalVMSet{VMSet:p.currentState.VMs}
@@ -119,8 +122,11 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 					if float64(tmp)*(performanceProfile.TRN/float64(performanceProfile.NumReplicas)) >= totalLoad {
 
 						//Decreases number of replicas
-						services = make(map[string]int)
-						services[serviceProfile.Name] = currentNServices - nServiceReplicas
+						services = make(map[string]types.ServiceInfo)
+						services[serviceProfile.Name] = types.ServiceInfo{
+														Scale: currentNServices - nServiceReplicas,
+														CPU: performanceProfile.Limit.NumCores,
+														Memory: performanceProfile.Limit.Memory, }
 						//Build new set of VMs and release some if necessary
 						vms = p.releaseResources(nServiceReplicas, p.currentState.VMs)
 
@@ -155,8 +161,6 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		newPolicy.Metrics = types.Metrics{
 			NumberConfigurations:  len(configurations),
 		}
-		//store policy
-		db.Store(newPolicy)
 		policies = append(policies, newPolicy)
 
 		return policies

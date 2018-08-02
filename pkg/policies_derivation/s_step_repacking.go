@@ -5,7 +5,6 @@ import (
 	"time"
 	"math"
 	"gopkg.in/mgo.v2/bson"
-	db "github.com/Cloud-Pie/SPDT/storage/policies"
 	"github.com/Cloud-Pie/SPDT/config"
 )
 
@@ -27,14 +26,17 @@ func (p SStepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForec
 
 		for _, it := range processedForecast.CriticalIntervals {
 			requests := it.Requests
-			services := make(map[string]int)
+			services := make(map[string]types.ServiceInfo)
 
 			//Select the performance profile that fits better
 			performanceProfile := selectProfile(serviceProfile.PerformanceProfiles)
 			//Compute number of replicas needed depending on requests
 			nProfileCopies := int(math.Ceil(float64(requests) / float64(performanceProfile.TRN)))
 			nServiceReplicas := nProfileCopies * performanceProfile.NumReplicas
-			services[serviceProfile.Name] = nServiceReplicas
+			services[serviceProfile.Name] = types.ServiceInfo{
+											Scale: nServiceReplicas,
+											CPU: performanceProfile.Limit.NumCores,
+											Memory: performanceProfile.Limit.Memory, }
 
 			//Find suitable Vm(s) depending on resources limit and current state
 			vms := p.FindSuitableVMs(p.mapVMProfiles, nServiceReplicas, performanceProfile.Limit)
@@ -57,8 +59,7 @@ func (p SStepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForec
 		newPolicy.Metrics = types.Metrics{
 			NumberConfigurations: len(configurations),
 		}
-		//store p
-		db.Store(newPolicy)
+
 		policies = append(policies, newPolicy)
 		return policies
 }

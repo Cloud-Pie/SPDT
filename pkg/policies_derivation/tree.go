@@ -7,7 +7,6 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/util"
 	"strconv"
-	db "github.com/Cloud-Pie/SPDT/storage/policies"
 	"fmt"
 	"sort"
 	"github.com/Cloud-Pie/SPDT/config"
@@ -42,7 +41,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 
 	for _, it := range processedForecast.CriticalIntervals {
 		requests := it.Requests
-		services :=  make(map[string]int)
+		services :=  make(map[string]types.ServiceInfo)
 		shouldScale := true
 
 		//Select the performance profile that fits better
@@ -50,7 +49,10 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 		//Compute number of replicas needed depending on requests
 		nProfileCopies := int(math.Ceil(float64(requests) / float64(performanceProfile.TRN)))
 		nServiceReplicas := nProfileCopies * performanceProfile.NumReplicas
-		services[serviceProfile.Name] = nServiceReplicas
+		services[serviceProfile.Name] = types.ServiceInfo{
+										Scale: nServiceReplicas,
+										CPU: performanceProfile.Limit.NumCores,
+										Memory: performanceProfile.Limit.Memory, }
 
 		state := types.State{}
 		state.Services = services
@@ -58,7 +60,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 		//Compare with current state . It Assumes that there is only 1 service
 		var currentNReplicas int
 		for _,v := range p.currentState.Services {
-			currentNReplicas = v
+			currentNReplicas = v.Scale
 		}
 
 		diffReplicas := nServiceReplicas - currentNReplicas
@@ -139,8 +141,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 	newPolicy.Metrics = types.Metrics {
 		NumberConfigurations:len(configurations),
 	}
-	//store p
-	db.Store(newPolicy)
+
 	policies = append(policies, newPolicy)
 	return policies
 }

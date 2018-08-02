@@ -5,8 +5,6 @@ import (
 	"time"
 	"math"
 	"gopkg.in/mgo.v2/bson"
-	"github.com/Cloud-Pie/SPDT/util"
-	"strconv"
 	"log"
 	"github.com/Cloud-Pie/SPDT/config"
 )
@@ -27,12 +25,15 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast, s
 
 	for _, it := range processedForecast.CriticalIntervals {
 		requests := it.Requests
-		services :=  make(map[string]int)
+		services :=  make(map[string]types.ServiceInfo)
 		//Select the performance profile that fits better
 		performanceProfile := selectProfile(serviceProfile.PerformanceProfiles)
 		//Compute number of replicas needed depending on requests
 		newNumServiceReplicas := int(math.Ceil(requests / performanceProfile.TRN)) * performanceProfile.NumReplicas
-		services[serviceProfile.Name] = newNumServiceReplicas
+		services[serviceProfile.Name] = types.ServiceInfo{
+											Scale: newNumServiceReplicas,
+											CPU: performanceProfile.Limit.NumCores,
+											Memory: performanceProfile.Limit.Memory, }
 
 		vmType := p.currentVMType()
 		newVMSet := p.FindSuitableVMs(newNumServiceReplicas, performanceProfile.Limit,vmType)
@@ -55,8 +56,6 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast, s
 	newPolicy.Metrics = types.Metrics {
 		NumberConfigurations:totalConfigurations,
 	}
-	//store policy
-	//db.Store(newPolicy)	//TODO: Store after calculate price
 	policies = append(policies, newPolicy)
 	return policies
 }

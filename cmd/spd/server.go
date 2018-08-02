@@ -6,12 +6,17 @@ import (
 	"net/http"
 	"github.com/Cloud-Pie/SPDT/util"
 	"log"
+	"github.com/Cloud-Pie/SPDT/types"
 )
 
-func SetUpServer() *gin.Engine{
+var forecastChannel chan types.Forecast
+
+func SetUpServer( fc chan types.Forecast ) *gin.Engine{
+	forecastChannel = fc
 	router := gin.Default()
 	router.MaxMultipartMemory = 8 << 20 // 8 MiB
 	router.GET("/api/forecast", serverCall)
+	router.PUT("/api/forecast", updateForecast)
 	router.GET("/api/policy", policy)
 	router.GET("/api/policies", policies)
 	return router
@@ -47,3 +52,15 @@ func policies(c *gin.Context) {
 	c.JSON(http.StatusOK, policies)
 }
 
+func serverCall(c *gin.Context) {
+	startPolicyDerivation()
+	c.JSON(http.StatusOK, "server")
+}
+
+func updateForecast(c *gin.Context) {
+	forecast := &types.Forecast{}
+	c.Bind(forecast)
+
+	forecastChannel <- *forecast
+	c.JSON(http.StatusOK,policies)
+}

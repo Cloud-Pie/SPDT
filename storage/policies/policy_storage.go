@@ -6,6 +6,7 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/util"
+	"time"
 )
 
 type PolicyDAO struct {
@@ -37,6 +38,13 @@ func (p *PolicyDAO) FindAll() ([]types.Policy, error) {
 func (p *PolicyDAO) FindByID(id string) (types.Policy, error) {
 	var policies types.Policy
 	err := db.C(COLLECTION).FindId(bson.ObjectIdHex(id)).One(&policies)
+	return policies,err
+}
+
+//Retrieve the item that starts at time t
+func (p *PolicyDAO) FindByStartTime(time time.Time) (types.Policy, error) {
+	var policies types.Policy
+	err := db.C(COLLECTION).FindId(bson.M{"window_start_time": time}).One(&policies)
 	return policies,err
 }
 

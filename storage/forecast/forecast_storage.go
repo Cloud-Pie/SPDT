@@ -52,6 +52,20 @@ func (p *ForecastDAO) Delete(forecast types.Forecast) error {
 	return err
 }
 
+//Delete the specified item
+func (p *ForecastDAO) Update(id bson.ObjectId, forecast types.Forecast) error {
+	err := db.C(COLLECTION).Update(bson.M{"_id":id}, bson.M{"forecasted_values":forecast.ForecastedValues,
+													"window_time_start":forecast.TimeWindowStart,
+													"window_time_end":forecast.TimeWindowEnd})
+	return err
+}
+
+/*func (p *ForecastDAO) FindByDate(timestamp time.Time) (types.Forecast, error) {
+	var forecast types.Forecast
+	err := db.C(COLLECTION).FindId(bson.ObjectIdHex(id)).One(&forecast)
+	return forecast,err
+}*/
+
 func Store(forecast types.Forecast){
 	//Store received information about forecasts
 	forecastDAO := ForecastDAO{

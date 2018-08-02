@@ -6,17 +6,23 @@ import (
 )
 
 /*Service keeps the name and scale of the scaled service*/
-type ServiceScale map[string]int
+type Service map[string]ServiceInfo
 
 /*VMScale is the factor for which a type of VM is scales*/
 type VMScale map[string]int
 
+type ServiceInfo struct {
+	Scale 	int			`json:Scale`
+	CPU 	float64		`json:CPU`
+	Memory	float64		`json:Memory`
+}
+
 /*State is the metadata of the state expected to scale to*/
 type State struct {
-	LaunchTime time.Time 	  `json:ISODate`
-	Services   ServiceScale   `json:Services`
-	Name       string    	  `json:Name`
-	VMs        VMScale   	  `json:VMs`
+	LaunchTime time.Time `json:ISODate`
+	Services   Service   `json:Services`
+	Name       string    `json:Name`
+	VMs        VMScale   `json:VMs`
 }
 
 
@@ -60,9 +66,12 @@ type Policy struct {
 	ID     					bson.ObjectId 	  `bson:"_id" json:"id"`
 	Algorithm 				string		  	  `json:"algorithm" bson:"algorithm"`
 	Metrics					Metrics			  `json:"metrics" bson:"metrics"`
-	Configurations    		[]Configuration	  `json:"configuration" bson:"configuration"`
 	StartTimeDerivation		time.Time		  `json:"start_derivation_time" bson:"start_derivation_time"`
 	FinishTimeDerivation 	time.Time		  `json:"finish_derivation_time" bson:"finish_derivation_time"`
+	Configurations    		[]Configuration	  `json:"configuration" bson:"configuration"`
+	TimeWindowStart   		time.Time		  `json:"window_time_start"  bson:"window_time_start"`
+	TimeWindowEnd   		time.Time		  `json:"window_time_end"  bson:"window_time_end"`
+
 }
 
 type StructMap struct {

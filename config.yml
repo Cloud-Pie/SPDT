@@ -16,7 +16,7 @@ scheduler-component:
 scaling-horizon:
   start-time: 2001-12-15T02:59:43.1Z
   end-time: 2001-12-15T02:59:43.1Z
-preferred-algorithm: sstep
+preferred-algorithm: naive
 policy-settings:
   underprovisioning-allowed : false
   hetereogeneos-cluster-allowed: true
