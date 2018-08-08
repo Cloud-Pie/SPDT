@@ -5,6 +5,7 @@ import (
 	Fservice "github.com/Cloud-Pie/SPDT/rest_clients/forecast"
 	"github.com/Cloud-Pie/SPDT/pkg/policies_derivation"
 	"github.com/Cloud-Pie/SPDT/pkg/policy_evaluation"
+	"github.com/Cloud-Pie/SPDT/pkg/policy_management"
 	"github.com/Cloud-Pie/SPDT/util"
 	"github.com/Cloud-Pie/SPDT/config"
 	"github.com/Cloud-Pie/SPDT/storage"
@@ -79,7 +80,6 @@ func startPolicyDerivation() {
 	}
 	log.Info("Finish request Forecasting")
 
-
 	//Store received information about forecast
 	forecast.ID = bson.NewObjectId()
 	forecastDAO := storage.ForecastDAO{
@@ -118,118 +118,52 @@ func startPolicyDerivation() {
 
 	setNewPolicy(forecast, poiList,values,times)
 
-		log.Info("Start request Scheduler")
-		//reconfiguration.TriggerScheduler(selectedPolicy, sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES)
-		fmt.Sprintf(string(selectedPolicy.ID))
-		log.Info("Finish request Scheduler")
+	log.Info("Start request Scheduler")
+	//reconfiguration.TriggerScheduler(selectedPolicy, sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES)
+	fmt.Sprintf(string(selectedPolicy.ID))
+	log.Info("Finish request Scheduler")
 }
 
-
-
-func updatePolicyDerivation(forecastChannel chan types.Forecast){
+func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 	for forecast := range forecastChannel {
-		forecastDAO := storage.ForecastDAO{
-			Server:util.DEFAULT_DB_SERVER_FORECAST,
-			Database:util.DEFAULT_DB_FORECAST,
-		}
-		_,err := forecastDAO.Connect()
-		if err != nil {
-			log.Fatalf(err.Error())
-		}
+		shouldUpdate, newForecast, timeConflict := forecast_processing.UpdateForecast(forecast)
+		if(shouldUpdate) {
+			//Read Configuration File
+			readSysConfiguration()
+			//Request VM Profiles
+			getVMProfiles()
+			//Request Performance Profiles
+			getServiceProfile()
 
-		//Set start - end time window
-		forecast.TimeWindowStart = forecast.ForecastedValues[0].TimeStamp
-		l := len(forecast.ForecastedValues)
-		forecast.TimeWindowEnd = forecast.ForecastedValues[l-1].TimeStamp
+			log.Info("Start points of interest search in time serie")
+			poiList, values, times := forecast_processing.PointsOfInterest(newForecast)
+			log.Info("Finish points of interest search in time serie")
 
-		var storedPolicy types.Policy
-		var indexUpdate int
+			sort.Slice(vmProfiles, func(i, j int) bool {
+				return vmProfiles[i].Pricing.Price <= vmProfiles[j].Pricing.Price
+			})
 
-		//Compare with the previous forecast if sth changed
-		resultQuery, err := forecastDAO.FindAll() //TODO: Write better query
-		if len(resultQuery) == 1 {
-			oldForecast := resultQuery[0]
-			if shouldUpdate, timeConflict := conflict(forecast, oldForecast); shouldUpdate {
-				id := resultQuery[0].ID
-				forecastDAO.Update(id, forecast)
+			var timeInvalidation time.Time
+			//verify if current time is greater than start window
+			if time.Now().After(forecast.TimeWindowStart) {
+				setNewPolicy(newForecast,poiList,values,times)
+				oldPolicy, indexConflict := policy_management.ConflictTimeOldPolicy(forecast,timeConflict)
+				timeInvalidation = oldPolicy.Configurations[indexConflict].TimeStart
 
-				//Update policyByID/new policyByID
-				policyDAO := storage.PolicyDAO{
-					Server:util.DEFAULT_DB_SERVER_POLICIES,
-					Database:util.DEFAULT_DB_POLICIES,
-				}
-
-				//Search policyByID created for the time window
-				storedPolicy, _ = policyDAO.FindOneByTimeWindow(forecast.TimeWindowStart, forecast.TimeWindowEnd)
-
-				//search configuration state that contains the time where conflict was found
-				indexUpdate = stateToUpdate(storedPolicy.Configurations, timeConflict)
-
-				//set timeConflict as start of that configuration
-				timeInvalidation := storedPolicy.Configurations [indexUpdate].TimeStart
-				reconfiguration.InvalidateStates(timeInvalidation, sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_INVALIDATE_STATES)
+			}else{
+				//Discart completely old policy and create new one
+				setNewPolicy(forecast,poiList,values,times)
+				timeInvalidation = forecast.TimeWindowStart
 			}
-		} else {
-			err = forecastDAO.Insert(forecast)
-			if err != nil {
-				log.Error(err.Error())
-			}
-		}
 
-		//Read Configuration File
-		readSysConfiguration()
-		//Request VM Profiles
-		getVMProfiles()
-		//Request Performance Profiles
-		getServiceProfile()
+			reconfiguration.InvalidateStates(timeInvalidation, sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_INVALIDATE_STATES)
 
-		log.Info("Start points of interest search in time serie")
-		poiList, values, times := forecast_processing.PointsOfInterest(forecast)
-		log.Info("Finish points of interest search in time serie")
 
-		sort.Slice(vmProfiles, func(i, j int) bool {
-			return vmProfiles[i].Pricing.Price <= vmProfiles[j].Pricing.Price
-		})
-
-		//Derive Strategies
-		setNewPolicy(forecast,poiList,values,times)
-
-		log.Info("Start request Scheduler")
-		reconfiguration.TriggerScheduler(selectedPolicy, sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_STATES)
-		fmt.Sprintf(string(selectedPolicy.ID))
-		log.Info("Finish request Scheduler")
-
-	}
-}
-
-func conflict(current types.Forecast, old types.Forecast) (bool, time.Time) {
-	var timeWhenDiffer time.Time
-
-	//case: Update in values but not in lenght of the window
-	if len(current.ForecastedValues) == len(old.ForecastedValues) && current.TimeWindowStart.Equal(old.TimeWindowStart) {
-			for i,in := range current.ForecastedValues {
-				if in.Requests - old.ForecastedValues[i].Requests != 0{
-					timeWhenDiffer = in.TimeStamp
-					return true, timeWhenDiffer
-				}
-			}
-	}
-	//case: Update in values and lenght of the window
-	if len(current.ForecastedValues) < len(old.ForecastedValues) && current.TimeWindowStart.After(old.TimeWindowStart) {
-
-	}
-
-	return false, timeWhenDiffer
-}
-
-func stateToUpdate(configurations []types.Configuration, conflictTime time.Time) int {
-	index := 0
-	for i,c := range configurations {
-		if conflictTime.Equal(c.TimeStart) || conflictTime.After(c.TimeStart) {
-			index = i
+			log.Info("Start request Scheduler")
+			reconfiguration.TriggerScheduler(selectedPolicy, sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_STATES)
+			log.Info("Finish request Scheduler")
 		}
 	}
-	return index
 }
 
 func styleEntry() {

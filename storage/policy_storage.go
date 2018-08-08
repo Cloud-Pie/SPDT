@@ -68,7 +68,7 @@ func (p *PolicyDAO) FindOneByTimeWindow(startTime time.Time, endTime time.Time) 
 	var policy types.Policy
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_POLICIES).
 		Find(bson.M{"window_time_start": bson.M{"$eq":startTime},
-		"window_time_end": bson.M{"$eq":startTime}}).All(&policy)
+		            "window_time_end": bson.M{"$eq":startTime}}).One(&policy)
 	return policy,err
 }
 
@@ -78,9 +78,23 @@ func (p *PolicyDAO) Insert(policies types.Policy) error {
 	return err
 }
 
-//Delete the specified item
-func (p *PolicyDAO) Delete(policies types.Policy) error {
-	err := p.db.C(util.DEFAULT_DB_COLLECTION_POLICIES).Remove(&policies)
+//Delete policy by id
+func (p *PolicyDAO) DeleteById(id string) error {
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_POLICIES).RemoveId(bson.ObjectIdHex(id))
 	return err
 }
 
+//Delete policy for the time window
+func (p *PolicyDAO) DeleteOneByTimeWindow(startTime time.Time, endTime time.Time) error {
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_POLICIES).
+		Remove(bson.M{"window_time_start": bson.M{"$eq":startTime},
+		              "window_time_end": bson.M{"$eq":startTime}})
+	return err
+}
+
+//Update policy by id
+func (p *PolicyDAO) UpdateById(id bson.ObjectId, policy types.Policy) error {
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_POLICIES).
+		Update(bson.M{"_id":id},policy)
+	return err
+}
