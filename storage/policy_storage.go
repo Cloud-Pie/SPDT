@@ -38,11 +38,38 @@ func (p *PolicyDAO) FindByID(id string) (types.Policy, error) {
 	return policies,err
 }
 
-//Retrieve the item that starts at time t
-func (p *PolicyDAO) FindByStartTime(time time.Time) (types.Policy, error) {
-	var policies types.Policy
-	err := p.db.C(util.DEFAULT_DB_COLLECTION_POLICIES).FindId(bson.M{"window_start_time": time}).One(&policies)
+//Retrieve all policies for start time greater than or equal to time t
+func (p *PolicyDAO) FindByStartTime(time time.Time) ([]types.Policy, error) {
+	var policies []types.Policy
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_POLICIES).
+		Find(bson.M{"window_time_start": bson.M{"$gte":time}}).All(&policies)
 	return policies,err
+}
+
+//Retrieve all policies for start time less than or equal to time t
+func (p *PolicyDAO) FindByEndTime(time time.Time) ([]types.Policy, error) {
+	var policies []types.Policy
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_POLICIES).
+		Find(bson.M{"window_time_end": bson.M{"$lte":time}}).All(&policies)
+	return policies,err
+}
+
+//Retrieve all policies for start time greater than or equal to time t
+func (p *PolicyDAO) FindAllByTimeWindow(startTime time.Time, endTime time.Time) ([]types.Policy, error) {
+	var policies []types.Policy
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_POLICIES).
+		Find(bson.M{"window_time_start": bson.M{"$gte":startTime},
+					"window_time_end": bson.M{"$lte":endTime}}).All(&policies)
+	return policies,err
+}
+
+//Retrieve all policies for start time greater than or equal to time t
+func (p *PolicyDAO) FindOneByTimeWindow(startTime time.Time, endTime time.Time) (types.Policy, error) {
+	var policy types.Policy
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_POLICIES).
+		Find(bson.M{"window_time_start": bson.M{"$eq":startTime},
+		"window_time_end": bson.M{"$eq":startTime}}).All(&policy)
+	return policy,err
 }
 
 //Insert a new Performance Profile

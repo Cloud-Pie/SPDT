@@ -150,18 +150,17 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast){
 		if len(resultQuery) == 1 {
 			oldForecast := resultQuery[0]
 			if shouldUpdate, timeConflict := conflict(forecast, oldForecast); shouldUpdate {
-
 				id := resultQuery[0].ID
 				forecastDAO.Update(id, forecast)
 
-				//Update policy/new policy
+				//Update policyByID/new policyByID
 				policyDAO := storage.PolicyDAO{
 					Server:util.DEFAULT_DB_SERVER_POLICIES,
 					Database:util.DEFAULT_DB_POLICIES,
 				}
 
-				//Search policy created for the time window
-				storedPolicy, _ = policyDAO.FindByStartTime(forecast.TimeWindowStart)
+				//Search policyByID created for the time window
+				storedPolicy, _ = policyDAO.FindOneByTimeWindow(forecast.TimeWindowStart, forecast.TimeWindowEnd)
 
 				//search configuration state that contains the time where conflict was found
 				indexUpdate = stateToUpdate(storedPolicy.Configurations, timeConflict)
@@ -311,7 +310,7 @@ func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64
 	selectedPolicy.TimeWindowStart = forecast.TimeWindowStart
 	selectedPolicy.TimeWindowEnd = forecast.TimeWindowEnd
 
-	//Store policy
+	//Store policyByID
 	policyDAO := storage.PolicyDAO{
 		Server:util.DEFAULT_DB_SERVER_POLICIES,
 		Database:util.DEFAULT_DB_POLICIES,

@@ -4,6 +4,7 @@ package util
 
 const PRICES_FILE = "prices_test.yml"
 const TIME_LAYOUT = "02-01-2006, 15:04:05 MST"
+const STD_TIME_LAYOUT = "2006-01-02T15:04:05.000Z"
 const CONFIG_FILE = "config.yml"
 const DEFAULT_LOGFILE = "Logs.log"
 const DEFAULT_DB_PROFILES = "VMProfiles"
