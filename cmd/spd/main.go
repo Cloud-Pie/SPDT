@@ -86,7 +86,10 @@ func startPolicyDerivation() {
 		Server:util.DEFAULT_DB_SERVER_FORECAST,
 		Database:util.DEFAULT_DB_FORECAST,
 	}
-	forecastDAO.Connect()
+	_,err = forecastDAO.Connect()
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
 
 	//Check if already exist, then update
 	resultQuery,err := forecastDAO.FindAll()
@@ -129,7 +132,10 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast){
 			Server:util.DEFAULT_DB_SERVER_FORECAST,
 			Database:util.DEFAULT_DB_FORECAST,
 		}
-		forecastDAO.Connect()
+		_,err := forecastDAO.Connect()
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
 
 		//Set start - end time window
 		forecast.TimeWindowStart = forecast.ForecastedValues[0].TimeStamp
@@ -281,7 +287,10 @@ func getServiceProfile(){
 		Server:util.DEFAULT_DB_SERVER_PROFILES,
 		Database:util.DEFAULT_DB_PROFILES,
 	}
-	serviceProfileDAO.Connect()
+	_,err = serviceProfileDAO.Connect()
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
 	err = serviceProfileDAO.Insert(serviceProfiles)
 	if err != nil {
 		log.Error(err.Error())
@@ -307,8 +316,11 @@ func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64
 		Server:util.DEFAULT_DB_SERVER_POLICIES,
 		Database:util.DEFAULT_DB_POLICIES,
 	}
-	policyDAO.Connect()
-	err := policyDAO.Insert(selectedPolicy)
+	_,err := policyDAO.Connect()
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	err = policyDAO.Insert(selectedPolicy)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}

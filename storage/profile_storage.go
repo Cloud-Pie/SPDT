@@ -15,12 +15,13 @@ type PerformanceProfileDAO struct {
 
 
 //Connect to the database
-func (p *PerformanceProfileDAO) Connect() {
+func (p *PerformanceProfileDAO) Connect() (*mgo.Database, error) {
 	session, err := mgo.Dial(p.Server)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	p.db = session.DB(p.Database)
+	return p.db,err
 }
 
 //Retrieve all the stored elements
