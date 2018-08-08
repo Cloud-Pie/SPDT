@@ -1,21 +1,20 @@
-package policies_derivation
+package storage
 
 import (
 	"gopkg.in/mgo.v2"
-	"log"
 	"github.com/Cloud-Pie/SPDT/types"
 	"gopkg.in/mgo.v2/bson"
+	"github.com/op/go-logging"
 	"github.com/Cloud-Pie/SPDT/util"
 )
+
+var log = logging.MustGetLogger("spdt")
 
 type ForecastDAO struct {
 	Server	string
 	Database	string
+	db *mgo.Database
 }
-
-var db *mgo.Database
-const COLLECTION = "Forecast"
-
 
 //Connect to the database
 func (p *ForecastDAO) Connect() {
@@ -23,38 +22,38 @@ func (p *ForecastDAO) Connect() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db = session.DB(p.Database)
+	p.db = session.DB(p.Database)
 }
 
 //Retrieve all the stored elements
 func (p *ForecastDAO) FindAll() ([]types.Forecast, error) {
 	var forecast []types.Forecast
-	err := db.C(COLLECTION).Find(bson.M{}).All(&forecast)
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_FORECAST).Find(bson.M{}).All(&forecast)
 	return forecast, err
 }
 
 //Retrieve the item with the specified ID
 func (p *ForecastDAO) FindByID(id string) (types.Forecast, error) {
 	var forecast types.Forecast
-	err := db.C(COLLECTION).FindId(bson.ObjectIdHex(id)).One(&forecast)
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_FORECAST).FindId(bson.ObjectIdHex(id)).One(&forecast)
 	return forecast,err
 }
 
 //Insert a new forecast
 func (p *ForecastDAO) Insert(forecast types.Forecast) error {
-	err := db.C(COLLECTION).Insert(&forecast)
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_FORECAST).Insert(&forecast)
 	return err
 }
 
 //Delete the specified item
 func (p *ForecastDAO) Delete(forecast types.Forecast) error {
-	err := db.C(COLLECTION).Remove(&forecast)
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_FORECAST).Remove(&forecast)
 	return err
 }
 
 //Delete the specified item
 func (p *ForecastDAO) Update(id bson.ObjectId, forecast types.Forecast) error {
-	err := db.C(COLLECTION).Update(bson.M{"_id":id}, bson.M{"forecasted_values":forecast.ForecastedValues,
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_FORECAST).Update(bson.M{"_id":id}, bson.M{"forecasted_values":forecast.ForecastedValues,
 													"window_time_start":forecast.TimeWindowStart,
 													"window_time_end":forecast.TimeWindowEnd})
 	return err
@@ -65,17 +64,3 @@ func (p *ForecastDAO) Update(id bson.ObjectId, forecast types.Forecast) error {
 	err := db.C(COLLECTION).FindId(bson.ObjectIdHex(id)).One(&forecast)
 	return forecast,err
 }*/
-
-func Store(forecast types.Forecast){
-	//Store received information about forecasts
-	forecastDAO := ForecastDAO{
-		util.DEFAULT_DB_SERVER_FORECAST,
-		util.DEFAULT_DB_FORECAST,
-	}
-	forecastDAO.Connect()
-
-	err := forecastDAO.Insert(forecast)
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-}

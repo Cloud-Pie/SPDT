@@ -8,9 +8,9 @@ import (
 
 //TODO: Include as criteria for the selection time
 
-func SelectPolicy(policies [] types.Policy, sysConfig config.SystemConfiguration) (types.Policy, error) {
+func SelectPolicy(policies [] types.Policy, sysConfig config.SystemConfiguration, vmProfiles []types.VmProfile)(types.Policy, error) {
 
-	policies = ComputeTotalCost(policies, sysConfig)
+	policies = ComputeTotalCost(policies, sysConfig, vmProfiles)
 
 	sort.Slice(policies, func(i, j int) bool {
 		return policies[i].Metrics.Cost < policies[j].Metrics.Cost

@@ -2,10 +2,12 @@ package policy_evaluation
 
 import (
 	"gopkg.in/yaml.v2"
-	"log"
 	"io/ioutil"
 	"github.com/Cloud-Pie/SPDT/types"
+	"github.com/op/go-logging"
 )
+
+var log = logging.MustGetLogger("spdt")
 
 func ParsePricesFile(configFile string) (types.PriceModel,error) {
 	prices := types.PriceModel{}

@@ -1,19 +1,17 @@
-package profile
+package storage
 
 import (
 	"gopkg.in/mgo.v2"
-	"log"
 	"github.com/Cloud-Pie/SPDT/types"
 	"gopkg.in/mgo.v2/bson"
+	"github.com/Cloud-Pie/SPDT/util"
 )
 
 type PerformanceProfileDAO struct {
-	Server	string
+	Server		string
 	Database	string
+	db 			*mgo.Database
 }
-
-var db *mgo.Database
-const COLLECTION = "performanceProfile"
 
 
 //Connect to the database
@@ -22,31 +20,31 @@ func (p *PerformanceProfileDAO) Connect() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db = session.DB(p.Database)
+	p.db = session.DB(p.Database)
 }
 
 //Retrieve all the stored elements
 func (p *PerformanceProfileDAO) FindAll() ([]types.ServiceProfile, error) {
 	var performanceProfiles []types.ServiceProfile
-	err := db.C(COLLECTION).Find(bson.M{}).All(&performanceProfiles)
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Find(bson.M{}).All(&performanceProfiles)
 	return performanceProfiles, err
 }
 
 //Retrieve the item with the specified ID
 func (p *PerformanceProfileDAO) FindByID(id string) (types.ServiceProfile, error) {
 	var performanceProfile types.ServiceProfile
-	err := db.C(COLLECTION).FindId(bson.ObjectIdHex(id)).One(&performanceProfile)
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).FindId(bson.ObjectIdHex(id)).One(&performanceProfile)
 	return performanceProfile,err
 }
 
 //Insert a new Performance Profile
 func (p *PerformanceProfileDAO) Insert(performanceProfile types.ServiceProfile) error {
-	err := db.C(COLLECTION).Insert(&performanceProfile)
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Insert(&performanceProfile)
 	return err
 }
 
 //Delete the specified item
-func (p *PerformanceProfileDAO) Delete(performanceProfile types.ServiceProfile) error{
-	err := db.C(COLLECTION).Remove(&performanceProfile)
+func (p *PerformanceProfileDAO) Delete(performanceProfile types.ServiceProfile) error {
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Remove(&performanceProfile)
 	return err
 }

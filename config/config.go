@@ -25,14 +25,18 @@ type PolicySettings struct{
 }
 
 type SystemConfiguration struct {
-	ForecastingComponent Component	`yaml:"forecasting-component"`
-	PerformanceProfilesComponent Component	`yaml:"performance-profiles-component"`
-	SchedulerComponent Component	`yaml:"scheduler-component"`
-	ScalingHorizon	ScalingHorizon `yaml:"scaling-horizon"`
-	PreferredAlgorithm string	`yaml:"preferred-algorithm"`
-	PolicySettings PolicySettings	`yaml:"policy-settings"`
-	MonthlyBudget float64	`yaml:"monthly-budget"`
-	PriceUnit string	`yaml:"price-unit"`
+	ForecastingComponent 			Component	`yaml:"forecasting-component"`
+	PerformanceProfilesComponent 	Component	`yaml:"performance-profiles-component"`
+	SchedulerComponent 				Component	`yaml:"scheduler-component"`
+	ScalingHorizon					ScalingHorizon `yaml:"scaling-horizon"`
+	PreferredAlgorithm 				string	`yaml:"preferred-algorithm"`
+	PolicySettings 					PolicySettings	`yaml:"policy-settings"`
+	MonthlyBudget 					float64	`yaml:"monthly-budget"`
+	PricingModel struct {
+		Budget float64			`yaml:"monthly-budget"`
+		PriceUnit string		`yaml:"price-unit"`
+	}						`yaml:"pricing-model"`
+
 }
 
 func ParseConfigFile(configFile string) (SystemConfiguration, error) {

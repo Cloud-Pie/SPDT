@@ -8,8 +8,8 @@ type QoSParams struct {
 }
 
 type Pricing struct {
-	Price float64
-	Unit string
+	Price float64	`json:"price" bson:"price"`
+	Unit string		`json:"unit" bson:"unit"`
 }
 
 type VmProfile struct {
@@ -19,7 +19,7 @@ type VmProfile struct {
 	BootTimeSec        int     `json:"boot_time_sec" bson:"boot_time_sec"`
 	OS                 string  `json:"os" bson:"os"`
 	TerminationTimeSec int     `json:"term_time_sec" bson:"term_time_sec"`
-	Pricing            Pricing
+	Pricing            Pricing `json:"pricing" bson:"pricing"`
 	ReplicasCapacity   int
 }
 

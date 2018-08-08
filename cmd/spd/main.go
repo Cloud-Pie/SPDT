@@ -7,53 +7,49 @@ import (
 	"github.com/Cloud-Pie/SPDT/pkg/policy_evaluation"
 	"github.com/Cloud-Pie/SPDT/util"
 	"github.com/Cloud-Pie/SPDT/config"
-	storageProfile "github.com/Cloud-Pie/SPDT/storage/profile"
-	storageForecast "github.com/Cloud-Pie/SPDT/storage/forecast"
-	storagePolicy "github.com/Cloud-Pie/SPDT/storage/policies"
+	"github.com/Cloud-Pie/SPDT/storage"
 	"gopkg.in/mgo.v2/bson"
 	"fmt"
 	"github.com/Cloud-Pie/SPDT/types"
 	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
 	"time"
 	"sort"
-	"log"
 	"github.com/Cloud-Pie/SPDT/pkg/reconfiguration"
+	"github.com/op/go-logging"
+	"os"
+	"path/filepath"
+	"io"
 )
 
-var Log = util.NewLogger()
-var FlagsVar = util.ParseFlags()
-var priceModel types.PriceModel
+var (
+	FlagsVar = util.ParseFlags()
+
+ 	log = logging.MustGetLogger("spdt")
+ 	format = logging.MustStringFormatter(
+			`%{color}%{time:15:04:05.000} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`, )
+	sysConfiguration 		config.SystemConfiguration
+	serviceProfiles 		types.ServiceProfile
+	priceModel 				types.PriceModel
+	selectedPolicy			types.Policy
+	vmProfiles				[]types.VmProfile
+	policies				[]types.Policy
+
+)
 
 func main () {
-
 	styleEntry()
-
-	if FlagsVar.LogFile {
-		Log.Info.Printf("Logs can be accessed in %s", util.DEFAULT_LOGFILE)
-		Log.SetLogFile(util.DEFAULT_LOGFILE)
-	}
+	setLogger()
+	fmt.Println("Logs can be accessed in %s", util.DEFAULT_LOGFILE)
 
 	if FlagsVar.ConfigFile == "" {
-		Log.Info.Printf("Configuration file not specified. Default configuration will be used.")
+		log.Info("Configuration file not specified. Default configuration will be used.")
 		FlagsVar.ConfigFile = util.CONFIG_FILE
-	}
-
-	if FlagsVar.PricesFile == "" {
-		Log.Info.Printf("Prices file not specified. Default pricing file will be used.")
-		FlagsVar.PricesFile = util.PRICES_FILE
-	} else {
-		var err error
-		priceModel,err = policy_evaluation.ParsePricesFile(util.PRICES_FILE)
-		if err != nil {
-			Log.Error.Fatalf("Prices file could not be processed %s", err)
-		}
 	}
 
 	out := make(chan types.Forecast)
 	server := SetUpServer(out)
-
 	go updatePolicyDerivation(out)
-	//go periodicPolicyDerivation()
+	go periodicPolicyDerivation()
 	server.Run(":" + FlagsVar.Port)
 
 }
@@ -61,60 +57,34 @@ func main () {
 func periodicPolicyDerivation() {
 	for {
 		startPolicyDerivation()
-		time.Sleep(10 * time.Second)
+		time.Sleep(10 * time.Hour)
 	}
 }
 
-func startPolicyDerivation()  {
-	log.Printf("startPolicyDerivation...............")
-	sysConfiguration,err := config.ParseConfigFile(FlagsVar.ConfigFile)
-	if err != nil {
-		Log.Error.Fatalf("Configuration file could not be processed %s", err)
-	}
-
+func startPolicyDerivation() {
+	//Read Configuration File
+	readSysConfiguration()
+	//Request VM Profiles
+	getVMProfiles()
 	//Request Performance Profiles
-	Log.Trace.Printf("Start request VMs Profiles")
-	vmProfiles,err := Pservice.GetVMsProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VMS_PROFILES)
-	if err != nil {
-		Log.Error.Fatalf(err.Error())
-	}
-	Log.Trace.Printf("Finish request VMs Profiles")
-
-	Log.Trace.Printf("Start request Performance Profiles")
-	servicesProfiles,err := Pservice.GetPerformanceProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILES)
-	if err != nil {
-		Log.Error.Fatalf(err.Error())
-	}
-	Log.Trace.Printf("Finish request Performance Profiles")
-
-	//Store received information about Performance Profiles
-	servicesProfiles.ID = bson.NewObjectId()
-	serviceProfileDAO := storageProfile.PerformanceProfileDAO{
-		util.DEFAULT_DB_SERVER_PROFILES,
-		util.DEFAULT_DB_PROFILES,
-	}
-	serviceProfileDAO.Connect()
-	err = serviceProfileDAO.Insert(servicesProfiles)
-	if err != nil {
-		Log.Error.Fatalf(err.Error())
-	}
+	getServiceProfile()
 
 	//Request Forecasting
-	Log.Trace.Printf("Start request Forecasting")
+	log.Info("Start request Forecasting")
 	timeStart := time.Now().Add(time.Hour)			//TODO: Adjust real times
 	timeEnd := timeStart.Add(time.Hour * 24)
 	forecast,err := Fservice.GetForecast(sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_FORECAST, timeStart, timeEnd)
 	if err != nil {
-		Log.Error.Fatalf(err.Error())
+		log.Error(err.Error())
 	}
-	Log.Trace.Printf("Finish request Forecasting")
+	log.Info("Finish request Forecasting")
 
 
 	//Store received information about forecast
 	forecast.ID = bson.NewObjectId()
-	forecastDAO := storageForecast.ForecastDAO{
-		util.DEFAULT_DB_SERVER_FORECAST,
-		util.DEFAULT_DB_FORECAST,
+	forecastDAO := storage.ForecastDAO{
+		Server:util.DEFAULT_DB_SERVER_FORECAST,
+		Database:util.DEFAULT_DB_FORECAST,
 	}
 	forecastDAO.Connect()
 
@@ -131,111 +101,33 @@ func startPolicyDerivation()  {
 		forecast.TimeWindowEnd = forecast.ForecastedValues[l-1].TimeStamp
 		err = forecastDAO.Insert(forecast)
 		if err != nil {
-			Log.Error.Fatalf(err.Error())
+			log.Error(err.Error())
 		}
 	}
 
-	Log.Trace.Printf("Start points of interest search in time serie")
+	log.Info("Start points of interest search in time serie")
 	poiList, values, times := forecast_processing.PointsOfInterest(forecast)
-	Log.Trace.Printf("Finish points of interest search in time serie")
-
-
-	//match prices to available VMs
-	priceModel,err = policy_evaluation.ParsePricesFile(util.PRICES_FILE)
-	mapVmPrice, unit := priceModel.MapPrices()
-	//mapVMProfiles := make(map[string]types.VmProfile)
-
-	for i,p := range vmProfiles {
-		vmProfiles[i].Pricing.Price = mapVmPrice[p.Type]
-		vmProfiles[i].Pricing.Unit = unit
-		if (vmProfiles[i].Pricing.Price == 0.0) {
-			Log.Warning.Printf("No price found for %s", p.Type)
-		}
-	}
+	log.Info("Finish points of interest search in time serie")
 
 	sort.Slice(vmProfiles, func(i, j int) bool {
 		return vmProfiles[i].Pricing.Price <=  vmProfiles[j].Pricing.Price
 	})
 
-	var policies []types.Policy
+	setNewPolicy(forecast, poiList,values,times)
 
-	//Derive Strategies
-	Log.Trace.Printf("Start policies derivation")
-	policies = policies_derivation.Policies(poiList, values, times, vmProfiles, servicesProfiles, sysConfiguration)
-	Log.Trace.Printf("Finish policies derivation")
-
-	Log.Trace.Printf("Start policies evaluation")
-	policy,err := policy_evaluation.SelectPolicy(policies, sysConfiguration)
-	Log.Trace.Printf("Finish policies evaluation")
-
-	policy.TimeWindowStart = forecast.TimeWindowStart
-	policy.TimeWindowEnd = forecast.TimeWindowEnd
-
-	//Store policy
-	policyDAO := storagePolicy.PolicyDAO{
-		util.DEFAULT_DB_SERVER_POLICIES,
-		util.DEFAULT_DB_POLICIES,
-	}
-	policyDAO.Connect()
-	err = policyDAO.Insert(policy)
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-
-	if err != nil {
-		Log.Trace.Printf("No policy found")
-	} else {
-		Log.Trace.Printf("Start request Scheduler")
-		//reconfiguration.TriggerScheduler(policy, sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES)
-		fmt.Sprintf(string(policy.ID))
-		Log.Trace.Printf("Finish request Scheduler")
-	}
-
-	//out <- policies
-	//return  policies
+		log.Info("Start request Scheduler")
+		//reconfiguration.TriggerScheduler(selectedPolicy, sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES)
+		fmt.Sprintf(string(selectedPolicy.ID))
+		log.Info("Finish request Scheduler")
 }
 
 
 
 func updatePolicyDerivation(forecastChannel chan types.Forecast){
 	for forecast := range forecastChannel {
-
-		log.Printf("startPolicyDerivation...............")
-		sysConfiguration, err := config.ParseConfigFile(FlagsVar.ConfigFile)
-		if err != nil {
-			Log.Error.Fatalf("Configuration file could not be processed %s", err)
-		}
-
-		//Request Performance Profiles
-		Log.Trace.Printf("Start request VMs Profiles")
-		vmProfiles, err := Pservice.GetVMsProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VMS_PROFILES)
-		if err != nil {
-			Log.Error.Fatalf(err.Error())
-		}
-		Log.Trace.Printf("Finish request VMs Profiles")
-
-		Log.Trace.Printf("Start request Performance Profiles")
-		servicesProfiles, err := Pservice.GetPerformanceProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILES)
-		if err != nil {
-			Log.Error.Fatalf(err.Error())
-		}
-		Log.Trace.Printf("Finish request Performance Profiles")
-
-		//Store received information about Performance Profiles
-		servicesProfiles.ID = bson.NewObjectId()
-		serviceProfileDAO := storageProfile.PerformanceProfileDAO{
-			util.DEFAULT_DB_SERVER_PROFILES,
-			util.DEFAULT_DB_PROFILES,
-		}
-		serviceProfileDAO.Connect()
-		err = serviceProfileDAO.Insert(servicesProfiles)
-		if err != nil {
-			Log.Error.Fatalf(err.Error())
-		}
-
-		forecastDAO := storageForecast.ForecastDAO{
-			util.DEFAULT_DB_SERVER_FORECAST,
-			util.DEFAULT_DB_FORECAST,
+		forecastDAO := storage.ForecastDAO{
+			Server:util.DEFAULT_DB_SERVER_FORECAST,
+			Database:util.DEFAULT_DB_FORECAST,
 		}
 		forecastDAO.Connect()
 
@@ -257,9 +149,9 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast){
 				forecastDAO.Update(id, forecast)
 
 				//Update policy/new policy
-				policyDAO := storagePolicy.PolicyDAO{
-					util.DEFAULT_DB_SERVER_POLICIES,
-					util.DEFAULT_DB_POLICIES,
+				policyDAO := storage.PolicyDAO{
+					Server:util.DEFAULT_DB_SERVER_POLICIES,
+					Database:util.DEFAULT_DB_POLICIES,
 				}
 
 				//Search policy created for the time window
@@ -275,67 +167,34 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast){
 		} else {
 			err = forecastDAO.Insert(forecast)
 			if err != nil {
-				Log.Error.Fatalf(err.Error())
+				log.Error(err.Error())
 			}
 		}
 
-		Log.Trace.Printf("Start points of interest search in time serie")
+		//Read Configuration File
+		readSysConfiguration()
+		//Request VM Profiles
+		getVMProfiles()
+		//Request Performance Profiles
+		getServiceProfile()
+
+		log.Info("Start points of interest search in time serie")
 		poiList, values, times := forecast_processing.PointsOfInterest(forecast)
-		Log.Trace.Printf("Finish points of interest search in time serie")
-
-		//match prices to available VMs
-		priceModel, err = policy_evaluation.ParsePricesFile(util.PRICES_FILE)
-		mapVmPrice, unit := priceModel.MapPrices()
-		//mapVMProfiles := make(map[string]types.VmProfile)
-
-		for i, p := range vmProfiles {
-			vmProfiles[i].Pricing.Price = mapVmPrice[p.Type]
-			vmProfiles[i].Pricing.Unit = unit
-			if (vmProfiles[i].Pricing.Price == 0.0) {
-				Log.Warning.Printf("No price found for %s", p.Type)
-			}
-		}
+		log.Info("Finish points of interest search in time serie")
 
 		sort.Slice(vmProfiles, func(i, j int) bool {
 			return vmProfiles[i].Pricing.Price <= vmProfiles[j].Pricing.Price
 		})
 
-		var policies []types.Policy
-
 		//Derive Strategies
-		Log.Trace.Printf("Start policies derivation")
-		policies = policies_derivation.Policies(poiList, values, times, vmProfiles, servicesProfiles, sysConfiguration)
-		Log.Trace.Printf("Finish policies derivation")
+		setNewPolicy(forecast,poiList,values,times)
 
-		Log.Trace.Printf("Start policies evaluation")
-		policy, err := policy_evaluation.SelectPolicy(policies, sysConfiguration)
-		Log.Trace.Printf("Finish policies evaluation")
-
-		//Remove / Compare configuration states that differ
-
-		//TODO: Update policy if sth changed
-		policy.ID = bson.NewObjectId()
-		policyDAO := storagePolicy.PolicyDAO{
-			util.DEFAULT_DB_SERVER_POLICIES,
-			util.DEFAULT_DB_POLICIES,
-		}
-		policyDAO.Connect()
-		err = policyDAO.Insert(policy)
-		if err != nil {
-			log.Fatalf(err.Error())
-		}
-
-		if err != nil {
-			Log.Trace.Printf("No policy found")
-		} else {
-			Log.Trace.Printf("Start request Scheduler")
-			reconfiguration.TriggerScheduler(policy, sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_STATES)
-			fmt.Sprintf(string(policy.ID))
-			Log.Trace.Printf("Finish request Scheduler")
-		}
+		log.Info("Start request Scheduler")
+		reconfiguration.TriggerScheduler(selectedPolicy, sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_STATES)
+		fmt.Sprintf(string(selectedPolicy.ID))
+		log.Info("Finish request Scheduler")
 
 	}
-	//return policies
 }
 
 func conflict(current types.Forecast, old types.Forecast) (bool, time.Time) {
@@ -377,4 +236,80 @@ func styleEntry() {
 /____/_/   /_____/ /_/     
 
 	`)
+}
+
+func setLogger() {
+	logFile := util.DEFAULT_LOGFILE
+	os.MkdirAll(filepath.Dir(logFile), 0700)
+	file, _ := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	multiOutput := io.MultiWriter(file, os.Stdout)
+	backend2 := logging.NewLogBackend(multiOutput, "", 0)
+	backend2Formatter := logging.NewBackendFormatter(backend2, format)
+	logging.SetBackend(backend2Formatter)
+}
+
+func readSysConfiguration(){
+	var err error
+	sysConfiguration, err = config.ParseConfigFile(FlagsVar.ConfigFile)
+	if err != nil {
+		log.Error("Configuration file could not be processed %s", err)
+	}
+}
+
+func getVMProfiles(){
+	var err error
+	log.Info("Start request VMs Profiles")
+	vmProfiles, err = Pservice.GetVMsProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VMS_PROFILES)
+	if err != nil {
+		log.Error(err.Error())
+	}
+	log.Info("Finish request VMs Profiles")
+}
+
+func getServiceProfile(){
+	var err error
+	log.Info("Start request Performance Profiles")
+	serviceProfiles, err = Pservice.GetPerformanceProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILES)
+	if err != nil {
+		log.Error(err.Error())
+	}
+	log.Info("Finish request Performance Profiles")
+
+	//Store received information about Performance Profiles
+	serviceProfiles.ID = bson.NewObjectId()
+	serviceProfileDAO := storage.PerformanceProfileDAO{
+		Server:util.DEFAULT_DB_SERVER_PROFILES,
+		Database:util.DEFAULT_DB_PROFILES,
+	}
+	serviceProfileDAO.Connect()
+	err = serviceProfileDAO.Insert(serviceProfiles)
+	if err != nil {
+		log.Error(err.Error())
+	}
+}
+
+func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64, times []time.Time){
+
+	//Derive Strategies
+	log.Info("Start policies derivation")
+	policies = policies_derivation.Policies(poiList, values, times, vmProfiles, serviceProfiles, sysConfiguration)
+	log.Info("Finish policies derivation")
+
+	log.Info("Start policies evaluation")
+	selectedPolicy,_ = policy_evaluation.SelectPolicy(policies, sysConfiguration, vmProfiles)
+	log.Info("Finish policies evaluation")
+
+	selectedPolicy.TimeWindowStart = forecast.TimeWindowStart
+	selectedPolicy.TimeWindowEnd = forecast.TimeWindowEnd
+
+	//Store policy
+	policyDAO := storage.PolicyDAO{
+		Server:util.DEFAULT_DB_SERVER_POLICIES,
+		Database:util.DEFAULT_DB_POLICIES,
+	}
+	policyDAO.Connect()
+	err := policyDAO.Insert(selectedPolicy)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
 }

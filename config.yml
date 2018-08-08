@@ -1,3 +1,12 @@
+---
+version: v1
+CSP: AWS
+pricing-model:
+  monthly-budget: 2000.0
+  price-unit: Hour
+scaling-horizon:
+  start-time: 2018-09-01T07:00:00.1Z
+  end-time: 2018-09-02T06:59:59.1Z
 forecasting-component:
   endpoint: http://localhost:8081
   username:
@@ -13,18 +22,14 @@ scheduler-component:
   user-name:
   password:
   api-key:
-scaling-horizon:
-  start-time: 2001-12-15T02:59:43.1Z
-  end-time: 2001-12-15T02:59:43.1Z
 preferred-algorithm: naive
 policy-settings:
   underprovisioning-allowed : false
-  hetereogeneos-cluster-allowed: true
+  hetereogeneos-cluster-enabled: true
   threshold-delta-increase: 25
   max_underprovision_allowed: 50
-monthly-budget: 2000.0
-CSP: AWS
-app-deployed: true
-price-unit: Hour
+
+
+
 
 

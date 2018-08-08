@@ -2,10 +2,9 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	db "github.com/Cloud-Pie/SPDT/storage/policies"
+	db "github.com/Cloud-Pie/SPDT/storage"
 	"net/http"
 	"github.com/Cloud-Pie/SPDT/util"
-	"log"
 	"github.com/Cloud-Pie/SPDT/types"
 )
 
@@ -14,11 +13,10 @@ var forecastChannel chan types.Forecast
 func SetUpServer( fc chan types.Forecast ) *gin.Engine{
 	forecastChannel = fc
 	router := gin.Default()
-	router.MaxMultipartMemory = 8 << 20 // 8 MiB
 	router.GET("/api/forecast", serverCall)
 	router.PUT("/api/forecast", updateForecast)
 	router.GET("/api/policy", policy)
-	router.GET("/api/policies", policies)
+	router.GET("/api/policies", getPolicies)
 	return router
 }
 
@@ -26,8 +24,8 @@ func policy(c *gin.Context) {
 	id := c.Param("id")
 
 	policyDAO := db.PolicyDAO{
-		util.DEFAULT_DB_SERVER_POLICIES,
-		util.DEFAULT_DB_POLICIES,
+		Server:util.DEFAULT_DB_SERVER_POLICIES,
+		Database:util.DEFAULT_DB_POLICIES,
 	}
 	policyDAO.Connect()
 	policy,err := policyDAO.FindByID(id)
@@ -38,10 +36,10 @@ func policy(c *gin.Context) {
 	c.JSON(http.StatusOK, policy)
 }
 
-func policies(c *gin.Context) {
+func getPolicies(c *gin.Context) {
 	policyDAO := db.PolicyDAO{
-		util.DEFAULT_DB_SERVER_POLICIES,
-		util.DEFAULT_DB_POLICIES,
+		Server:util.DEFAULT_DB_SERVER_POLICIES,
+		Database:util.DEFAULT_DB_POLICIES,
 	}
 	policyDAO.Connect()
 	policies,err := policyDAO.FindAll()

@@ -50,6 +50,12 @@
   version = "1.0.0"
 
 [[projects]]
+  name = "github.com/op/go-logging"
+  packages = ["."]
+  revision = "b2cb9fa56473e98db8caba80237377e83fe44db5"
+  version = "v1"
+
+[[projects]]
   name = "github.com/ugorji/go"
   packages = ["codec"]
   revision = "b4c50a2b199d93b13dc15e78929cfb23bfdf21ab"
@@ -88,6 +94,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fadbcbc4427a1f28ba0122192fb4b98c4a1ceed116e706126006d82e65fe16c6"
+  inputs-digest = "69b32853e809ac5f74d09272bd453d3082a8b9838cecffde0eb688da29d7d054"
   solver-name = "gps-cdcl"
   solver-version = 1

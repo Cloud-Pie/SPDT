@@ -7,8 +7,8 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 )
 
-
 func GetPerformanceProfiles(endpoint string) (types.ServiceProfile, error){
+
 	performanceProfile := types.ServiceProfile{}
 	response, err := http.Get(endpoint)
 	if err != nil {
