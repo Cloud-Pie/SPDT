@@ -24,17 +24,17 @@ import (
 
 var (
 	FlagsVar = util.ParseFlags()
-
  	log = logging.MustGetLogger("spdt")
  	format = logging.MustStringFormatter(
 			`%{color}%{time:15:04:05.000} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`, )
 	sysConfiguration 		config.SystemConfiguration
 	serviceProfiles 		types.ServiceProfile
-	priceModel 				types.PriceModel
 	selectedPolicy			types.Policy
 	vmProfiles				[]types.VmProfile
 	policies				[]types.Policy
-
+	timeWindowSize			time.Duration
+	timeStart				time.Time
+	timeEnd					time.Time
 )
 
 func main () {
@@ -47,6 +47,12 @@ func main () {
 		FlagsVar.ConfigFile = util.CONFIG_FILE
 	}
 
+	//Read Configuration File
+	readSysConfiguration()
+	timeStart = sysConfiguration.ScalingHorizon.StartTime
+	timeEnd = sysConfiguration.ScalingHorizon.EndTime
+	timeWindowSize = timeEnd.Sub(timeStart)
+
 	out := make(chan types.Forecast)
 	server := SetUpServer(out)
 	go updatePolicyDerivation(out)
@@ -57,14 +63,14 @@ func main () {
 
 func periodicPolicyDerivation() {
 	for {
-		startPolicyDerivation()
-		time.Sleep(10 * time.Hour)
+		startPolicyDerivation(timeStart,timeEnd)
+		time.Sleep(timeWindowSize)
+		timeStart.Add(timeWindowSize)
+		timeEnd.Add(timeWindowSize)
 	}
 }
 
-func startPolicyDerivation() {
-	//Read Configuration File
-	readSysConfiguration()
+func startPolicyDerivation(timeStart time.Time, timeEnd time.Time) {
 	//Request VM Profiles
 	getVMProfiles()
 	//Request Performance Profiles
@@ -72,8 +78,6 @@ func startPolicyDerivation() {
 
 	//Request Forecasting
 	log.Info("Start request Forecasting")
-	timeStart := time.Now().Add(time.Hour)			//TODO: Adjust real times
-	timeEnd := timeStart.Add(time.Hour * 24)
 	forecast,err := Fservice.GetForecast(sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_FORECAST, timeStart, timeEnd)
 	if err != nil {
 		log.Error(err.Error())
@@ -82,14 +86,8 @@ func startPolicyDerivation() {
 
 	//Store received information about forecast
 	forecast.ID = bson.NewObjectId()
-	forecastDAO := storage.ForecastDAO{
-		Server:util.DEFAULT_DB_SERVER_FORECAST,
-		Database:util.DEFAULT_DB_FORECAST,
-	}
-	_,err = forecastDAO.Connect()
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
+
+	forecastDAO := storage.GetForecastDAO()
 
 	//Check if already exist, then update
 	resultQuery,err := forecastDAO.FindAll()
@@ -118,8 +116,17 @@ func startPolicyDerivation() {
 
 	setNewPolicy(forecast, poiList,values,times)
 
+	//Store policyByID
+	policyDAO := storage.GetPolicyDAO()
+
+	selectedPolicy.ID = bson.NewObjectId()
+	err = policyDAO.Insert(selectedPolicy)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
 	log.Info("Start request Scheduler")
-	//reconfiguration.TriggerScheduler(selectedPolicy, sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES)
+	reconfiguration.TriggerScheduler(selectedPolicy, sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES)
 	fmt.Sprintf(string(selectedPolicy.ID))
 	log.Info("Finish request Scheduler")
 }
@@ -144,21 +151,37 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 			})
 
 			var timeInvalidation time.Time
+			var oldPolicy types.Policy
+			var indexConflict int
+
+			policyDAO := storage.GetPolicyDAO()
+
+
 			//verify if current time is greater than start window
 			if time.Now().After(forecast.TimeWindowStart) {
 				setNewPolicy(newForecast,poiList,values,times)
-				oldPolicy, indexConflict := policy_management.ConflictTimeOldPolicy(forecast,timeConflict)
-				timeInvalidation = oldPolicy.Configurations[indexConflict].TimeStart
+				oldPolicy, indexConflict = policy_management.ConflictTimeOldPolicy(forecast,timeConflict)
+				timeInvalidation = oldPolicy.Configurations[indexConflict].TimeEnd
+				selectedPolicy.Configurations[0].TimeStart = timeInvalidation
+				//update policy
+				oldPolicy.Configurations = append(oldPolicy.Configurations[:indexConflict], selectedPolicy.Configurations...)
 
 			}else{
 				//Discart completely old policy and create new one
 				setNewPolicy(forecast,poiList,values,times)
+				po, _ := policyDAO.FindOneByTimeWindow(forecast.TimeWindowStart, forecast.TimeWindowEnd)
+				selectedPolicy.ID = po.ID
+				oldPolicy = selectedPolicy
 				timeInvalidation = forecast.TimeWindowStart
 			}
 
+
+			err := policyDAO.UpdateById(oldPolicy.ID,oldPolicy)
+			if err != nil {
+				log.Fatalf(err.Error())
+			}
+
 			reconfiguration.InvalidateStates(timeInvalidation, sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_INVALIDATE_STATES)
-
-
 			log.Info("Start request Scheduler")
 			reconfiguration.TriggerScheduler(selectedPolicy, sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_STATES)
 			log.Info("Finish request Scheduler")
@@ -207,31 +230,30 @@ func getVMProfiles(){
 
 func getServiceProfile(){
 	var err error
-	log.Info("Start request Performance Profiles")
-	serviceProfiles, err = Pservice.GetPerformanceProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILES)
-	if err != nil {
-		log.Error(err.Error())
-	}
-	log.Info("Finish request Performance Profiles")
 
-	//Store received information about Performance Profiles
-	serviceProfiles.ID = bson.NewObjectId()
-	serviceProfileDAO := storage.PerformanceProfileDAO{
-		Server:util.DEFAULT_DB_SERVER_PROFILES,
-		Database:util.DEFAULT_DB_PROFILES,
-	}
-	_,err = serviceProfileDAO.Connect()
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-	err = serviceProfileDAO.Insert(serviceProfiles)
-	if err != nil {
-		log.Error(err.Error())
+	serviceProfileDAO := storage.GetPerformanceProfileDAO()
+
+	storedServiceProfiles,_ := serviceProfileDAO.FindAll()
+	if(len(storedServiceProfiles)>0) {
+		serviceProfiles = storedServiceProfiles[0]
+	}else {
+		log.Info("Start request Performance Profiles")
+		serviceProfiles, err = Pservice.GetPerformanceProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILES)
+		if err != nil {
+			log.Error(err.Error())
+		}
+		log.Info("Finish request Performance Profiles")
+
+		//Store received information about Performance Profiles
+		serviceProfiles.ID = bson.NewObjectId()
+		err = serviceProfileDAO.Insert(serviceProfiles)
+		if err != nil {
+			log.Error(err.Error())
+		}
 	}
 }
 
 func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64, times []time.Time){
-
 	//Derive Strategies
 	log.Info("Start policies derivation")
 	policies = policies_derivation.Policies(poiList, values, times, vmProfiles, serviceProfiles, sysConfiguration)
@@ -243,18 +265,4 @@ func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64
 
 	selectedPolicy.TimeWindowStart = forecast.TimeWindowStart
 	selectedPolicy.TimeWindowEnd = forecast.TimeWindowEnd
-
-	//Store policyByID
-	policyDAO := storage.PolicyDAO{
-		Server:util.DEFAULT_DB_SERVER_POLICIES,
-		Database:util.DEFAULT_DB_POLICIES,
-	}
-	_,err := policyDAO.Connect()
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-	err = policyDAO.Insert(selectedPolicy)
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
 }

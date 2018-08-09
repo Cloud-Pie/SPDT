@@ -6,12 +6,15 @@ import (
 	"github.com/Cloud-Pie/SPDT/config"
 	"time"
 	"github.com/Cloud-Pie/SPDT/rest_clients/scheduler"
-	"log"
 	"math"
 	"sort"
 	"github.com/Cloud-Pie/SPDT/rest_clients/performance_profiles"
 	"strconv"
+	"github.com/op/go-logging"
 )
+
+var log = logging.MustGetLogger("spdt")
+
 //Interface for strategies of how to scale
 type PolicyDerivation interface {
 	CreatePolicies (processedForecast types.ProcessedForecast,serviceProfile types.ServiceProfile) []types.Policy
@@ -25,9 +28,10 @@ type TimeWindowDerivation interface {
 
 func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedVMProfiles []types.VmProfile, serviceProfiles types.ServiceProfile, sysConfiguration config.SystemConfiguration) []types.Policy {
 	var policies []types.Policy
+
 	currentState,err := scheduler.CurrentState(sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_CURRENT_STATE)
 	if err != nil {
-		log.Printf("Error to get current state")
+		log.Error("Error to get current state")
 	}
 
 	timeWindows := SmallStepOverProvision{PoIList:poiList}
@@ -64,14 +68,27 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 		sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies = algorithm.CreatePolicies(processedForecast, serviceProfiles)
 	default:
-		/*timeWindows := SmallStepOverProvision{}
-		timeWindows.PoIList = poiList
-		processedForecast := timeWindows.WindowDerivation(values,times)
-		naive := NaiveVerticalPolicy {util.NAIVE_ALGORITHM, 100, timeWindows}
-		policies = naive.CreatePolicies(processedForecast, mapVMProfiles, serviceProfiles)
-		sstep := DeltaRepackedPolicy{ util.SMALL_STEP_ALGORITHM}
-		policies = append(naive.CreatePolicies(processedForecast, mapVMProfiles, serviceProfiles),sstep.CreatePolicies(poiList,values,times, mapVMProfiles, serviceProfiles)...)
-	*/
+		//naive
+		naive := NaivePolicy {algorithm:util.NAIVE_ALGORITHM, timeWindow:timeWindows,
+			currentState:currentState, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
+		policies1 := naive.CreatePolicies(processedForecast, serviceProfiles)
+		policies = append(policies, policies1...)
+		//types
+		naiveT := NaiveTypesPolicy {algorithm:util.NAIVE_TYPES_ALGORITHM, timeWindow:timeWindows,
+			mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
+		policies2 := naiveT.CreatePolicies(processedForecast, serviceProfiles)
+		policies = append(policies, policies2...)
+		//sstep
+		sstep := SStepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows,
+			mapVMProfiles:mapVMProfiles ,sysConfiguration: sysConfiguration}
+		policies3 := sstep.CreatePolicies(processedForecast, serviceProfiles)
+		policies = append(policies, policies3...)
+		//delta repack
+		algorithm := DeltaRepackedPolicy {algorithm:util.DELTA_REPACKED, timeWindow:timeWindows, currentState:currentState,
+			sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
+		policies4 := algorithm.CreatePolicies(processedForecast, serviceProfiles)
+		policies = append(policies, policies4...)
+
 	}
 	return policies
 }
@@ -90,7 +107,7 @@ func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.System
 		url := sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VM_TIMES
 		times, error := performance_profiles.GetBootShutDownProfile(url,list[0].Key, list[0].Value)
 		if error != nil {
-			log.Printf("Error in bootingTime query", error.Error())
+			log.Error("Error in bootingTime query", error.Error())
 		}
 		bootTime = times.BootTime
 	}
@@ -112,7 +129,7 @@ func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.Sy
 		url := sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VM_TIMES
 		times, error := performance_profiles.GetBootShutDownProfile(url,list[0].Key, list[0].Value)
 		if error != nil {
-			log.Printf("Error in terminationTime query %s", error.Error())
+			log.Error("Error in terminationTime query %s", error.Error())
 		}
 		terminationTime = times.ShutDownTime
 	}

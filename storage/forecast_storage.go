@@ -5,21 +5,27 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/util"
+	"log"
 )
 
 type ForecastDAO struct {
 	Server	string
 	Database	string
 	db *mgo.Database
+	session *mgo.Session
 }
+var ForecastDB *ForecastDAO
 
 //Connect to the database
 func (p *ForecastDAO) Connect() (*mgo.Database, error) {
-	session, err := mgo.Dial(p.Server)
-	if err != nil {
-		return nil, err
+	var err error
+	if p.session == nil {
+		p.session, err = mgo.Dial(p.Server)
+		if err != nil {
+			return nil, err
+		}
 	}
-	p.db = session.DB(p.Database)
+	p.db = p.session.DB(p.Database)
 	return p.db,err
 }
 
@@ -62,3 +68,17 @@ func (p *ForecastDAO) Update(id bson.ObjectId, forecast types.Forecast) error {
 	err := db.C(COLLECTION).FindId(bson.ObjectIdHex(id)).One(&forecast)
 	return forecast,err
 }*/
+
+func GetForecastDAO() *ForecastDAO{
+	if ForecastDB == nil {
+		ForecastDB = &ForecastDAO {
+			Server:util.DEFAULT_DB_SERVER_FORECAST,
+			Database:util.DEFAULT_DB_FORECAST,
+		}
+		_,err := ForecastDB.Connect()
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
+	}
+	return ForecastDB
+}

@@ -5,7 +5,6 @@ import (
 	"time"
 	"math"
 	"gopkg.in/mgo.v2/bson"
-	"log"
 	"github.com/Cloud-Pie/SPDT/config"
 )
 
@@ -84,7 +83,7 @@ func (p NaivePolicy) currentVMType() string{
 		vmType = k
 	}
 	if len(p.currentState.VMs) > 1 {
-		log.Printf("Warning, current config has more than one VM type, type %s was selected to continue", vmType)
+		log.Warning("Current config has more than one VM type, type %s was selected to continue", vmType)
 	}
 	return vmType
 }

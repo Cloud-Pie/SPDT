@@ -32,11 +32,12 @@ func UpdateForecast(forecast types.Forecast) (bool, types.Forecast, time.Time) {
 		resultQuery, err := forecastDAO.FindAll() //TODO: Write better query
 		if len(resultQuery) == 1 {
 			oldForecast := resultQuery[0]
-			if shouldUpdate, indexTimeConflict = conflict(forecast, oldForecast); shouldUpdate {
+			if shouldUpdate, indexTimeConflict = isConflict(forecast, oldForecast); shouldUpdate {
 				id := resultQuery[0].ID
 				forecastDAO.Update(id, forecast)
 			}
 		} else {
+			//Case when there was not previous forecast
 			err = forecastDAO.Insert(forecast)
 			if err != nil {
 				log.Error(err.Error())
@@ -49,20 +50,20 @@ func UpdateForecast(forecast types.Forecast) (bool, types.Forecast, time.Time) {
 	return shouldUpdate, forecast, timeConflict
 }
 
-func conflict(current types.Forecast, old types.Forecast) (bool, int) {
-	var indexTimeConflict int
-	//case: Update in values but not in lenght of the window
+func isConflict(current types.Forecast, old types.Forecast) (bool, int) {
+	var indexTimeConflict 	int
+	var iSsignificantChange bool
+
+	rmse := RMSE(old.ForecastedValues, current.ForecastedValues)
 	if len(current.ForecastedValues) == len(old.ForecastedValues) && current.TimeWindowStart.Equal(old.TimeWindowStart) {
 		for i,in := range current.ForecastedValues {
 			if in.Requests - old.ForecastedValues[i].Requests != 0{
-				return true, i
+				indexTimeConflict = i
+				break
 			}
 		}
 	}
-	//case: Update in values and lenght of the window
-	if len(current.ForecastedValues) < len(old.ForecastedValues) && current.TimeWindowStart.After(old.TimeWindowStart) {
 
-	}
-
-	return false, indexTimeConflict
+	iSsignificantChange = rmse > 1.0
+	return iSsignificantChange, indexTimeConflict
 }

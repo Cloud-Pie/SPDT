@@ -12,7 +12,7 @@ import (
 var forecastChannel chan types.Forecast
 
 //Set up server routes
-func SetUpServer( fc chan types.Forecast ) *gin.Engine{
+func SetUpServer( fc chan types.Forecast ) *gin.Engine {
 	forecastChannel = fc
 	router := gin.Default()
 	router.GET("/api/forecast", serverCall)
@@ -21,6 +21,7 @@ func SetUpServer( fc chan types.Forecast ) *gin.Engine{
 	router.GET("/api/policies", getPolicies)
 	router.DELETE("/api/policies/:id", deletePolicyByID)
 	router.DELETE("/api/policies", deletePolicyWindow)
+	router.PUT("/api/policies/:id", invalidatePolicyByID)
 	return router
 }
 
@@ -128,9 +129,27 @@ func deletePolicyWindow(c *gin.Context) {
 	c.JSON(http.StatusOK,"Policy removed")
 }
 
+// This handler will match /api/:id
+// Invalidate policy with the correspondent :id
+func invalidatePolicyByID(c *gin.Context) {
+	id := c.Param("id")
+
+	policyDAO := db.PolicyDAO{
+		Server:util.DEFAULT_DB_SERVER_POLICIES,
+		Database:util.DEFAULT_DB_POLICIES,
+	}
+	policyDAO.Connect()
+	err := policyDAO.DeleteById(id)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, err.Error())
+	}
+	c.JSON(http.StatusOK,"Policy removed")
+}
+
 func serverCall(c *gin.Context) {
-	startPolicyDerivation()
-	c.JSON(http.StatusOK, "server")
+	startPolicyDerivation(timeStart,timeEnd)
+	c.JSON(http.StatusOK, policies)
 }
 
 //Listener to receive forecasting updates

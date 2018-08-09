@@ -6,21 +6,28 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"time"
 	"github.com/Cloud-Pie/SPDT/util"
+	"log"
 )
+
+var PolicyDB *PolicyDAO
 
 type PolicyDAO struct {
 	Server	string
 	Database	string
 	db *mgo.Database
+	session *mgo.Session
 }
 
 //Connect to the database
 func (p *PolicyDAO) Connect() (*mgo.Database, error) {
-	session, err := mgo.Dial(p.Server)
-	if err != nil {
-		return nil, err
+	var err error
+	if p.session == nil {
+		p.session, err = mgo.Dial(p.Server)
+		if err != nil {
+			return nil, err
+		}
 	}
-	p.db = session.DB(p.Database)
+	p.db = p.session.DB(p.Database)
 	return p.db,err
 }
 
@@ -68,7 +75,7 @@ func (p *PolicyDAO) FindOneByTimeWindow(startTime time.Time, endTime time.Time) 
 	var policy types.Policy
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_POLICIES).
 		Find(bson.M{"window_time_start": bson.M{"$eq":startTime},
-		            "window_time_end": bson.M{"$eq":startTime}}).One(&policy)
+		            "window_time_end": bson.M{"$eq":endTime}}).One(&policy)
 	return policy,err
 }
 
@@ -97,4 +104,18 @@ func (p *PolicyDAO) UpdateById(id bson.ObjectId, policy types.Policy) error {
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_POLICIES).
 		Update(bson.M{"_id":id},policy)
 	return err
+}
+
+func GetPolicyDAO() *PolicyDAO{
+	if PolicyDB == nil {
+		PolicyDB = &PolicyDAO {
+			Server:util.DEFAULT_DB_SERVER_POLICIES,
+			Database:util.DEFAULT_DB_POLICIES,
+		}
+		_,err := PolicyDB.Connect()
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
+	}
+	return PolicyDB
 }
