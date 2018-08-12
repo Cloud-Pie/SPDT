@@ -15,13 +15,17 @@ var forecastChannel chan types.Forecast
 func SetUpServer( fc chan types.Forecast ) *gin.Engine {
 	forecastChannel = fc
 	router := gin.Default()
+	router.Static("/assets", "./ui/assets")
+	router.LoadHTMLGlob("ui/*.html")
 	router.GET("/api/forecast", serverCall)
+	router.GET("/ui", userInterface)
 	router.PUT("/api/forecast", updateForecast)
 	router.GET("/api/policies/:id", policyByID)
 	router.GET("/api/policies", getPolicies)
 	router.DELETE("/api/policies/:id", deletePolicyByID)
 	router.DELETE("/api/policies", deletePolicyWindow)
 	router.PUT("/api/policies/:id", invalidatePolicyByID)
+
 	return router
 }
 
@@ -161,4 +165,9 @@ func updateForecast(c *gin.Context) {
 	forecast.TimeWindowEnd = forecast.ForecastedValues[l-1].TimeStamp
 	forecastChannel <- *forecast
 	c.JSON(http.StatusOK,policies)
+}
+
+//This handler return the home page of the user interface
+func userInterface(c *gin.Context) {
+	c.HTML(http.StatusOK, "index.html", nil)
 }
