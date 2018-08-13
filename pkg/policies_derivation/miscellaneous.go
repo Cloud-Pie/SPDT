@@ -35,12 +35,6 @@ func computeCapacity(listVMProfiles *[]types.VmProfile, performanceProfile types
 	}
 }
 
-func TRNCapacity(){
-
-}
-
-
-
 //calculate the capacity of services replicas to each VM type
 func computeVMsCapacity(performanceProfile types.PerformanceProfile,  mapVMProfiles *map[string]types.VmProfile) {
 	for _,v := range *mapVMProfiles {

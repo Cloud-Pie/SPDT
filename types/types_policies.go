@@ -46,12 +46,21 @@ func (state State) Equal(s2 State) bool {
 	}
 	return true
 }
-type Metrics struct {
+type ConfigMetrics struct {
+	Cost 					float64
+	OverProvision			float32
+	UnderProvision			float32
+	CapacityTRN				float64
+}
+
+type PolicyMetrics struct {
 	Cost 					float64
 	OverProvision			float32
 	UnderProvision			float32
 	CapacityTRN				float64
 	NumberConfigurations	int
+	StartTimeDerivation		time.Time		  `json:"start_derivation_time" bson:"start_derivation_time"`
+	FinishTimeDerivation 	time.Time		  `json:"finish_derivation_time" bson:"finish_derivation_time"`
 }
 
 /*Resource configuration*/
@@ -59,16 +68,33 @@ type Configuration struct {
 	State					State
 	TimeStart 				time.Time
 	TimeEnd					time.Time
-	Metrics					Metrics
+	Metrics					ConfigMetrics
 }
+
+
+//Policy Parameters
+const (
+	ISUNDERPROVISION = "underprovisioning-allowed"
+	MAXUNDERPROVISION= "max-percentage-underprovision"
+	METHOD = "scaling-method"
+	ISHETEREOGENEOUS= "heterogeneous-vms-allowed"
+
+)
+
+//Policy States
+const (
+	DISCARTED = "discarted"
+	SCHEDULED = "scheduled"
+	SELECTED = "selected"
+	)
 
 //Policy states the scaling transitions
 type Policy struct {
 	ID     					bson.ObjectId 	  `bson:"_id" json:"id"`
 	Algorithm 				string		  	  `json:"algorithm" bson:"algorithm"`
-	Metrics					Metrics			  `json:"metrics" bson:"metrics"`
-	StartTimeDerivation		time.Time		  `json:"start_derivation_time" bson:"start_derivation_time"`
-	FinishTimeDerivation 	time.Time		  `json:"finish_derivation_time" bson:"finish_derivation_time"`
+	Metrics					PolicyMetrics	  `json:"metrics" bson:"metrics"`
+	Status					string
+	Parameters				map[string]string
 	Configurations    		[]Configuration	  `json:"configuration" bson:"configuration"`
 	TimeWindowStart   		time.Time		  `json:"window_time_start"  bson:"window_time_start"`
 	TimeWindowEnd   		time.Time		  `json:"window_time_end"  bson:"window_time_end"`

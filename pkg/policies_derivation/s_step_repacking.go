@@ -21,7 +21,9 @@ func (p SStepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForec
 	//Compute results for cluster of each type
 
 		newPolicy := types.Policy{}
-		newPolicy.StartTimeDerivation = time.Now()
+		newPolicy.Metrics = types.PolicyMetrics {
+			StartTimeDerivation:time.Now(),
+		}
 		configurations := []types.Configuration{}
 
 		for _, it := range processedForecast.CriticalIntervals {
@@ -53,12 +55,10 @@ func (p SStepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForec
 
 		//Add new policy
 		newPolicy.Configurations = configurations
-		newPolicy.FinishTimeDerivation = time.Now()
 		newPolicy.Algorithm = p.algorithm
 		newPolicy.ID = bson.NewObjectId()
-		newPolicy.Metrics = types.Metrics{
-			NumberConfigurations: len(configurations),
-		}
+		newPolicy.Metrics.NumberConfigurations = len(configurations)
+		newPolicy.Metrics.FinishTimeDerivation = time.Now()
 
 		policies = append(policies, newPolicy)
 		return policies

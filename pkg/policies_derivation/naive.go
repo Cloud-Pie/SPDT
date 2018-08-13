@@ -6,6 +6,7 @@ import (
 	"math"
 	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/config"
+	"strconv"
 )
 
 type NaivePolicy struct {
@@ -19,9 +20,12 @@ type NaivePolicy struct {
 func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast, serviceProfile types.ServiceProfile) []types.Policy {
 	policies := []types.Policy {}
 	newPolicy := types.Policy{}
-	newPolicy.StartTimeDerivation = time.Now()
-	configurations := []types.Configuration {}
+	newPolicy.Metrics = types.PolicyMetrics {
+		StartTimeDerivation:time.Now(),
+	}
 
+	configurations := []types.Configuration {}
+	underprovisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	//Select the performance profile that fits better
 	performanceProfile := selectProfile(serviceProfile.PerformanceProfiles)
 
@@ -36,8 +40,8 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast, s
 		//Compute new  vmset.
 		//This set might be more expensive and with overprovisioning
 		vmSet := p.FindSuitableVMs(newNumServiceReplicas, performanceProfile.Limit)
-		//vmSet = newVMSet
-		if p.sysConfiguration.PolicySettings.UnderprovisioningAllowed {
+
+		if underprovisionAllowed {
 			underProvReplicas,newVMset:= p.considerIfUnderprovision(vmSet,performanceProfile,requests)
 			if newVMset != nil {
 				newNumServiceReplicas = underProvReplicas
@@ -46,13 +50,13 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast, s
 		}
 
 		services[serviceProfile.Name] = types.ServiceInfo {
-												Scale: newNumServiceReplicas,
-												CPU: performanceProfile.Limit.NumCores,
-												Memory: performanceProfile.Limit.Memory,
+			Scale: newNumServiceReplicas,
+			CPU: performanceProfile.Limit.NumCores,
+			Memory: performanceProfile.Limit.Memory,
 		}
 		state := types.State{
-					Services:services,
-					VMs:vmSet,
+			Services:services,
+			VMs:vmSet,
 		}
 
 		//update state before next iteration
@@ -62,16 +66,22 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast, s
 		setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration)
 	}
 
-	totalConfigurations := len(configurations)
+	parameters := make(map[string]string)
+	parameters[types.METHOD] = "horizontal"
+	parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(false)
+	parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underprovisionAllowed)
+	if underprovisionAllowed {
+		parameters[types.MAXUNDERPROVISION] = strconv.FormatFloat(p.sysConfiguration.PolicySettings.MaxUnderprovision, 'f', -1, 64)
+	}
+
 	//Add new policy
 	newPolicy.Configurations = configurations
-	newPolicy.FinishTimeDerivation = time.Now()
 	newPolicy.Algorithm = p.algorithm
 	newPolicy.ID = bson.NewObjectId()
 	newPolicy.Status = types.DISCARTED	//State by default
-	newPolicy.Metrics = types.Metrics {
-		NumberConfigurations:totalConfigurations,
-	}
+	newPolicy.Parameters = parameters
+	newPolicy.Metrics.NumberConfigurations = len(configurations)
+	newPolicy.Metrics.FinishTimeDerivation = time.Now()
 	policies = append(policies, newPolicy)
 	return policies
 }

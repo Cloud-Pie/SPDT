@@ -25,7 +25,9 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 
 	policies := []types.Policy{}
 		newPolicy := types.Policy{}
-		newPolicy.StartTimeDerivation = time.Now()
+		newPolicy.Metrics = types.PolicyMetrics {
+			StartTimeDerivation:time.Now(),
+		}
 		configurations := []types.Configuration{}
 
 		//Select the performance profile that fits better
@@ -150,12 +152,10 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 
 		//Add new policy
 		newPolicy.Configurations = configurations
-		newPolicy.FinishTimeDerivation = time.Now()
 		newPolicy.Algorithm = p.algorithm
 		newPolicy.ID = bson.NewObjectId()
-		newPolicy.Metrics = types.Metrics{
-			NumberConfigurations:  len(configurations),
-		}
+		newPolicy.Metrics.NumberConfigurations = len(configurations)
+		newPolicy.Metrics.FinishTimeDerivation = time.Now()
 		policies = append(policies, newPolicy)
 
 		return policies
