@@ -28,14 +28,14 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast, s
 	underprovisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	//Select the performance profile that fits better
 	performanceProfile := selectProfile(serviceProfile.PerformanceProfiles)
+	//Compute the max capacity in terms of number of  service replicas for each VM type
+	computeVMsCapacity(performanceProfile,&p.mapVMProfiles)
 
 	for _, it := range processedForecast.CriticalIntervals {
 		requests := it.Requests
 		services :=  make(map[string]types.ServiceInfo)
 		//Compute number of replicas needed depending on requests
 		newNumServiceReplicas := int(math.Ceil(requests / performanceProfile.TRN)) * performanceProfile.NumReplicas
-		//Compute the max capacity in terms of number of  service replicas for each VM type
-		computeVMsCapacity(performanceProfile,&p.mapVMProfiles)
 
 		//Compute new  vmset.
 		//This set might be more expensive and with overprovisioning

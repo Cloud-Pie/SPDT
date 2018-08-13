@@ -7,6 +7,7 @@ import (
 	"math"
 	"sort"
 	"github.com/Cloud-Pie/SPDT/config"
+	"strconv"
 )
 
 type DeltaRepackedPolicy struct {
@@ -29,47 +30,38 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 			StartTimeDerivation:time.Now(),
 		}
 		configurations := []types.Configuration{}
-
+		underprovisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 		//Select the performance profile that fits better
 		performanceProfile := selectProfile(serviceProfile.PerformanceProfiles)
-
 		//calculate the capacity of services replicas to each VM type
-		for i,v := range p.sortedVMProfiles {
-			cap := maxReplicasCapacityInVM(v,performanceProfile.Limit)
-			p.sortedVMProfiles[i].ReplicasCapacity = cap
-			profile := p.mapVMProfiles[v.Type]
-			profile.ReplicasCapacity = cap
-			p.mapVMProfiles[v.Type] = profile
-		}
+		computeCapacity(&p.sortedVMProfiles, performanceProfile, &p.mapVMProfiles)
 
 		for i, it := range processedForecast.CriticalIntervals {
-			var nProfileCopies 		int
-			var nServiceReplicas	int
-			var vms 				types.VMScale
-			var currentNServices 	int
+			var nProfileCopies 			int
+			var newNumServiceReplicas 	int
+			var vmSet 					types.VMScale
+			var currentNServices 		int
 			totalLoad := it.Requests
 			services := make(map[string]types.ServiceInfo)
 
 			for _,v := range p.currentState.Services {	currentNServices = v.Scale }
 
 			//Compute deltaLoad
-			currentCapacity := float64(currentNServices/performanceProfile.NumReplicas) * performanceProfile.TRN
-			deltaLoad := totalLoad - currentCapacity
+			currentRequestsCapacity := float64(currentNServices/performanceProfile.NumReplicas) * performanceProfile.TRN
+			deltaLoad := totalLoad - currentRequestsCapacity
 
 			//By default keep current configuration
 			services = p.currentState.Services
-			vms = p.currentState.VMs
+			vmSet = p.currentState.VMs
 
 			if deltaLoad > 0 {
 				//Need to increase resources
-				//Number of replicas to supply deltaLoad
-				nProfileCopies = int(math.Ceil(float64(deltaLoad) / float64(performanceProfile.TRN)))
-				nServiceReplicas = nProfileCopies * performanceProfile.NumReplicas
-
+				//Compute number of replicas needed depending on requests
+				newNumServiceReplicas := int(math.Ceil(deltaLoad / performanceProfile.TRN)) * performanceProfile.NumReplicas
 				//increases number of replicas
 				services = make(map[string]types.ServiceInfo)
 				services[serviceProfile.Name] = types.ServiceInfo{
-												Scale: currentNServices + nServiceReplicas,
+												Scale: currentNServices + newNumServiceReplicas,
 												CPU: performanceProfile.Limit.NumCores,
 												Memory: performanceProfile.Limit.Memory, }
 
@@ -77,32 +69,32 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 				//Validate if the current configuration is able to handle the new replicas
 				currentOpt := VMSet{VMSet:p.currentState.VMs}
 				currentOpt.setValues(p.mapVMProfiles)
-				if (currentOpt.TotalReplicasCapacity >= currentNServices + nServiceReplicas) {
-					vms = p.currentState.VMs
+				if (currentOpt.TotalReplicasCapacity >= currentNServices +newNumServiceReplicas) {
+					vmSet = p.currentState.VMs
 				} else {
 					//Increase number of VMs
 					//Find Optimal Set for deltaLoad
-					vms = p.findOptimalVMSet(nServiceReplicas)
+					vmSet = p.findOptimalVMSet(newNumServiceReplicas)
 					//Merge the current configuration with configuration for the new replicas
 					for k,v :=  range  p.currentState.VMs {
-						if _,ok := vms[k]; ok {
-							vms[k] += v
+						if _,ok := vmSet[k]; ok {
+							vmSet[k] += v
 						}else {
-							vms[k] = v
+							vmSet[k] = v
 						}
 					}
 				}
 
 				// Test if reconfigure the complete VM set for the totalLoad is better
-				opt := VMSet{VMSet:vms}
+				opt := VMSet{VMSet: vmSet}
 				opt.setValues(p.mapVMProfiles)
 
 				//Find VM set for totalLoad
-				nProfileCopies = int(math.Ceil(float64(totalLoad) / float64(performanceProfile.TRN)))
-				nServiceReplicas = nProfileCopies * performanceProfile.NumReplicas
+				//Compute number of replicas needed depending on requests
+				newNumServiceReplicas = int(math.Ceil(totalLoad / performanceProfile.TRN)) * performanceProfile.NumReplicas
 
-				if rep,ok := p.repackVMSet(nServiceReplicas,opt,i,processedForecast.CriticalIntervals,performanceProfile); ok {
-					vms = rep
+				if rep,ok := p.repackVMSet(newNumServiceReplicas,opt,i,processedForecast.CriticalIntervals,performanceProfile); ok {
+					vmSet = rep
 				}
 
 			} else if deltaLoad < 0 {
@@ -113,27 +105,27 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 
 				//Validate condition to avoid underprovisioning
 				if (nProfileCopies > 0) {
-					nServiceReplicas = nProfileCopies * performanceProfile.NumReplicas
-					tmp := currentNServices - nServiceReplicas
+					newNumServiceReplicas = nProfileCopies * performanceProfile.NumReplicas
+					tmp := currentNServices - newNumServiceReplicas
 					//validate if after removing those replicas still SLA is met
 					if float64(tmp)*(performanceProfile.TRN/float64(performanceProfile.NumReplicas)) >= totalLoad {
 
 						//Decreases number of replicas
 						services = make(map[string]types.ServiceInfo)
 						services[serviceProfile.Name] = types.ServiceInfo{
-														Scale: currentNServices - nServiceReplicas,
+														Scale: currentNServices - newNumServiceReplicas,
 														CPU: performanceProfile.Limit.NumCores,
 														Memory: performanceProfile.Limit.Memory, }
 						//Build new set of VMs and release some if necessary
-						vms = p.releaseResources(nServiceReplicas, p.currentState.VMs)
+						vmSet = p.releaseResources(newNumServiceReplicas, p.currentState.VMs)
 
 						// Test if reconfigure the complete VM set for the totalLoad is better
-						opt := VMSet{VMSet:vms}
+						opt := VMSet{VMSet: vmSet}
 						opt.setValues(p.mapVMProfiles)
 						nProfileCopies = int(math.Ceil(float64(totalLoad) / float64(performanceProfile.TRN)))
-						nServiceReplicas = nProfileCopies * performanceProfile.NumReplicas
-						if rep,ok := p.repackVMSet(nServiceReplicas,opt, i, processedForecast.CriticalIntervals,performanceProfile); ok {
-							vms = rep
+						newNumServiceReplicas = nProfileCopies * performanceProfile.NumReplicas
+						if rep,ok := p.repackVMSet(newNumServiceReplicas,opt, i, processedForecast.CriticalIntervals,performanceProfile); ok {
+							vmSet = rep
 						}
 					}
 				}
@@ -142,7 +134,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 			//Create a new state
 			state := types.State{}
 			state.Services = services
-			state.VMs = vms
+			state.VMs = vmSet
 
 			timeStart := it.TimeStart
 			timeEnd := it.TimeEnd
@@ -151,9 +143,18 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		}
 
 		//Add new policy
+		parameters := make(map[string]string)
+		parameters[types.METHOD] = "horizontal"
+		parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(true)
+		parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underprovisionAllowed)
+		if underprovisionAllowed {
+			parameters[types.MAXUNDERPROVISION] = strconv.FormatFloat(p.sysConfiguration.PolicySettings.MaxUnderprovision, 'f', -1, 64)
+		}
 		newPolicy.Configurations = configurations
 		newPolicy.Algorithm = p.algorithm
 		newPolicy.ID = bson.NewObjectId()
+		newPolicy.Status = types.DISCARTED	//State by default
+		newPolicy.Parameters = parameters
 		newPolicy.Metrics.NumberConfigurations = len(configurations)
 		newPolicy.Metrics.FinishTimeDerivation = time.Now()
 		policies = append(policies, newPolicy)
