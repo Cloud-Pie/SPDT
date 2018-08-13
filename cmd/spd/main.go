@@ -36,11 +36,11 @@ var (
 func main () {
 	styleEntry()
 	setLogger()
-	fmt.Println("Logs can be accessed in %s", util.DEFAULT_LOGFILE)
 
 	if FlagsVar.ConfigFile == "" {
 		log.Info("Configuration file not specified. Default configuration will be used.")
 		FlagsVar.ConfigFile = util.CONFIG_FILE
+		log.Info("Logs can be accessed in %s", util.DEFAULT_LOGFILE)
 	}
 
 	//Read Configuration File

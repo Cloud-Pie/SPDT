@@ -9,3 +9,9 @@ const SEARCH_TREE_ALGORITHM = "tree"
 const SMALL_STEP_ALGORITHM = "sstep"
 const DELTA_REPACKED = "delta-repacked"
 
+
+//Algorithms options
+const SCALE_METHOD_HORIZONTAL = "horizontal"
+const SCALE_METHOD_VERTICAL = "vertical"
+const SCALE_METHOD_HYBRID = "hybrid"
+

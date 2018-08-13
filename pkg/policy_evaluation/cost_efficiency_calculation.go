@@ -21,7 +21,7 @@ func ComputeTotalCost(policies [] types.Policy, sysConfig config.SystemConfigura
 		totalCost := float64(0.0)
 		configurations := policy.Configurations
 		for cfi,cf := range configurations {
-				configurationCost := ComputeConfigurationCost (cf, sysConfig.PricingModel.PriceUnit, mapVMProfiles)
+				configurationCost := ComputeConfigurationCost (cf, sysConfig.PricingModel.BillingUnit, mapVMProfiles)
 				policies[pi].Configurations[cfi].Metrics.Cost = configurationCost
 				totalCost += configurationCost
 		}

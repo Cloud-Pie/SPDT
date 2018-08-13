@@ -2,11 +2,11 @@
 version: v1
 CSP: AWS
 pricing-model:
-  monthly-budget: 2000.0
-  price-unit: Hour
+  monthly-budget: 2000
+  billing-unit: hour
 scaling-horizon:
   start-time: 2018-09-02T07:00:00.1Z
-  end-time: 2018-09-03T07:00:10.1Z
+  endt-ime: 2018-09-03T07:00:10.1Z
 forecasting-component:
   endpoint: http://localhost:8081
   username:
@@ -14,18 +14,21 @@ forecasting-component:
   api-key:
 performance-profiles-component:
   endpoint: http://localhost:8081
-  user-name:
+  username:
   password:
   api-key:
 scheduler-component:
   endpoint: http://localhost:8081
-  user-name:
+  username:
   password:
   api-key:
 preferred-algorithm: all
 policy-settings:
+  scaling-method: horizontal
+  hetereogeneos-vms-allowed: true
   underprovisioning-allowed : false
-  hetereogeneos-cluster-enabled: true
+  max-percentage-underprovision: 20
+  pods-resize-allowed: true
 
 
 
