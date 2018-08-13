@@ -18,12 +18,7 @@ type DeltaRepackedPolicy struct {
 	sysConfiguration	config.SystemConfiguration
 }
 
-type OptimalVMSet struct {
-	VMSet                 types.VMScale
-	Cost                  float64
-	TotalNVMs             int
-	TotalReplicasCapacity int
-}
+
 
 //Create scaling policies
 func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedForecast, serviceProfile types.ServiceProfile) [] types.Policy {
@@ -78,7 +73,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 
 
 				//Validate if the current configuration is able to handle the new replicas
-				currentOpt := OptimalVMSet{VMSet:p.currentState.VMs}
+				currentOpt := VMSet{VMSet:p.currentState.VMs}
 				currentOpt.setValues(p.mapVMProfiles)
 				if (currentOpt.TotalReplicasCapacity >= currentNServices + nServiceReplicas) {
 					vms = p.currentState.VMs
@@ -97,7 +92,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 				}
 
 				// Test if reconfigure the complete VM set for the totalLoad is better
-				opt := OptimalVMSet{VMSet:vms}
+				opt := VMSet{VMSet:vms}
 				opt.setValues(p.mapVMProfiles)
 
 				//Find VM set for totalLoad
@@ -131,7 +126,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 						vms = p.releaseResources(nServiceReplicas, p.currentState.VMs)
 
 						// Test if reconfigure the complete VM set for the totalLoad is better
-						opt := OptimalVMSet{VMSet:vms}
+						opt := VMSet{VMSet:vms}
 						opt.setValues(p.mapVMProfiles)
 						nProfileCopies = int(math.Ceil(float64(totalLoad) / float64(performanceProfile.TRN)))
 						nServiceReplicas = nProfileCopies * performanceProfile.NumReplicas
@@ -166,45 +161,30 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		return policies
 }
 
-// Set missing values for the OptimalVMSet structure
-func (set *OptimalVMSet) setValues(mapVMProfiles map[string]types.VmProfile) {
-	cost := float64(0.0)
-	totalNVMs := 0
-	totalCapacity :=0
-	for k,v := range set.VMSet {
-		cost += mapVMProfiles[k].Pricing.Price * float64(v)
-		totalNVMs += v
-		totalCapacity += mapVMProfiles[k].ReplicasCapacity * v
-	}
-	set.Cost = cost
-	set.TotalNVMs = totalNVMs
-	set.TotalReplicasCapacity = totalCapacity
-}
-
 //Find an optimal set of virtual machines to support the deployment of of n number of service replicas
 func (p DeltaRepackedPolicy) findOptimalVMSet(nReplicas int) types.VMScale {
 	nVMProfiles := len(p.sortedVMProfiles)
-	solutions := []OptimalVMSet{}
+	solutions := []VMSet{}
 
 		for i,v := range p.sortedVMProfiles {
 			vmScale :=  make(map[string]int)
 			capacity := v.ReplicasCapacity
 			if capacity > nReplicas {
 				vmScale[v.Type] = 1
-				set := OptimalVMSet{VMSet:vmScale}
+				set := VMSet{VMSet:vmScale}
 				set.setValues(p.mapVMProfiles)
 				solutions = append(solutions, set)
 			} else if capacity > 0 {
 				//Homogeneous candidate set of type v
 				vmScale[v.Type] = int(nReplicas / capacity)
-				set := OptimalVMSet{VMSet:vmScale}
+				set := VMSet{VMSet:vmScale}
 				set.setValues(p.mapVMProfiles)
 				solutions = append(solutions, set)
 
 				//heterogeneous candidate set of types v and v+1
 				if i < nVMProfiles-1 {
 					vmScale := hetCandidateSet(nReplicas, v.Type, capacity,  p.sortedVMProfiles[i+1].Type,  p.sortedVMProfiles[i+1].ReplicasCapacity)
-					set := OptimalVMSet{VMSet:vmScale}
+					set := VMSet{VMSet:vmScale}
 					set.setValues(p.mapVMProfiles)
 					solutions = append(solutions, set)
 				}
@@ -279,10 +259,10 @@ func (p DeltaRepackedPolicy) releaseResources(nReplicas int, currentVMSet types.
 }
 
 //Evaluate if repack the current configuration to a new one is worth it
-func(p DeltaRepackedPolicy) repackVMSet(requiredReplicasCapacity int, currentOptimalSet OptimalVMSet, indexTimeInterval int, timeIntervals[]types.CriticalInterval, performanceProfile types.PerformanceProfile) (types.VMScale, bool) {
+func(p DeltaRepackedPolicy) repackVMSet(requiredReplicasCapacity int, currentOptimalSet VMSet, indexTimeInterval int, timeIntervals[]types.CriticalInterval, performanceProfile types.PerformanceProfile) (types.VMScale, bool) {
 
 	newSet := p.findOptimalVMSet(requiredReplicasCapacity)
-	newOptimalSet := OptimalVMSet {VMSet:newSet}
+	newOptimalSet := VMSet{VMSet:newSet}
 	newOptimalSet.setValues(p.mapVMProfiles)
 
 	factor := performanceProfile.TRN / float64(performanceProfile.NumReplicas)
@@ -334,7 +314,7 @@ func(p DeltaRepackedPolicy) calculateReconfigurationCost(newSet types.VMScale) f
 	_, deletedVMS := deltaVMSet(p.currentState.VMs, newSet)
 	reconfigTime := computeVMTerminationTime(deletedVMS, p.sysConfiguration)
 
-	deletedSet := OptimalVMSet{VMSet : deletedVMS}
+	deletedSet := VMSet{VMSet : deletedVMS}
 	deletedSet.setValues(p.mapVMProfiles)
 	return deletedSet.Cost * float64(reconfigTime)
 }
