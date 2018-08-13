@@ -25,8 +25,8 @@ scheduler-component:
 preferred-algorithm: naive
 policy-settings:
   scaling-method: horizontal
-  hetereogeneos-vms-allowed: true
-  underprovisioning-allowed : false
+  heterogeneous-vms-allowed: true
+  underprovisioning-allowed: true
   max-percentage-underprovision: 20
   pods-resize-allowed: true
 
