@@ -36,7 +36,6 @@ func GetVMsProfiles(endpoint string) ([]types.VmProfile, error){
 	}
 	defer response.Body.Close()
 	data, err := ioutil.ReadAll(response.Body)
-
 	if err != nil {
 		return vmList,err
 	}

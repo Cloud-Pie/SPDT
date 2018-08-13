@@ -6,7 +6,6 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"time"
 	"github.com/Cloud-Pie/SPDT/util"
-	"log"
 )
 
 var PolicyDB *PolicyDAO
@@ -114,7 +113,7 @@ func GetPolicyDAO() *PolicyDAO{
 		}
 		_,err := PolicyDB.Connect()
 		if err != nil {
-			log.Fatalf(err.Error())
+			log.Error(err.Error())
 		}
 	}
 	return PolicyDB

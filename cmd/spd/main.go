@@ -102,8 +102,11 @@ func getVMProfiles(){
 	vmProfiles, err = Pservice.GetVMsProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VMS_PROFILES)
 	if err != nil {
 		log.Error(err.Error())
+		log.Info("Error in the request to get VMs Profiles")
+		return
+	} else {
+		log.Info("Finish request VMs Profiles")
 	}
-	log.Info("Finish request VMs Profiles")
 }
 
 func getServiceProfile(){

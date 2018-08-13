@@ -58,13 +58,24 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 
 			err := policyDAO.UpdateById(oldPolicy.ID,oldPolicy)
 			if err != nil {
-				log.Fatalf(err.Error())
+				log.Error("The policy could not be updated. Error %s\n", err)
 			}
 
-			reconfiguration.InvalidateStates(timeInvalidation, sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_INVALIDATE_STATES)
-			log.Info("Start request Scheduler")
-			reconfiguration.TriggerScheduler(selectedPolicy, sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_STATES)
-			log.Info("Finish request Scheduler")
+			log.Info("Start request Scheduler to invalidate states")
+			err = reconfiguration.InvalidateStates(timeInvalidation, sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_INVALIDATE_STATES)
+			if err != nil {
+				log.Error("The scheduler request failed with error %s\n", err)
+			} else {
+				log.Info("Finish request Scheduler to invalidate states")
+			}
+
+			log.Info("Start request Scheduler to create states")
+			err = reconfiguration.TriggerScheduler(selectedPolicy, sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_STATES)
+			if err != nil {
+				log.Error("The scheduler request failed with error %s\n", err)
+			} else {
+				log.Info("Finish request Scheduler to create states")
+			}
 		}
 	}
 }

@@ -24,7 +24,9 @@ func GetForecast(endpoint string, startTime time.Time, endTime time.Time) (types
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
-
+	if err != nil {
+		return forecast,err
+	}
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

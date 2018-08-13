@@ -5,7 +5,6 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/util"
-	"log"
 )
 
 var PerformanceProfileDB *PerformanceProfileDAO
@@ -72,7 +71,7 @@ func GetPerformanceProfileDAO() *PerformanceProfileDAO {
 		}
 		_,err := PerformanceProfileDB.Connect()
 		if err != nil {
-			log.Fatalf(err.Error())
+			log.Error(err.Error())
 		}
 	}
 	return PerformanceProfileDB

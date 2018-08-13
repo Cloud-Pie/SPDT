@@ -8,7 +8,6 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/pkg/reconfiguration"
 	"github.com/Cloud-Pie/SPDT/util"
-	"fmt"
 	"time"
 )
 
@@ -23,8 +22,11 @@ func startPolicyDerivation(timeStart time.Time, timeEnd time.Time) {
 	forecast,err := Fservice.GetForecast(sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_FORECAST, timeStart, timeEnd)
 	if err != nil {
 		log.Error(err.Error())
+		log.Info("Error in the request to get the forecasting")
+		return
+	} else {
+		log.Info("Finish request Forecasting")
 	}
-	log.Info("Finish request Forecasting")
 
 	//Store received information about forecast
 	forecast.ID = bson.NewObjectId()
@@ -64,11 +66,13 @@ func startPolicyDerivation(timeStart time.Time, timeEnd time.Time) {
 	selectedPolicy.ID = bson.NewObjectId()
 	err = policyDAO.Insert(selectedPolicy)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Error("The policy could not be stored. Error %s\n", err)
 	}
-
 	log.Info("Start request Scheduler")
-	reconfiguration.TriggerScheduler(selectedPolicy, sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES)
-	fmt.Sprintf(string(selectedPolicy.ID))
-	log.Info("Finish request Scheduler")
+	err = reconfiguration.TriggerScheduler(selectedPolicy, sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES)
+	if err != nil {
+		log.Error("The scheduler request failed with error %s\n", err)
+	} else {
+		log.Info("Finish request Scheduler")
+	}
 }

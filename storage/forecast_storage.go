@@ -5,7 +5,7 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/util"
-	"log"
+	"github.com/op/go-logging"
 )
 
 type ForecastDAO struct {
@@ -15,6 +15,7 @@ type ForecastDAO struct {
 	session *mgo.Session
 }
 var ForecastDB *ForecastDAO
+var log = logging.MustGetLogger("spdt")
 
 //Connect to the database
 func (p *ForecastDAO) Connect() (*mgo.Database, error) {
