@@ -38,9 +38,8 @@ func main () {
 	setLogger()
 
 	if FlagsVar.ConfigFile == "" {
-		log.Info("Configuration file not specified. Default configuration will be used.")
+		log.Info("Configuration file not specified. Default config.yml is expected.")
 		FlagsVar.ConfigFile = util.CONFIG_FILE
-		log.Info("Logs can be accessed in %s", util.DEFAULT_LOGFILE)
 	}
 
 	//Read Configuration File
@@ -57,15 +56,20 @@ func main () {
 
 }
 
+//Periodically pull a new forecast for a new time window
+//and derive a the correspondent new scaling policy
 func periodicPolicyDerivation() {
 	for {
-		startPolicyDerivation(timeStart,timeEnd)
-		time.Sleep(timeWindowSize)
-		timeStart.Add(timeWindowSize)
-		timeEnd.Add(timeWindowSize)
+		err := startPolicyDerivation(timeStart,timeEnd)
+		if err != nil {
+			log.Error("An error has occurred and policies have been not derived. Please try again. Details: %s", err)
+		}else{
+			timeStart.Add(timeWindowSize)
+			timeEnd.Add(timeWindowSize)
+			time.Sleep(timeWindowSize)
+		}
 	}
 }
-
 
 func styleEntry() {
 	fmt.Println(`
@@ -78,6 +82,7 @@ func styleEntry() {
 	`)
 }
 
+//Set where and how to write logs
 func setLogger() {
 	logFile := util.DEFAULT_LOGFILE
 	os.MkdirAll(filepath.Dir(logFile), 0700)
@@ -86,8 +91,10 @@ func setLogger() {
 	backend2 := logging.NewLogBackend(multiOutput, "", 0)
 	backend2Formatter := logging.NewBackendFormatter(backend2, format)
 	logging.SetBackend(backend2Formatter)
+	log.Info("Logs can be accessed in %s", logFile)
 }
 
+//Read the configuration file with the setting to derive the scaling policies
 func readSysConfiguration(){
 	var err error
 	sysConfiguration, err = config.ParseConfigFile(FlagsVar.ConfigFile)
@@ -96,6 +103,7 @@ func readSysConfiguration(){
 	}
 }
 
+//Fetch the profiles of the available Virtual Machines to generate the scaling policies
 func getVMProfiles(){
 	var err error
 	log.Info("Start request VMs Profiles")
@@ -109,6 +117,7 @@ func getVMProfiles(){
 	}
 }
 
+//Fetch the performance profile of the microservice that should be scaled
 func getServiceProfile(){
 	var err error
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
@@ -128,10 +137,13 @@ func getServiceProfile(){
 		err = serviceProfileDAO.Insert(serviceProfiles)
 		if err != nil {
 			log.Error(err.Error())
+		} else {
+			log.Info("The Service Performance Profiles were stored")
 		}
 	}
 }
 
+//Start Derivation of a new scaling policy for the specified scaling horizon and correspondent forecast
 func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64, times []time.Time){
 	//Derive Strategies
 	log.Info("Start policies derivation")

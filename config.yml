@@ -6,7 +6,7 @@ pricing-model:
   billing-unit: hour
 scaling-horizon:
   start-time: 2018-09-02T07:00:00.1Z
-  endt-ime: 2018-09-03T07:00:10.1Z
+  end-time: 2018-09-03T07:00:10.1Z
 forecasting-component:
   endpoint: http://localhost:8081
   username:
@@ -22,7 +22,7 @@ scheduler-component:
   username:
   password:
   api-key:
-preferred-algorithm: all
+preferred-algorithm: naive
 policy-settings:
   scaling-method: horizontal
   hetereogeneos-vms-allowed: true

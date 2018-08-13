@@ -11,36 +11,35 @@ import (
 	"time"
 )
 
-func startPolicyDerivation(timeStart time.Time, timeEnd time.Time) {
+func startPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
 	//Request VM Profiles
 	getVMProfiles()
 	//Request Performance Profiles
 	getServiceProfile()
-
 	//Request Forecasting
 	log.Info("Start request Forecasting")
 	forecast,err := Fservice.GetForecast(sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_FORECAST, timeStart, timeEnd)
 	if err != nil {
 		log.Error(err.Error())
 		log.Info("Error in the request to get the forecasting")
-		return
+		return err
 	} else {
 		log.Info("Finish request Forecasting")
 	}
 
-	//Store received information about forecast
-	forecast.ID = bson.NewObjectId()
-
+	//Retrieve data access to the database for forecasting
 	forecastDAO := storage.GetForecastDAO()
 
 	//Check if already exist, then update
-	resultQuery,err := forecastDAO.FindAll()
-	if len(resultQuery)==1 {
-		id := resultQuery[0].ID
-		forecast.TimeWindowStart = resultQuery[0].TimeWindowStart
-		forecast.TimeWindowEnd = resultQuery[0].TimeWindowEnd
+	//resultQuery,err := forecastDAO.FindAll()
+	resultQuery,err := forecastDAO.FindOneByTimeWindow(timeStart, timeEnd)
+	if err != nil {
+		id := resultQuery.ID
+		forecast.ID = id
 		forecastDAO.Update(id, forecast)
 	} else {
+		//Store received information about forecast
+		forecast.ID = bson.NewObjectId()
 		forecast.TimeWindowStart = forecast.ForecastedValues[0].TimeStamp
 		l := len(forecast.ForecastedValues)
 		forecast.TimeWindowEnd = forecast.ForecastedValues[l-1].TimeStamp
@@ -60,11 +59,10 @@ func startPolicyDerivation(timeStart time.Time, timeEnd time.Time) {
 
 	setNewPolicy(forecast, poiList,values,times)
 
-	//Store policyByID
 	policyDAO := storage.GetPolicyDAO()
-
 	selectedPolicy.ID = bson.NewObjectId()
 	err = policyDAO.Insert(selectedPolicy)
+
 	if err != nil {
 		log.Error("The policy could not be stored. Error %s\n", err)
 	}
@@ -75,4 +73,6 @@ func startPolicyDerivation(timeStart time.Time, timeEnd time.Time) {
 	} else {
 		log.Info("Finish request Scheduler")
 	}
+
+	return nil
 }

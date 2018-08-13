@@ -6,6 +6,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/util"
 	"github.com/op/go-logging"
+	"time"
 )
 
 type ForecastDAO struct {
@@ -58,17 +59,18 @@ func (p *ForecastDAO) Delete(forecast types.Forecast) error {
 
 //Delete the specified item
 func (p *ForecastDAO) Update(id bson.ObjectId, forecast types.Forecast) error {
-	err := p.db.C(util.DEFAULT_DB_COLLECTION_FORECAST).Update(bson.M{"_id":id}, bson.M{"forecasted_values":forecast.ForecastedValues,
-													"window_time_start":forecast.TimeWindowStart,
-													"window_time_end":forecast.TimeWindowEnd})
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_FORECAST).Update(bson.M{"_id":id}, forecast)
 	return err
 }
 
-/*func (p *ForecastDAO) FindByDate(timestamp time.Time) (types.Forecast, error) {
+//Retrieve all policies for start time greater than or equal to time t
+func (p *ForecastDAO) FindOneByTimeWindow(startTime time.Time, endTime time.Time) (types.Forecast, error) {
 	var forecast types.Forecast
-	err := db.C(COLLECTION).FindId(bson.ObjectIdHex(id)).One(&forecast)
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_FORECAST).
+		Find(bson.M{"window_time_start": bson.M{"$eq":startTime},
+		"window_time_end": bson.M{"$eq":endTime}}).One(&forecast)
 	return forecast,err
-}*/
+}
 
 func GetForecastDAO() *ForecastDAO{
 	if ForecastDB == nil {
