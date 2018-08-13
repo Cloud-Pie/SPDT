@@ -4159,6 +4159,21 @@ Created using IcoMoon - icomoon.io
   color: #FFB236;
 }
 
+
+.sidebar[data-color="dark"]:after,
+.off-canvas-sidebar[data-color="dark"]:after {
+  background: #204065;
+}
+
+.sidebar[data-color="dark"] .nav li.active>a,
+.off-canvas-sidebar[data-color="dark"] .nav li.active>a {
+  color: #204065;
+}
+.sidebar[data-color="dark"] .nav li.active>a i,
+.off-canvas-sidebar[data-color="dark"] .nav li.active>a i {
+  color: #204065;
+}
+
 .visible-on-sidebar-regular {
   display: inline-block !important;
 }
@@ -4217,8 +4232,8 @@ Created using IcoMoon - icomoon.io
 }
 
 .panel-header {
-  height: 260px;
-  padding-top: 80px;
+  height: 60px;
+  padding-top: 5px;
   padding-bottom: 45px;
   background: #141E30;
   /* fallback for old browsers */
@@ -4248,7 +4263,7 @@ Created using IcoMoon - icomoon.io
 }
 
 .panel-header-lg {
-  height: 380px;
+  height: 180px;
 }
 
 .footer {
@@ -4668,6 +4683,10 @@ Created using IcoMoon - icomoon.io
 
 .card[data-background-color="green"] {
   background-color: #18ce0f;
+}
+
+.card[data-background-color="dark"] {
+  background-color: #141E30;
 }
 
 .card .image {

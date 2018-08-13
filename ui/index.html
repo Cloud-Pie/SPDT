@@ -19,16 +19,16 @@
     <!-- CSS Just for demo purpose, don't include it in your project -->
     <link href="../assets/demo/demo.css" rel="stylesheet" />
     <style>
-        #chartdiv {
+        #virtualUnits {
             width	: 100%;
-            height	: 500px;
+            height	: 400px;
         }
     </style>
 </head>
 
 <body class="">
 <div class="wrapper ">
-    <div class="sidebar" data-color="blue">
+    <div class="sidebar" data-color="dark">
         <!--
           Tip 1: You can change the color of the sidebar using: data-color="blue | green | orange | red | yellow"
       -->
@@ -37,39 +37,84 @@
         </div>
         <div class="sidebar-wrapper">
             <ul class="nav">
-                <li class="active ">
-                    <a href="./dashboard.html">
+                <li>
+                    <a>
                         <i class="now-ui-icons design_app"></i>
-                        <p>Dashboard</p>
+                        <p>Total Cost</p>
+                    </a>
+                </li>
+                <li>
+                    <a>
+                        <i class="now-ui-icons design_app"></i>
+                        <p>Algorithm Time Start</p>
+                    </a>
+                </li>
+                <li>
+                    <a>
+                        <i class="now-ui-icons design_app"></i>
+                        <p>Algorithm Time End</p>
+                    </a>
+                </li>
+                <li>
+                    <a>
+                        <i class="now-ui-icons design_app"></i>
+                        <p>% Underprovisioning</p>
+                    </a>
+                </li>
+                <li>
+                    <a>
+                        <i class="now-ui-icons design_app"></i>
+                        <p>% Overprovisioning</p>
+                    </a>
+                </li>
+                <li>
+                    <a>
+                        <i class="now-ui-icons design_app"></i>
+                        <p> N° Reconfigurations</p>
                     </a>
                 </li>
             </ul>
         </div>
+
     </div>
     <div class="main-panel">
-        <div class="panel-header panel-header-lg">
-            <h4>Selected Policy</h4>
+        <!-- Navbar -->
+        <nav class="navbar navbar-expand-lg navbar-transparent  navbar-absolute bg-primary fixed-top">
+            <div class="container-fluid">
+                <div class="navbar-wrapper">
+                    <div class="row col-lg-12">
+                        Policy ID
+                    </div>
+                    <div class="row col-lg-12">
+                        Scaling Horizon
+                    </div>
+                </div>
+                <div class="collapse navbar-collapse justify-content-end" id="navigation">
+                    <form>
+                        <div class="input-group no-border">
+                            <input type="text" value="" class="form-control" placeholder="Search by Policy ID...">
+                            <div class="input-group-append">
+                                <div class="input-group-text">
+                                    <i class="now-ui-icons ui-1_zoom-bold"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </nav>
+        <!-- End Navbar -->
+        <div class="panel-header panel-header-sm">
         </div>
         <div class="content">
             <div class="row">
                 <div class="col-lg-12">
                     <div class="card card-chart">
                         <div class="card-header">
-                            <h4 class="card-title">Units</h4>
-                            <div class="dropdown">
-                                <button type="button" class="btn btn-round btn-default dropdown-toggle btn-simple btn-icon no-caret" data-toggle="dropdown">
-                                    <i class="now-ui-icons loader_gear"></i>
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-right">
-                                    <a class="dropdown-item" href="#">Action</a>
-                                    <a class="dropdown-item" href="#">Another action</a>
-                                    <a class="dropdown-item" href="#">Something else here</a>
-                                    <a class="dropdown-item text-danger" href="#">Remove Data</a>
-                                </div>
-                            </div>
+                            <h5 class="card-title">Units</h5>
                         </div>
                         <div class="card-body">
-                            <div class="chart-area" id="chartdiv"></div>
+                            <div class="chart-area" id="virtualUnits"></div>
                         </div>
                     </div>
                 </div>
@@ -78,25 +123,11 @@
                 <div class="col-lg-12">
                     <div class="card card-chart">
                         <div class="card-header">
-                            <h4 class="card-title">CPU cores</h4>
+                            <h4 class="card-title">Requests</h4>
                         </div>
                         <div class="card-body">
                             <div class="chart-area">
-                                <canvas id="barChartSimpleGradientsNumbers"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-lg-12">
-                    <div class="card card-chart">
-                        <div class="card-header">
-                            <h4 class="card-title">Units</h4>
-                        </div>
-                        <div class="card-body">
-                            <div class="chart-area">
-                                <canvas id="virtualizationUnitsChart"></canvas>
+                                <div class="chart-area" id="requestsUnits"></div>
                             </div>
                         </div>
                     </div>
@@ -115,6 +146,7 @@
 <!-- Resources -->
 <script src="https://www.amcharts.com/lib/3/amcharts.js"></script>
 <script src="https://www.amcharts.com/lib/3/serial.js"></script>
+<script src="https://www.amcharts.com/lib/3/xy.js"></script>
 <script src="https://www.amcharts.com/lib/3/plugins/export/export.min.js"></script>
 <link rel="stylesheet" href="https://www.amcharts.com/lib/3/plugins/export/export.css" type="text/css" media="all" />
 <script src="https://www.amcharts.com/lib/3/themes/light.js"></script>
@@ -127,9 +159,8 @@
 <script src="../assets/js/app.js"></script>
 <script>
     $(document).ready(function() {
-        // Javascript method's body can be found in templates/js/demos.js
-        app.test();
-
+        app.spdInit();
+        app.capacity();
     });
 </script>
 </body>

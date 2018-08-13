@@ -50,6 +50,7 @@ type Metrics struct {
 	Cost 					float64
 	OverProvision			float32
 	UnderProvision			float32
+	CapacityTRN				float64
 	NumberConfigurations	int
 }
 

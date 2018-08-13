@@ -16,7 +16,7 @@ type CriticalInterval struct {
 
 /*Represent the number of requests for a time T*/
 type ForecastedValue struct {
-	TimeStamp   time.Time	`json:"time-stamp"`
+	TimeStamp   time.Time	`json:"timestamp"`
 	Requests	float64         `json:"requests"`
 }
 

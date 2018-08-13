@@ -25,6 +25,7 @@ func SetUpServer( fc chan types.Forecast ) *gin.Engine {
 	router.DELETE("/api/policies/:id", deletePolicyByID)
 	router.DELETE("/api/policies", deletePolicyWindow)
 	router.PUT("/api/policies/:id", invalidatePolicyByID)
+	router.GET("/api/forecast/:id/:id2", getRequests)
 
 	return router
 }
@@ -170,4 +171,58 @@ func updateForecast(c *gin.Context) {
 //This handler return the home page of the user interface
 func userInterface(c *gin.Context) {
 	c.HTML(http.StatusOK, "index.html", nil)
+}
+
+
+
+func getRequests(c *gin.Context) {
+
+	type data struct {
+		Timestamp 	time.Time
+		Requests 	float64
+		Capacity	float64
+	}
+
+	id := c.Param("id")
+
+	forecastDAO := db.ForecastDAO{
+		Server:util.DEFAULT_DB_SERVER_FORECAST,
+		Database:util.DEFAULT_DB_FORECAST,
+	}
+	forecastDAO.Connect()
+	forecast,err := forecastDAO.FindByID(id)
+
+	id = c.Param("id2")
+	policyDAO := db.PolicyDAO{
+		Server:util.DEFAULT_DB_SERVER_POLICIES,
+		Database:util.DEFAULT_DB_POLICIES,
+	}
+	policyDAO.Connect()
+	policy,err := policyDAO.FindByID(id)
+
+	datalist := []data{}
+	currentConfig := 0
+	configurations := policy.Configurations
+	var cap float64
+	for _,v := range forecast.ForecastedValues {
+		if configurations[currentConfig].TimeEnd.After(v.TimeStamp){
+			cap = configurations[currentConfig].Metrics.CapacityTRN
+		} else {
+			currentConfig+=1
+			if currentConfig < len(configurations) -1 {
+				cap = configurations[currentConfig].Metrics.CapacityTRN
+			}
+		}
+		datalist = append(datalist,
+			data{
+					Timestamp:v.TimeStamp,
+					Requests:v.Requests,
+					Capacity:cap,
+				},
+			)
+	}
+	if err != nil {
+		c.JSON(http.StatusBadRequest, err.Error())
+	}
+	c.JSON(http.StatusOK, datalist)
 }

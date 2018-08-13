@@ -136,7 +136,7 @@ func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64
 	log.Info("Finish policies derivation")
 
 	log.Info("Start policies evaluation")
-	selectedPolicy,_ = policy_evaluation.SelectPolicy(policies, sysConfiguration, vmProfiles)
+	selectedPolicy,_ = policy_evaluation.SelectPolicy(policies, sysConfiguration, vmProfiles, serviceProfiles)
 	log.Info("Finish policies evaluation")
 
 	selectedPolicy.TimeWindowStart = forecast.TimeWindowStart
