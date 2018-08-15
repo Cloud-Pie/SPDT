@@ -50,10 +50,10 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 		performanceProfile := selectProfile(serviceProfile.PerformanceProfiles)
 		//Compute number of replicas needed depending on requests
 		nProfileCopies := int(math.Ceil(float64(requests) / float64(performanceProfile.TRN)))
-		nServiceReplicas := nProfileCopies * performanceProfile.NumReplicas
+		newNumServiceReplicas := nProfileCopies * performanceProfile.NumReplicas
 		services[serviceProfile.Name] = types.ServiceInfo{
-										Scale: nServiceReplicas,
-										CPU: performanceProfile.Limit.NumCores,
+										Scale:  newNumServiceReplicas,
+										CPU:    performanceProfile.Limit.NumCores,
 										Memory: performanceProfile.Limit.Memory, }
 
 		state := types.State{}
@@ -65,7 +65,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 			currentNReplicas = v.Scale
 		}
 
-		diffReplicas := nServiceReplicas - currentNReplicas
+		diffReplicas := newNumServiceReplicas - currentNReplicas
 		var vms types.VMScale
 		if diffReplicas == 0 {
 				shouldScale = false	//no need to scale
@@ -99,7 +99,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 		} else {
 			//Need to decrease resources
 			//vms = p.currentState.VMs
-			vms = p.findSuitableVMs(nServiceReplicas,performanceProfile.Limit)
+			vms = p.findSuitableVMs(newNumServiceReplicas,performanceProfile.Limit)
 			//vms = p.removeVMs(mapVMProfiles, p.currentState.VMs, -1*diffReplicas,performanceProfile.Limit)
 			state.VMs = vms
 		}
@@ -107,7 +107,8 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 		timeStart := it.TimeStart
 		timeEnd := it.TimeEnd
 		totalServicesBootingTime := performanceProfile.BootTimeSec
-		setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration)
+		stateLoadCapacity := float64(newNumServiceReplicas/performanceProfile.NumReplicas) * performanceProfile.TRN
+		setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
 
 		//Adjust termination times for resources configuration
 		terminationTime := computeVMTerminationTime(vms, p.sysConfiguration)

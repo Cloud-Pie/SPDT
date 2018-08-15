@@ -50,6 +50,7 @@ func (p NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 				}
 			}
 
+			stateLoadCapacity := float64(newNumServiceReplicas/performanceProfile.NumReplicas) * performanceProfile.TRN
 			services[serviceProfile.Name] = types.ServiceInfo{
 				Scale:  newNumServiceReplicas,
 				CPU:    performanceProfile.Limit.NumCores,
@@ -63,7 +64,7 @@ func (p NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 			timeStart := it.TimeStart
 			timeEnd := it.TimeEnd
 			totalServicesBootingTime := performanceProfile.BootTimeSec
-			setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration)
+			setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
 		}
 
 		totalConfigurations := len(configurations)

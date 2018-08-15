@@ -19,8 +19,6 @@ type DeltaRepackedPolicy struct {
 	sysConfiguration	config.SystemConfiguration
 }
 
-
-
 //Create scaling policies
 func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedForecast, serviceProfile types.ServiceProfile) [] types.Policy {
 
@@ -135,11 +133,11 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 			state := types.State{}
 			state.Services = services
 			state.VMs = vmSet
-
+			stateLoadCapacity := float64(newNumServiceReplicas/performanceProfile.NumReplicas) * performanceProfile.TRN
 			timeStart := it.TimeStart
 			timeEnd := it.TimeEnd
 			totalServicesBootingTime := performanceProfile.BootTimeSec
-			setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration)
+			setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration,stateLoadCapacity)
 		}
 
 		//Add new policy

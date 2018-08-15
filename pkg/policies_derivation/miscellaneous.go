@@ -44,3 +44,11 @@ func computeVMsCapacity(performanceProfile types.PerformanceProfile,  mapVMProfi
 		(*mapVMProfiles)[v.Type] = profile
 	}
 }
+
+func VMListToMap(listVMProfiles []types.VmProfile) map[string]types.VmProfile{
+	mapVMProfiles := make(map[string]types.VmProfile)
+	for _,p := range listVMProfiles {
+		mapVMProfiles[p.Type] = p
+	}
+	return mapVMProfiles
+}

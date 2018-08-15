@@ -37,10 +37,7 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 	timeWindows := SmallStepOverProvision{PoIList:poiList}
 	processedForecast := timeWindows.WindowDerivation(values,times)
 
-	mapVMProfiles := make(map[string]types.VmProfile)
-	for _,p := range sortedVMProfiles {
-		mapVMProfiles[p.Type] = p
-	}
+	mapVMProfiles := VMListToMap(sortedVMProfiles)
 
 	switch sysConfiguration.PreferredAlgorithm {
 	case util.NAIVE_ALGORITHM:
@@ -198,7 +195,7 @@ func deltaVMSet(current types.VMScale, candidate types.VMScale) (types.VMScale, 
 	return startSet, shutdownSet
 }
 
-func setConfiguration(configurations *[]types.Configuration, state types.State, timeStart time.Time, timeEnd time.Time, name string, totalServicesBootingTime int, sysConfiguration config.SystemConfiguration) {
+func setConfiguration(configurations *[]types.Configuration, state types.State, timeStart time.Time, timeEnd time.Time, name string, totalServicesBootingTime int, sysConfiguration config.SystemConfiguration, stateLoadCapacity float64) {
 	nConfigurations := len(*configurations)
 	if nConfigurations >= 1 && state.Equal((*configurations)[nConfigurations-1].State) {
 		(*configurations)[nConfigurations-1].TimeEnd = timeEnd
@@ -236,6 +233,7 @@ func setConfiguration(configurations *[]types.Configuration, state types.State, 
 				State:          state,
 				TimeStart:      timeStart,
 				TimeEnd:        timeEnd,
+				Metrics:types.ConfigMetrics{CapacityTRN:stateLoadCapacity,},
 			})
 	}
 }

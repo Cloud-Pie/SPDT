@@ -48,6 +48,7 @@ func (p SStepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForec
 				vmSet = newVMset
 			}
 		}
+		stateLoadCapacity := float64(newNumServiceReplicas/performanceProfile.NumReplicas) * performanceProfile.TRN
 		services[serviceProfile.Name] = types.ServiceInfo{
 			Scale:  newNumServiceReplicas,
 			CPU:    performanceProfile.Limit.NumCores,
@@ -61,7 +62,7 @@ func (p SStepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForec
 			timeStart := it.TimeStart
 			timeEnd := it.TimeEnd
 			totalServicesBootingTime := performanceProfile.BootTimeSec
-			setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration)
+			setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
 	}
 
 		//Add new policy

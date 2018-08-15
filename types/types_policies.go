@@ -48,16 +48,15 @@ func (state State) Equal(s2 State) bool {
 }
 type ConfigMetrics struct {
 	Cost 					float64
-	OverProvision			float32
-	UnderProvision			float32
+	OverProvision			float64
+	UnderProvision			float64
 	CapacityTRN				float64
 }
 
 type PolicyMetrics struct {
 	Cost 					float64
-	OverProvision			float32
-	UnderProvision			float32
-	CapacityTRN				float64
+	OverProvision			float64
+	UnderProvision			float64
 	NumberConfigurations	int
 	StartTimeDerivation		time.Time		  `json:"start_derivation_time" bson:"start_derivation_time"`
 	FinishTimeDerivation 	time.Time		  `json:"finish_derivation_time" bson:"finish_derivation_time"`
