@@ -11,6 +11,17 @@ type Service map[string]ServiceInfo
 /*VMScale is the factor for which a type of VM is scales*/
 type VMScale map[string]int
 
+/*Function that merges two VM sets*/
+func (vmSetTarget VMScale) Merge(vmSource VMScale){
+	for k,v :=  range  vmSource {
+		if _,ok := vmSetTarget[k]; ok {
+			vmSetTarget[k] += v
+		}else {
+			vmSetTarget[k] = v
+		}
+	}
+}
+
 type ServiceInfo struct {
 	Scale 	int			`json:Scale`
 	CPU 	float64		`json:CPU`

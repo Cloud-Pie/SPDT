@@ -40,7 +40,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 		StartTimeDerivation:time.Now(),
 	}
 	configurations := []types.Configuration {}
-
+	underprovisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	for _, it := range processedForecast.CriticalIntervals {
 		requests := it.Requests
 		services :=  make(map[string]types.ServiceInfo)
@@ -137,12 +137,23 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 	}
 
 	//Add new policy
+	parameters := make(map[string]string)
+	parameters[types.METHOD] = "horizontal"
+	parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(p.sysConfiguration.PolicySettings.HetereogeneousAllowed)
+	parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underprovisionAllowed)
+	if underprovisionAllowed {
+		parameters[types.MAXUNDERPROVISION] = strconv.FormatFloat(p.sysConfiguration.PolicySettings.MaxUnderprovision, 'f', -1, 64)
+	}
+	numConfigurations := len(configurations)
 	newPolicy.Configurations = configurations
 	newPolicy.Algorithm = p.algorithm
 	newPolicy.ID = bson.NewObjectId()
-	newPolicy.Metrics.NumberConfigurations = len(configurations)
+	newPolicy.Status = types.DISCARTED	//State by default
+	newPolicy.Parameters = parameters
+	newPolicy.Metrics.NumberConfigurations = numConfigurations
 	newPolicy.Metrics.FinishTimeDerivation = time.Now()
-
+	newPolicy.TimeWindowStart = configurations[0].TimeStart
+	newPolicy.TimeWindowEnd = configurations[numConfigurations -1].TimeEnd
 	policies = append(policies, newPolicy)
 	return policies
 }

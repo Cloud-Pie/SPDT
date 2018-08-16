@@ -67,8 +67,8 @@ func (p NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 			setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
 		}
 
-		totalConfigurations := len(configurations)
-		if len(configurations) > 0 {
+		numConfigurations := len(configurations)
+		if numConfigurations > 0 {
 			//Add new policy
 			parameters := make(map[string]string)
 			parameters[types.METHOD] = "horizontal"
@@ -78,13 +78,14 @@ func (p NaiveTypesPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 				parameters[types.MAXUNDERPROVISION] = strconv.FormatFloat(p.sysConfiguration.PolicySettings.MaxUnderprovision, 'f', -1, 64)
 			}
 			newPolicy.Configurations = configurations
-
 			newPolicy.Algorithm = p.algorithm
 			newPolicy.ID = bson.NewObjectId()
 			newPolicy.Status = types.DISCARTED	//State by default
 			newPolicy.Parameters = parameters
-			newPolicy.Metrics.NumberConfigurations = totalConfigurations
+			newPolicy.Metrics.NumberConfigurations = numConfigurations
 			newPolicy.Metrics.FinishTimeDerivation = time.Now()
+			newPolicy.TimeWindowStart = configurations[0].TimeStart
+			newPolicy.TimeWindowEnd = configurations[numConfigurations -1].TimeEnd
 			policies = append(policies, newPolicy)
 		}
 	}

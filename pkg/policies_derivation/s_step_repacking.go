@@ -73,13 +73,16 @@ func (p SStepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForec
 		if underprovisionAllowed {
 			parameters[types.MAXUNDERPROVISION] = strconv.FormatFloat(p.sysConfiguration.PolicySettings.MaxUnderprovision, 'f', -1, 64)
 		}
+		numConfigurations := len(configurations)
 		newPolicy.Configurations = configurations
 		newPolicy.Algorithm = p.algorithm
 		newPolicy.ID = bson.NewObjectId()
 		newPolicy.Status = types.DISCARTED	//State by default
 		newPolicy.Parameters = parameters
-		newPolicy.Metrics.NumberConfigurations = len(configurations)
+		newPolicy.Metrics.NumberConfigurations = numConfigurations
 		newPolicy.Metrics.FinishTimeDerivation = time.Now()
+		newPolicy.TimeWindowStart = configurations[0].TimeStart
+		newPolicy.TimeWindowEnd = configurations[numConfigurations -1].TimeEnd
 		policies = append(policies, newPolicy)
 		return policies
 }

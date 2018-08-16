@@ -8,7 +8,7 @@ import (
 )
 
 //Calls the service to process the forecast received and return the points of interest  found
-func PointsOfInterest(forecast types.Forecast) ([]types.PoI, []float64, [] time.Time){
+func PointsOfInterest(forecast types.Forecast) ([]types.PoI, []float64, [] time.Time, error){
 	values := [] float64 {}
 	times := [] time.Time {}
 	for _,x := range forecast.ForecastedValues {
@@ -16,6 +16,6 @@ func PointsOfInterest(forecast types.Forecast) ([]types.PoI, []float64, [] time.
 		times = append(times,x.TimeStamp)
 	}
 	threshold := 1200		//TODO: Get current TRN
-	poiList,_ := SProcessing.ProcessData(values, threshold, util.URL_SERIE_PROCESSING)
-	return  poiList,values,times
+	poiList,err := SProcessing.ProcessData(values, threshold, util.URL_SERIE_PROCESSING)
+	return  poiList,values,times, err
 }

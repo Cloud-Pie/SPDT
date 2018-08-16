@@ -158,43 +158,6 @@ func mapToList(vmSet map[string]int)[]types.StructMap {
 	return ss
 }
 
-func copyMap(m map[string]int) map[string]int {
-	newM := make(map[string] int)
-	for k,v := range m {
-		newM[k]=v
-	}
-	return newM
-}
-
-//Compare 2 VM Sets and returns a set of the new machines and one set with the machines that were removed
-func deltaVMSet(current types.VMScale, candidate types.VMScale) (types.VMScale, types.VMScale){
-	delta := types.VMScale{}
-	startSet := types.VMScale{}
-	shutdownSet := types.VMScale{}
-
-	for k,_ :=  range current{
-		if _,ok := candidate[k]; ok {
-			delta[k] = -1 * (current[k] - candidate[k])
-			if (delta[k]> 0) {
-				startSet[k] = delta[k]
-			} else if (delta[k] < 0) {
-				shutdownSet[k] = -1 * delta[k]
-			}
-		}else {
-			delta[k] = -1 * current[k]
-			shutdownSet[k] =  current[k]
-		}
-	}
-
-	for k,_ :=  range candidate {
-		if _,ok := current[k]; !ok {
-			delta[k] = candidate[k]
-			startSet[k] = candidate[k]
-		}
-	}
-	return startSet, shutdownSet
-}
-
 func setConfiguration(configurations *[]types.Configuration, state types.State, timeStart time.Time, timeEnd time.Time, name string, totalServicesBootingTime int, sysConfiguration config.SystemConfiguration, stateLoadCapacity float64) {
 	nConfigurations := len(*configurations)
 	if nConfigurations >= 1 && state.Equal((*configurations)[nConfigurations-1].State) {

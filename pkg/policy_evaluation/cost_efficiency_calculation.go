@@ -3,6 +3,7 @@ package policy_evaluation
 import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"time"
+	"math"
 )
 
 const (
@@ -40,7 +41,7 @@ func setDeltaTime (timeStart time.Time, timeEnd time.Time, unit string) float64 
 		case SECOND :
 			if delta < (0.01666666666) {return 0.01666666666} else {return delta}		//It charges at least 60 seconds
 		case HOUR:
-			if delta < 1 {return 1} else {return delta}									//It charges at least 1 hour
+			return math.Ceil(delta)									//It charges at least 1 hour
 	}
 	return delta
 }

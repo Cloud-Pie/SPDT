@@ -23,8 +23,13 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 			getServiceProfile()
 
 			log.Info("Start points of interest search in time serie")
-			poiList, values, times := forecast_processing.PointsOfInterest(newForecast)
-			log.Info("Finish points of interest search in time serie")
+			poiList, values, times, err:= forecast_processing.PointsOfInterest(forecast)
+			if err != nil {
+				log.Error("The request failed with error %s\n", err)
+				return
+			} else {
+				log.Info("Finish points of interest search in time serie")
+			}
 
 			sort.Slice(vmProfiles, func(i, j int) bool {
 				return vmProfiles[i].Pricing.Price <= vmProfiles[j].Pricing.Price
@@ -56,7 +61,7 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 			}
 
 
-			err := policyDAO.UpdateById(oldPolicy.ID,oldPolicy)
+			err = policyDAO.UpdateById(oldPolicy.ID,oldPolicy)
 			if err != nil {
 				log.Error("The policy could not be updated. Error %s\n", err)
 			}

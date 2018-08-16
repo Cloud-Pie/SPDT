@@ -52,3 +52,47 @@ func VMListToMap(listVMProfiles []types.VmProfile) map[string]types.VmProfile{
 	}
 	return mapVMProfiles
 }
+
+//Creates a map duplicate
+func copyMap(m map[string]int) map[string]int {
+	newM := make(map[string] int)
+	for k,v := range m {
+		newM[k]=v
+	}
+	return newM
+}
+
+//Compare 2 VM Sets
+//Params:
+// - currentVMSet: current configuration of VMs
+// - candidateVMSet: set of VMs to which a reconfiguration could be possible
+// Output:
+// - Set of VMs that were added
+// - Set of VMs that were removed
+func deltaVMSet(current types.VMScale, candidate types.VMScale) (types.VMScale, types.VMScale){
+	delta := types.VMScale{}
+	startSet := types.VMScale{}
+	shutdownSet := types.VMScale{}
+
+	for k,_ :=  range current {
+		if _,ok := candidate[k]; ok {
+			delta[k] = -1 * (current[k] - candidate[k])
+			if (delta[k]> 0) {
+				startSet[k] = delta[k]
+			} else if (delta[k] < 0) {
+				shutdownSet[k] = -1 * delta[k]
+			}
+		} else {
+			delta[k] = -1 * current[k]
+			shutdownSet[k] =  current[k]
+		}
+	}
+
+	for k,_ :=  range candidate {
+		if _,ok := current[k]; !ok {
+			delta[k] = candidate[k]
+			startSet[k] = candidate[k]
+		}
+	}
+	return startSet, shutdownSet
+}

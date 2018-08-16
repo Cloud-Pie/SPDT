@@ -33,7 +33,7 @@ func startPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
 	//Check if already exist, then update
 	//resultQuery,err := forecastDAO.FindAll()
 	resultQuery,err := forecastDAO.FindOneByTimeWindow(timeStart, timeEnd)
-	if err != nil {
+	if err == nil {
 		id := resultQuery.ID
 		forecast.ID = id
 		forecastDAO.Update(id, forecast)
@@ -50,8 +50,14 @@ func startPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
 	}
 
 	log.Info("Start points of interest search in time serie")
-	poiList, values, times := forecast_processing.PointsOfInterest(forecast)
-	log.Info("Finish points of interest search in time serie")
+	poiList, values, times, err:= forecast_processing.PointsOfInterest(forecast)
+	if err != nil {
+		log.Error("The request failed with error %s\n", err)
+		return err
+	} else {
+		log.Info("Finish points of interest search in time serie")
+	}
+
 
 	sort.Slice(vmProfiles, func(i, j int) bool {
 		return vmProfiles[i].Pricing.Price <=  vmProfiles[j].Pricing.Price
