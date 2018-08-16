@@ -25,7 +25,7 @@ type Node struct {
 	NReplicas	int
 	vmType	string
 	children []*Node
-	vmScale map[string]int
+	vmScale types.VMScale
 }
 
 type Tree struct {
@@ -64,7 +64,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 			currentOpt := VMSet{VMSet:p.currentState.VMs}
 			currentOpt.setValues(p.mapVMProfiles)
 			//Validate if the current configuration is able to handle the new replicas
-			if deltaNumberReplicas <= currentOpt.TotalReplicasCapacity -currentNumberReplicas {
+			if currentOpt.TotalReplicasCapacity >= currentNumberReplicas + deltaNumberReplicas {
 				vmSet = p.currentState.VMs
 			} else {
 				//Find new suitable Vm(s) to cover the number of replicas missing.
@@ -124,11 +124,15 @@ func (p TreePolicy) findSuitableVMs(nReplicas int, limit types.Limit) types.VMSc
 	node.NReplicas = nReplicas
 	node.vmScale = make(map[string]int)
 	tree.Root = node
-	mapVMScaleList := []map[string]int {}
-	p.buildTree(tree.Root, p.mapVMProfiles,nReplicas,limit, &mapVMScaleList)
+	mapVMScaleList := []types.VMScale {}
+	p.buildTree(tree.Root,nReplicas,&mapVMScaleList)
 
 	sort.Slice(mapVMScaleList, func(i, j int) bool {
-		return MapPrice(mapVMScaleList[i], p.mapVMProfiles) <=  MapPrice(mapVMScaleList[j], p.mapVMProfiles)
+		map1 := VMSet{VMSet:mapVMScaleList[i]}
+		map1.setValues(p.mapVMProfiles)
+		map2 := VMSet{VMSet:mapVMScaleList[j]}
+		map2.setValues(p.mapVMProfiles)
+		return map1.Cost <=  map2.Cost
 	})
 	return mapVMScaleList[0]
 }
@@ -145,12 +149,12 @@ func Drucken (n *Node, level int) {
 	}
 }
 
-func (p TreePolicy) buildTree(node *Node, mapVMProfiles map[string]types.VmProfile, nReplicas int, limit types.Limit, vmScaleList *[]map[string]int) *Node {
+func (p TreePolicy) buildTree(node *Node, nReplicas int, vmScaleList *[]types.VMScale) *Node {
 	if node.NReplicas == 0 {
 		return node
 	}
-	for k,v := range mapVMProfiles {
-		maxReplicas := maxReplicasCapacityInVM(mapVMProfiles[v.Type], limit)
+	for k,v := range p.mapVMProfiles {
+		maxReplicas := v.ReplicasCapacity
 		if maxReplicas >= nReplicas {
 			newNode := new(Node)
 			newNode.vmType = k
@@ -174,21 +178,11 @@ func (p TreePolicy) buildTree(node *Node, mapVMProfiles map[string]types.VmProfi
 			} else {
 				newNode.vmScale[newNode.vmType] = 1
 			}
-			newNode = p.buildTree(newNode, mapVMProfiles, nReplicas-maxReplicas, limit, vmScaleList)
+			newNode = p.buildTree(newNode,nReplicas-maxReplicas, vmScaleList)
 			node.children = append(node.children, newNode)
 		}
 	}
 	return node
-}
-
-
-
-func MapPrice( m map[string]int, mapVMProfiles map [string]types.VmProfile ) float64{
-	price := float64(0.0)
-	for k,v := range m {
-		price += mapVMProfiles[k].Pricing.Price * float64(v)
-	}
-	return price
 }
 
 func (p TreePolicy)removeVMs(mapVMProfiles map[string] types.VmProfile, currentConfig map[string] int, nReplicas int, limit types.Limit) types.VMScale{
