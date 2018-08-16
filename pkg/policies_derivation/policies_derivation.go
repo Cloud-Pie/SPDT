@@ -57,7 +57,7 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 
 	case util.SEARCH_TREE_ALGORITHM:
 		tree := TreePolicy {algorithm:util.SEARCH_TREE_ALGORITHM, timeWindow:timeWindows, currentState:currentState,
-							sysConfiguration: sysConfiguration}
+			sortedVMProfiles:sortedVMProfiles,mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration}
 		policies = tree.CreatePolicies(processedForecast, serviceProfiles)
 
 	case util.DELTA_REPACKED:

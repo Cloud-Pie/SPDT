@@ -5,7 +5,6 @@ import (
 	"time"
 	"math"
 	"gopkg.in/mgo.v2/bson"
-	"github.com/Cloud-Pie/SPDT/util"
 	"strconv"
 	"fmt"
 	"sort"
@@ -17,6 +16,7 @@ type TreePolicy struct {
 	limitNVMS  		int                  //Max number of vms of the same type in a cluster
 	timeWindow 		TimeWindowDerivation //Algorithm used to process the forecasted time serie
 	currentState	types.State			 //Current State
+	sortedVMProfiles []types.VmProfile    			//List of VM profiles sorted by price
 	mapVMProfiles map[string]types.VmProfile
 	sysConfiguration	config.SystemConfiguration
 }
@@ -35,105 +35,65 @@ type Tree struct {
 func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, serviceProfile types.ServiceProfile) []types.Policy {
 
 	policies := []types.Policy {}
+	configurations := []types.Configuration {}
 	newPolicy := types.Policy{}
 	newPolicy.Metrics = types.PolicyMetrics {
 		StartTimeDerivation:time.Now(),
 	}
-	configurations := []types.Configuration {}
 	underprovisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
+	//Select the performance profile that fits better
+	performanceProfile := selectProfile(serviceProfile.PerformanceProfiles)
+	//calculate the capacity of services replicas to each VM type
+	computeCapacity(&p.sortedVMProfiles, performanceProfile, &p.mapVMProfiles)
 	for _, it := range processedForecast.CriticalIntervals {
 		requests := it.Requests
 		services :=  make(map[string]types.ServiceInfo)
-		shouldScale := true
-
-		//Select the performance profile that fits better
-		performanceProfile := selectProfile(serviceProfile.PerformanceProfiles)
 		//Compute number of replicas needed depending on requests
-		nProfileCopies := int(math.Ceil(float64(requests) / float64(performanceProfile.TRN)))
-		newNumServiceReplicas := nProfileCopies * performanceProfile.NumReplicas
-		services[serviceProfile.Name] = types.ServiceInfo{
-										Scale:  newNumServiceReplicas,
-										CPU:    performanceProfile.Limit.NumCores,
-										Memory: performanceProfile.Limit.Memory, }
-
-		state := types.State{}
-		state.Services = services
+		newNumServiceReplicas := int(math.Ceil(requests / performanceProfile.TRN)) * performanceProfile.NumReplicas
 
 		//Compare with current state . It Assumes that there is only 1 service
-		var currentNReplicas int
-		for _,v := range p.currentState.Services {
-			currentNReplicas = v.Scale
-		}
+		var currentNumberReplicas int
+		for _,v := range p.currentState.Services { currentNumberReplicas = v.Scale }
+		var vmSet types.VMScale
+		deltaNumberReplicas := newNumServiceReplicas - currentNumberReplicas
 
-		diffReplicas := newNumServiceReplicas - currentNReplicas
-		var vms types.VMScale
-		if diffReplicas == 0 {
-				shouldScale = false	//no need to scale
-				vms = p.currentState.VMs
-				state.VMs = vms
-		} else if diffReplicas > 0 {
+		if deltaNumberReplicas == 0 {
+				vmSet = p.currentState.VMs
+		} else if deltaNumberReplicas > 0 {
 			//Need to increase resources
-			var totalPossibleReplica int
-			for k, v := range p.currentState.VMs {
-				totalPossibleReplica += maxReplicasCapacityInVM(p.mapVMProfiles[k],performanceProfile.Limit) * v
-			}
-			//The new replicas fit into the current set of VMs
-			if diffReplicas <= totalPossibleReplica - currentNReplicas {
-				vms = p.currentState.VMs
-				state.VMs = vms
+			currentOpt := VMSet{VMSet:p.currentState.VMs}
+			currentOpt.setValues(p.mapVMProfiles)
+			//Validate if the current configuration is able to handle the new replicas
+			if deltaNumberReplicas <= currentOpt.TotalReplicasCapacity -currentNumberReplicas {
+				vmSet = p.currentState.VMs
 			} else {
 				//Find new suitable Vm(s) to cover the number of replicas missing.
-				vms = p.findSuitableVMs(diffReplicas,performanceProfile.Limit)
+				vmSet = p.findSuitableVMs(deltaNumberReplicas,performanceProfile.Limit)
 				vmsold := p.currentState.VMs
 				//Merge the current configuration with configuration for the new replicas
-				for k,v :=  range vmsold{
-					if _,ok := vms[k]; ok {
-						vms[k] += v
-					}else {
-						vms[k] = v
-					}
-				}
-				state.VMs = vms
+				vmSet.Merge(vmsold)
 			}
-
 		} else {
 			//Need to decrease resources
-			//vms = p.currentState.VMs
-			vms = p.findSuitableVMs(newNumServiceReplicas,performanceProfile.Limit)
-			//vms = p.removeVMs(mapVMProfiles, p.currentState.VMs, -1*diffReplicas,performanceProfile.Limit)
-			state.VMs = vms
+			//vmSet = p.currentState.VMs
+			vmSet = p.findSuitableVMs(newNumServiceReplicas,performanceProfile.Limit)
+			//vmSet = p.removeVMs(mapVMProfiles, p.currentState.VMs, -1*deltaNumberReplicas,performanceProfile.Limit)
 		}
 
+		services[serviceProfile.Name] = types.ServiceInfo{
+			Scale:  newNumServiceReplicas,
+			CPU:    performanceProfile.Limit.NumCores,
+			Memory: performanceProfile.Limit.Memory,
+		}
+		state := types.State{}
+		state.Services = services
+		state.VMs = vmSet
 		timeStart := it.TimeStart
 		timeEnd := it.TimeEnd
 		totalServicesBootingTime := performanceProfile.BootTimeSec
 		stateLoadCapacity := float64(newNumServiceReplicas/performanceProfile.NumReplicas) * performanceProfile.TRN
 		setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
-
-		//Adjust termination times for resources configuration
-		terminationTime := computeVMTerminationTime(vms, p.sysConfiguration)
-		finishTime := it.TimeEnd.Add(time.Duration(terminationTime) * time.Second)
-
-		nConfigurations := len(configurations)
-		if nConfigurations >= 1 && state.Equal(configurations[nConfigurations-1].State) || !shouldScale {
-			configurations[nConfigurations-1].TimeEnd = finishTime
-			p.currentState = state
-		} else {
-			//Adjust booting times for resources configuration
-			transitionTime := computeVMBootingTime(vms, p.sysConfiguration)                       //TODO: It should include a booting rate
-			totalServicesBootingTime := performanceProfile.BootTimeSec                            //TODO: It should include a booting rate
-			startTime := it.TimeStart.Add(-1 * time.Duration(transitionTime) * time.Second)       //Booting time VM
-			startTime = startTime.Add(-1 * time.Duration(totalServicesBootingTime) * time.Second) //Start time containers
-			state.LaunchTime = startTime
-			state.Name = strconv.Itoa(nConfigurations) + "__" + serviceProfile.Name + "__" + startTime.Format(util.TIME_LAYOUT)
-			configurations = append(configurations,
-				types.Configuration {
-					State:          state,
-					TimeStart:      it.TimeStart,
-					TimeEnd:        finishTime,
-				})
-			p.currentState = state
-		}
+		p.currentState = state
 	}
 
 	//Add new policy
