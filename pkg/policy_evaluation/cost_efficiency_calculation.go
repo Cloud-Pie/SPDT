@@ -35,6 +35,9 @@ func computeConfigurationCost(cf types.Configuration, unit string, mapVMProfiles
 
 //Calculate detlta time for a time window
 func setDeltaTime (timeStart time.Time, timeEnd time.Time, unit string) float64 {
+	/*s1 := timeStart.String()
+	s2 := timeEnd.String()
+	fmt.Print(s1 ,"--", s2)*/
 	var delta float64
 	delta = timeEnd.Sub(timeStart).Hours()
 	switch unit {
@@ -79,9 +82,27 @@ func computeMetricsCapacity(configurations *[]types.Configuration, forecast []ty
 			totalOver += confOver /numSamplesOver
 		}
 	}
-
 	avgOver = totalOver/numConfigurations
 	avgUnder = totalUnder /numConfigurations
 	return avgOver,avgUnder
 }
 
+func isEnoughBudget(monthlyBudget float64, policy types.Policy) (bool,time.Time) {
+	avgHoursPerMonth := 720.0
+	timeWindow := policy.TimeWindowEnd.Sub(policy.TimeWindowStart).Hours()
+	numberMonths := math.Ceil(timeWindow/avgHoursPerMonth)
+	var timeBudgetLimit time.Time
+	if policy.Metrics.Cost <= monthlyBudget * numberMonths {
+		return true, policy.TimeWindowEnd
+	} else {
+		spentBudget := 0.0
+		for _,c := range policy.Configurations {
+			spentBudget+= c.Metrics.Cost
+			if (spentBudget >= monthlyBudget) {
+				timeBudgetLimit = c.TimeStart
+			}
+		}
+	}
+
+	return false, timeBudgetLimit
+}

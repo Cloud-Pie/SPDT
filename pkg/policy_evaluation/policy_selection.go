@@ -27,8 +27,13 @@ func SelectPolicy(policies *[]types.Policy, sysConfig config.SystemConfiguration
 	}
 
 	if len(*policies) >0 {
-		(*policies)[0].Status = types.SELECTED
-		return (*policies)[0], nil
+		remainBudget, time := isEnoughBudget(sysConfig.PricingModel.Budget, (*policies)[0])
+		if remainBudget {
+			(*policies)[0].Status = types.SELECTED
+			return (*policies)[0], nil
+		} else {
+			return (*policies)[0], errors.New("Budget is not enough for time window, you should increase the budget to ensure resources after " +time.String())
+		}
 	} else {
 		return types.Policy{}, errors.New("No suitable policy found")
 	}

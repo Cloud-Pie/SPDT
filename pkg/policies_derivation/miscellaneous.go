@@ -73,24 +73,25 @@ func deltaVMSet(current types.VMScale, candidate types.VMScale) (types.VMScale, 
 	delta := types.VMScale{}
 	startSet := types.VMScale{}
 	shutdownSet := types.VMScale{}
+	sameSet := types.VMScale{}
 
 	for k,_ :=  range current {
 		if _,ok := candidate[k]; ok {
-			delta[k] = -1 * (current[k] - candidate[k])
-			if (delta[k]> 0) {
-				startSet[k] = delta[k]
-			} else if (delta[k] < 0) {
-				shutdownSet[k] = -1 * delta[k]
+			delta[k] = current[k] - candidate[k]
+			if (delta[k] < 0) {
+				startSet[k] = -1 * delta[k]
+			} else if (delta[k] > 0) {
+				shutdownSet[k] = delta[k]
+			} else {
+				sameSet[k] = current[k]
 			}
 		} else {
-			delta[k] = -1 * current[k]
 			shutdownSet[k] =  current[k]
 		}
 	}
 
 	for k,_ :=  range candidate {
 		if _,ok := current[k]; !ok {
-			delta[k] = candidate[k]
 			startSet[k] = candidate[k]
 		}
 	}
