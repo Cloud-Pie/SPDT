@@ -96,3 +96,12 @@ func deltaVMSet(current types.VMScale, candidate types.VMScale) (types.VMScale, 
 	}
 	return startSet, shutdownSet
 }
+
+//Removes the keys of a map that have as value 0
+func cleanKeys(m map[string]int){
+	for k,v := range m {
+		if v == 0 {
+			delete(m, k)
+		}
+	}
+}

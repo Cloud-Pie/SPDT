@@ -113,6 +113,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 			//Create a new state
 			state := types.State{}
 			state.Services = services
+			cleanKeys(vmSet)
 			state.VMs = vmSet
 			stateLoadCapacity := float64(newNumServiceReplicas/performanceProfile.NumReplicas) * performanceProfile.TRN
 			timeStart := it.TimeStart
