@@ -151,6 +151,8 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 func (p DeltaRepackedPolicy) findOptimalVMSet(nReplicas int) types.VMScale {
 	nVMProfiles := len(p.sortedVMProfiles)
 	solutions := []VMSet{}
+	currentVMType, isHomogeneous := p.isCurrentlyHomogeneous()
+	hetereougeneouseAllowed := p.sysConfiguration.PolicySettings.HetereogeneousAllowed
 		for i,v := range p.sortedVMProfiles {
 			vmScale :=  make(map[string]int)
 			capacity := v.ReplicasCapacity
@@ -159,6 +161,9 @@ func (p DeltaRepackedPolicy) findOptimalVMSet(nReplicas int) types.VMScale {
 				set := VMSet{VMSet:vmScale}
 				set.setValues(p.mapVMProfiles)
 				solutions = append(solutions, set)
+				if !hetereougeneouseAllowed && isHomogeneous && v.Type == currentVMType {
+					return set.VMSet
+				}
 			} else if capacity > 0 {
 				//Homogeneous candidate set of type v
 				vmScale[v.Type] = int(nReplicas / capacity)
@@ -166,7 +171,7 @@ func (p DeltaRepackedPolicy) findOptimalVMSet(nReplicas int) types.VMScale {
 				set.setValues(p.mapVMProfiles)
 				solutions = append(solutions, set)
 
-				if p.sysConfiguration.PolicySettings.HetereogeneousAllowed {
+				if hetereougeneouseAllowed {
 					//heterogeneous candidate set of two types
 					//The current type and the next type in size order
 					if i < nVMProfiles-1 {
@@ -175,6 +180,8 @@ func (p DeltaRepackedPolicy) findOptimalVMSet(nReplicas int) types.VMScale {
 						set.setValues(p.mapVMProfiles)
 						solutions = append(solutions, set)
 					}
+				}else if isHomogeneous && v.Type == currentVMType {
+					return set.VMSet
 				}
 			}
 		}
@@ -330,4 +337,18 @@ func (p DeltaRepackedPolicy) considerIfUnderprovision(overVmSet types.VMScale, p
 		}
 	}
 	return newNumServiceReplicas,nil
+}
+
+//Return the VM type used by the current Homogeneous VM cluster
+func (p DeltaRepackedPolicy) isCurrentlyHomogeneous() (string, bool) {
+	//Assumption for p approach: There is only 1 vm Type in current state
+	var vmType string
+	isHomogeneous := true
+	for k,_ := range p.currentState.VMs {
+		vmType = k
+	}
+	if len(p.currentState.VMs) > 1 {
+		isHomogeneous = false
+	}
+	return vmType, isHomogeneous
 }
