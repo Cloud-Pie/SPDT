@@ -1,4 +1,4 @@
-package main
+package spd
 
 import (
 	"github.com/Cloud-Pie/SPDT/types"
@@ -16,7 +16,7 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 		shouldUpdate, newForecast, timeConflict := forecast_processing.UpdateForecast(forecast)
 		if(shouldUpdate) {
 			//Read Configuration File
-			readSysConfiguration()
+			ReadSysConfiguration()
 			//Request VM Profiles
 			getVMProfiles()
 			//Request Performance Profiles

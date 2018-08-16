@@ -1,4 +1,4 @@
-package main
+package spd
 
 import (
 	Pservice "github.com/Cloud-Pie/SPDT/rest_clients/performance_profiles"
@@ -33,7 +33,7 @@ var (
 )
 
 // Main function to start the scaling policy derivation
-func main () {
+func Start () {
 	styleEntry()
 	setLogger()
 
@@ -43,7 +43,7 @@ func main () {
 	}
 
 	//Read Configuration File
-	readSysConfiguration()
+	ReadSysConfiguration()
 	timeStart = sysConfiguration.ScalingHorizon.StartTime
 	timeEnd = sysConfiguration.ScalingHorizon.EndTime
 	timeWindowSize = timeEnd.Sub(timeStart)
@@ -60,7 +60,7 @@ func main () {
 //and derive a the correspondent new scaling policy
 func periodicPolicyDerivation() {
 	for {
-		err := startPolicyDerivation(timeStart,timeEnd)
+		err := StartPolicyDerivation(timeStart,timeEnd)
 		if err != nil {
 			log.Error("An error has occurred and policies have been not derived. Please try again. Details: %s", err)
 		}else{
@@ -95,12 +95,13 @@ func setLogger() {
 }
 
 //Read the configuration file with the setting to derive the scaling policies
-func readSysConfiguration(){
+func ReadSysConfiguration() config.SystemConfiguration {
 	var err error
 	sysConfiguration, err = config.ParseConfigFile(FlagsVar.ConfigFile)
 	if err != nil {
 		log.Error("Configuration file could not be processed %s", err)
 	}
+	return sysConfiguration
 }
 
 //Fetch the profiles of the available Virtual Machines to generate the scaling policies

@@ -1,4 +1,4 @@
-package main
+package spd
 
 import (
 	Fservice "github.com/Cloud-Pie/SPDT/rest_clients/forecast"
@@ -11,7 +11,12 @@ import (
 	"time"
 )
 
-func startPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
+func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
+	ReadSysConfiguration()
+	timeStart = sysConfiguration.ScalingHorizon.StartTime
+	timeEnd = sysConfiguration.ScalingHorizon.EndTime
+	timeWindowSize = timeEnd.Sub(timeStart)
+
 	//Request VM Profiles
 	getVMProfiles()
 	//Request Performance Profiles

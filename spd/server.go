@@ -1,4 +1,4 @@
-package main
+package spd
 
 import (
 	"github.com/gin-gonic/gin"
@@ -153,7 +153,7 @@ func invalidatePolicyByID(c *gin.Context) {
 }
 
 func serverCall(c *gin.Context) {
-	startPolicyDerivation(timeStart,timeEnd)
+	StartPolicyDerivation(timeStart,timeEnd)
 	c.JSON(http.StatusOK, policies)
 }
 
