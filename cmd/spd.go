@@ -15,6 +15,14 @@ var (
 var RootCmd = &cobra.Command{
 	Use:   "spd",
 	Short: "Access spd from the command line",
+	Long: `
+   _____ ____  ____  ______
+  / ___// __ \/ __ \/_  __/
+  \__ \/ /_/ / / / / / /   
+ ___/ / ____/ /_/ / / /    
+/____/_/   /_____/ /_/     
+
+	`,
 }
 
 // Execute adds all child commands to the root command

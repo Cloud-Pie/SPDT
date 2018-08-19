@@ -1,4 +1,4 @@
-package spd
+package main
 
 import (
 	Pservice "github.com/Cloud-Pie/SPDT/rest_clients/performance_profiles"
@@ -33,8 +33,8 @@ var (
 )
 
 // Main function to start the scaling policy derivation
-func Start () {
-	styleEntry()
+func main () {
+	StyleEntry()
 	setLogger()
 
 	if FlagsVar.ConfigFile == "" {
@@ -71,7 +71,7 @@ func periodicPolicyDerivation() {
 	}
 }
 
-func styleEntry() {
+func StyleEntry() {
 	fmt.Println(`
    _____ ____  ____  ______
   / ___// __ \/ __ \/_  __/
@@ -99,7 +99,7 @@ func ReadSysConfiguration() config.SystemConfiguration {
 	var err error
 	sysConfiguration, err = config.ParseConfigFile(FlagsVar.ConfigFile)
 	if err != nil {
-		log.Error("Configuration file could not be processed %s", err)
+		log.Errorf("Configuration file could not be processed %s", err)
 	}
 	return sysConfiguration
 }
