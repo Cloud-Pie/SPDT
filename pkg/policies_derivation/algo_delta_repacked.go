@@ -32,7 +32,7 @@ type DeltaRepackedPolicy struct {
 	out:
 		[] Policy. List of type Policy
 */
-func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedForecast, serviceProfile types.ServiceProfile) [] types.Policy {
+func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedForecast) [] types.Policy {
 	policies := []types.Policy{}
 	newPolicy := types.Policy{}
 	newPolicy.Metrics = types.PolicyMetrics {
@@ -48,7 +48,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		totalLoad := it.Requests
 		resourcesConfiguration := ContainersConfig{}
 
-		profileCurrentLimits := selectProfileWithLimits(serviceProfile.PerformanceProfiles, totalLoad, currentContainerLimits)
+		profileCurrentLimits := selectProfileWithLimits(totalLoad, currentContainerLimits, false)
 		vmSetTLoadCurrentLimits := p.findOptimalVMSet(profileCurrentLimits.TRNConfiguration[0].NumberReplicas, profileCurrentLimits.Limit)
 		rConfigTLoadCurrentLimits := ContainersConfig {
 			ResourceLimits:profileCurrentLimits.Limit,
@@ -56,7 +56,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 			VMSet:vmSetTLoadCurrentLimits,
 		}
 
-		profileNewLimits := selectProfile(serviceProfile.PerformanceProfiles, totalLoad, underProvisionAllowed)
+		profileNewLimits := selectProfile(totalLoad, underProvisionAllowed)
 		vmSetTotalLoadNewLimits := p.findOptimalVMSet(profileNewLimits.TRNConfiguration[0].NumberReplicas, profileNewLimits.Limit)
 		rConfigTLoadNewLimits := ContainersConfig {
 			ResourceLimits:profileNewLimits.Limit,
@@ -91,8 +91,8 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 			}
 
 			//Find vmSet to handle new replicas that supply deltaLoad
-			profileCurrentLimits = selectProfileWithLimits(serviceProfile.PerformanceProfiles, deltaLoad, currentContainerLimits)
-			profileNewLimits = selectProfile(serviceProfile.PerformanceProfiles, deltaLoad, underProvisionAllowed)
+			profileCurrentLimits = selectProfileWithLimits(deltaLoad, currentContainerLimits, false)
+			profileNewLimits = selectProfile(deltaLoad, underProvisionAllowed)
 			trnProfile,_ := p.selectContainersConfig(profileCurrentLimits.Limit, profileCurrentLimits.TRNConfiguration[0],
 				 									profileNewLimits.Limit, profileNewLimits.TRNConfiguration[0], containerResizeEnabled)
 			vmSetDeltaLoad := p.findOptimalVMSet(trnProfile.NumberReplicas,trnProfile.ResourceLimits)
@@ -135,7 +135,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		}
 
 		services := make(map[string]types.ServiceInfo)
-		services[serviceProfile.Name] = types.ServiceInfo {
+		services[p.sysConfiguration.ServiceName] = types.ServiceInfo {
 			Scale:  resourcesConfiguration.PerformanceProfile.NumberReplicas,
 			CPU:    resourcesConfiguration.ResourceLimits.NumberCores,
 			Memory: resourcesConfiguration.ResourceLimits.MemoryGB,
@@ -151,7 +151,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		timeEnd := it.TimeEnd
 		totalServicesBootingTime := resourcesConfiguration.PerformanceProfile.BootTimeSec
 		stateLoadCapacity := resourcesConfiguration.PerformanceProfile.TRN
-		setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration,stateLoadCapacity)
+		setConfiguration(&configurations,state,timeStart,timeEnd,p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration,stateLoadCapacity)
 		//Update current state
 		p.currentState = state
 	}

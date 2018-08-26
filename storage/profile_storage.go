@@ -94,7 +94,7 @@ func (p *PerformanceProfileDAO) FindNewLimitsOver(requests float64) ([]types.Per
 	return performanceProfile,err
 }
 
-func (p *PerformanceProfileDAO) FindNewLimitsUner(requests float64) ([]types.PerformanceProfile, error) {
+func (p *PerformanceProfileDAO) FindNewLimitsUnder(requests float64) ([]types.PerformanceProfile, error) {
 	var performanceProfile []types.PerformanceProfile
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Find(bson.M{
 		"trns": bson.M{"$elemMatch": bson.M{"maximum_service_capacity_per_sec":bson.M{"$lt": requests}}}}).

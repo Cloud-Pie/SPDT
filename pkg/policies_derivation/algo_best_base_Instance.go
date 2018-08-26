@@ -29,7 +29,7 @@ type BestBaseInstancePolicy struct {
 	out:
 		[] Policy. List of type Policy
 */
-func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.ProcessedForecast, serviceProfile types.ServiceProfile) [] types.Policy {
+func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [] types.Policy {
 	policies := []types.Policy{}
 
 	//Loops all the VM types and derive a policy using a single VMType
@@ -46,8 +46,8 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 		currentContainerLimits := p.currentContainerLimits()
 
 		for _, it := range processedForecast.CriticalIntervals {
-			ProfileSameLimits := selectProfileWithLimits(serviceProfile.PerformanceProfiles, it.Requests, currentContainerLimits)
-			ProfileNewLimits := selectProfile(serviceProfile.PerformanceProfiles, it.Requests, underProvisionAllowed)
+			ProfileSameLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
+			ProfileNewLimits := selectProfile(it.Requests, false)
 
 			containersConfig,_ := p.selectContainersConfig(ProfileSameLimits.Limit, ProfileSameLimits.TRNConfiguration[0],
 																	ProfileNewLimits.Limit, ProfileNewLimits.TRNConfiguration[0], containerResizeEnabled, vmType)
@@ -59,9 +59,11 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 			limits := containersConfig.ResourceLimits
 
 			if underProvisionAllowed {
+				ProfileSameLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
+				ProfileNewLimits := selectProfile(it.Requests, underProvisionAllowed)
 				underContainersConfig,err := p.selectContainersConfig(ProfileSameLimits.Limit,
-																	ProfileSameLimits.TRNConfiguration[1], ProfileNewLimits.Limit,
-																	ProfileNewLimits.TRNConfiguration[1], containerResizeEnabled, vmType)
+																	ProfileSameLimits.TRNConfiguration[0], ProfileNewLimits.Limit,
+																	ProfileNewLimits.TRNConfiguration[0], containerResizeEnabled, vmType)
 				if err !=  nil {
 					vmTypeSuitable = false
 					break // No VMset fits for the containers set
@@ -77,7 +79,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 			}
 
 			services :=  make(map[string]types.ServiceInfo)
-			services[serviceProfile.Name] = types.ServiceInfo {
+			services[ p.sysConfiguration.ServiceName] = types.ServiceInfo {
 				Scale:  newNumServiceReplicas,
 				CPU:    limits.NumberCores,
 				Memory: limits.MemoryGB,
@@ -88,7 +90,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 			state.VMs = vmSet
 			timeStart := it.TimeStart
 			timeEnd := it.TimeEnd
-			setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
+			setConfiguration(&configurations,state,timeStart,timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
 		}
 
 		if !vmTypeSuitable {

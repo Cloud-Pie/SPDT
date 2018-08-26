@@ -32,7 +32,7 @@ type Tree struct {
 	Root *Node
 }
 
-func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, serviceProfile types.ServiceProfile) []types.Policy {
+func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []types.Policy {
 
 	policies := []types.Policy {}
 	configurations := []types.Configuration {}
@@ -46,7 +46,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 
 	for _, it := range processedForecast.CriticalIntervals {
 		//Compute number of replicas needed depending on requests
-		performanceProfile := selectProfile(serviceProfile.PerformanceProfiles, it.Requests, underprovisionAllowed)
+		performanceProfile := selectProfile(it.Requests, underprovisionAllowed)
 		computeCapacity(&p.sortedVMProfiles, performanceProfile, &p.mapVMProfiles)
 
 		newNumServiceReplicas := performanceProfile.TRNConfiguration[0].NumberReplicas
@@ -78,7 +78,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 		}
 
 		services :=  make(map[string]types.ServiceInfo)
-		services[serviceProfile.Name] = types.ServiceInfo{
+		services[ p.sysConfiguration.ServiceName] = types.ServiceInfo{
 			Scale:  newNumServiceReplicas,
 			CPU:    performanceProfile.Limit.NumberCores,
 			Memory: performanceProfile.Limit.MemoryGB,
@@ -91,7 +91,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 		timeEnd := it.TimeEnd
 		totalServicesBootingTime := performanceProfile.TRNConfiguration[0].BootTimeSec
 		stateLoadCapacity := performanceProfile.TRNConfiguration[0].TRN
-		setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
+		setConfiguration(&configurations,state,timeStart,timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
 		p.currentState = state
 	}
 

@@ -11,6 +11,7 @@ import (
 	"github.com/Cloud-Pie/SPDT/rest_clients/performance_profiles"
 	"strconv"
 	"github.com/op/go-logging"
+	"github.com/Cloud-Pie/SPDT/storage"
 )
 
 var log = logging.MustGetLogger("spdt")
@@ -43,47 +44,47 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 	case util.NAIVE_ALGORITHM:
 		naive := NaivePolicy {algorithm:util.NAIVE_ALGORITHM, timeWindow:timeWindows,
 							 currentState:currentState, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
-		policies = naive.CreatePolicies(processedForecast, serviceProfiles)
+		policies = naive.CreatePolicies(processedForecast)
 
 	case util.NAIVE_TYPES_ALGORITHM:
 		naive := BestBaseInstancePolicy{algorithm:util.NAIVE_TYPES_ALGORITHM, timeWindow:timeWindows,
 									mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
-		policies = naive.CreatePolicies(processedForecast, serviceProfiles)
+		policies = naive.CreatePolicies(processedForecast)
 
 	case util.SMALL_STEP_ALGORITHM:
 		sstep := StepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows,
 									mapVMProfiles:mapVMProfiles ,sysConfiguration: sysConfiguration}
-		policies = sstep.CreatePolicies(processedForecast, serviceProfiles)
+		policies = sstep.CreatePolicies(processedForecast)
 
 	case util.SEARCH_TREE_ALGORITHM:
 		tree := TreePolicy {algorithm:util.SEARCH_TREE_ALGORITHM, timeWindow:timeWindows, currentState:currentState,
 			sortedVMProfiles:sortedVMProfiles,mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration}
-		policies = tree.CreatePolicies(processedForecast, serviceProfiles)
+		policies = tree.CreatePolicies(processedForecast)
 
 	case util.DELTA_REPACKED:
 		algorithm := DeltaRepackedPolicy {algorithm:util.DELTA_REPACKED, timeWindow:timeWindows, currentState:currentState,
 		sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
-		policies = algorithm.CreatePolicies(processedForecast, serviceProfiles)
+		policies = algorithm.CreatePolicies(processedForecast)
 	default:
 		//naive
 		naive := NaivePolicy {algorithm:util.NAIVE_ALGORITHM, timeWindow:timeWindows,
 			currentState:currentState, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
-		policies1 := naive.CreatePolicies(processedForecast, serviceProfiles)
+		policies1 := naive.CreatePolicies(processedForecast)
 		policies = append(policies, policies1...)
 		//types
 		naiveT := BestBaseInstancePolicy{algorithm:util.NAIVE_TYPES_ALGORITHM, timeWindow:timeWindows,
 			mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
-		policies2 := naiveT.CreatePolicies(processedForecast, serviceProfiles)
+		policies2 := naiveT.CreatePolicies(processedForecast)
 		policies = append(policies, policies2...)
 		//sstep
 		sstep := StepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows,
 			mapVMProfiles:mapVMProfiles ,sysConfiguration: sysConfiguration}
-		policies3 := sstep.CreatePolicies(processedForecast, serviceProfiles)
+		policies3 := sstep.CreatePolicies(processedForecast)
 		policies = append(policies, policies3...)
 		//delta repack
 		algorithm := DeltaRepackedPolicy {algorithm:util.DELTA_REPACKED, timeWindow:timeWindows, currentState:currentState,
 			sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
-		policies4 := algorithm.CreatePolicies(processedForecast, serviceProfiles)
+		policies4 := algorithm.CreatePolicies(processedForecast)
 		policies = append(policies, policies4...)
 
 	}
@@ -140,16 +141,34 @@ func maxReplicasCapacityInVM(vmProfile types.VmProfile, resourceLimit types.Limi
 		return int(numReplicas)
 }
 
-func selectProfileWithLimits(performanceProfiles []types.PerformanceProfile, requests float64, limits types.Limit) types.PerformanceProfile {
-	//select the one with rank 1
-	//TODO:Implement
-	return performanceProfiles[0]
+func selectProfileWithLimits(requests float64, limits types.Limit, underProvision bool) types.PerformanceProfile {
+	var profile types.PerformanceProfile
+	serviceProfileDAO := storage.GetPerformanceProfileDAO()
+	if underProvision {
+		profile,_ = serviceProfileDAO.FindByLimitsUnder(limits.NumberCores, limits.MemoryGB, requests)
+	} else {
+		profile,_ = serviceProfileDAO.FindByLimitsOver(limits.NumberCores, limits.MemoryGB, requests)
+	}
+	return profile
 }
 
-func selectProfile(performanceProfiles []types.PerformanceProfile, requests float64, underProvision bool) types.PerformanceProfile {
-	//select the one with rank 1
-	//TODO:Implement
-	return performanceProfiles[0]
+func selectProfile(requests float64, underProvision bool) types.PerformanceProfile {
+
+	var profiles []types.PerformanceProfile
+	serviceProfileDAO := storage.GetPerformanceProfileDAO()
+	if underProvision {
+		profiles,_ = serviceProfileDAO.FindNewLimitsUnder(requests)
+	} else {
+		profiles,_ = serviceProfileDAO.FindNewLimitsOver(requests)
+	}
+
+	sort.Slice(profiles, func(i, j int) bool {
+		utilizationFactori := float64(profiles[i].TRNConfiguration[0].NumberReplicas) * profiles[i].Limit.NumberCores
+		utilizationFactorj := float64(profiles[j].TRNConfiguration[0].NumberReplicas) * profiles[j].Limit.NumberCores
+		return utilizationFactori < utilizationFactorj
+	})
+
+	return profiles[0]
 }
 
 

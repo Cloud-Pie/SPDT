@@ -29,7 +29,7 @@ type NaivePolicy struct {
 	out:
 		[] Policy. List of type Policy
 */
-func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast, serviceProfile types.ServiceProfile) []types.Policy {
+func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []types.Policy {
 	policies := []types.Policy {}
 	newPolicy := types.Policy{}
 	newPolicy.Metrics = types.PolicyMetrics {
@@ -42,21 +42,22 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast, s
 
 	for _, it := range processedForecast.CriticalIntervals {
 			//Select the performance profile that fits better
-			performanceProfile := selectProfileWithLimits(serviceProfile.PerformanceProfiles, it.Requests, currentContainerLimits)
+			perfProfileOver := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
 
 			//Compute the max capacity in terms of number of  service replicas for each VM type
-			//computeVMsCapacity(performanceProfile,&p.mapVMProfiles)
+			//computeVMsCapacity(perfProfileOver,&p.mapVMProfiles)
 
-			overProvision := performanceProfile.TRNConfiguration[0]
+			overProvision := perfProfileOver.TRNConfiguration[0]
 			newNumServiceReplicas := overProvision.NumberReplicas
-			vmSet := p.FindSuitableVMs(newNumServiceReplicas, performanceProfile.Limit)
+			vmSet := p.FindSuitableVMs(newNumServiceReplicas, perfProfileOver.Limit)
 			costOver := vmSet.Cost(p.mapVMProfiles)
 			stateLoadCapacity := overProvision.TRN
 			totalServicesBootingTime := overProvision.BootTimeSec
 
 			if underProvisionAllowed {
-				underProvision := performanceProfile.TRNConfiguration[1]
-				vmSetUnder := p.FindSuitableVMs(underProvision.NumberReplicas, performanceProfile.Limit)
+				perfProfileUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
+				underProvision := perfProfileUnder.TRNConfiguration[0]
+				vmSetUnder := p.FindSuitableVMs(underProvision.NumberReplicas, perfProfileOver.Limit)
 				costUnder := vmSetUnder.Cost(p.mapVMProfiles)
 				if costUnder < costOver {
 					vmSet = vmSetUnder
@@ -67,10 +68,10 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast, s
 			}
 
 			services := make(map[string]types.ServiceInfo)
-			services[serviceProfile.Name] = types.ServiceInfo {
+			services[p.sysConfiguration.ServiceName] = types.ServiceInfo {
 				Scale:  newNumServiceReplicas,
-				CPU:    performanceProfile.Limit.NumberCores,
-				Memory: performanceProfile.Limit.MemoryGB,
+				CPU:    perfProfileOver.Limit.NumberCores,
+				Memory: perfProfileOver.Limit.MemoryGB,
 			}
 			state := types.State{
 				Services: services,
@@ -80,7 +81,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast, s
 			//update state before next iteration
 			timeStart := it.TimeStart
 			timeEnd := it.TimeEnd
-			setConfiguration(&configurations, state, timeStart, timeEnd, serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
+			setConfiguration(&configurations, state, timeStart, timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
 
 			parameters := make(map[string]string)
 			parameters[types.METHOD] = "horizontal"
@@ -151,52 +152,3 @@ func (p NaivePolicy) currentContainerLimits() types.Limit {
 	}
 	return limits
 }
-
-//Compares if according to the minimum percentage of underprovisioning is possible to find a cheaper VM set
-//by decreasing the number of replicas and comparing the capacity of a VM set for overprovisioning against the new one
-//found for underprovision
-/*func (p NaivePolicy) considerIfUnderprovision(overVmSet types.VMScale, performanceProfile types.PerformanceProfile, requests float64)(int, types.VMScale){
-	var newNumServiceReplicas int
-
-	//Compute number of replicas that leads to minimal underprovision
-	underNumServiceReplicas := p.TRNConfiguration.NumberReplicas
-	underProvisionTRN := p.TRNConfiguration.TRN
-	percentageUnderProvisioned := underProvisionTRN * requests / 100.0
-	//Compare if underprovision in terms of number of request is acceptable
-	if percentageUnderProvisioned <= p.sysConfiguration.PolicySettings.MaxUnderprovision {
-		vmSet := p.FindSuitableVMs(underNumServiceReplicas, performanceProfile.Limit)
-		//Compare vm sets for underprovisioning and overprovisioning of service replicas
-		overVMSet := VMSet{VMSet:overVmSet}
-		overVMSet.setValues(p.mapVMProfiles)
-		underVMSet := VMSet{VMSet:vmSet}
-		underVMSet.setValues(p.mapVMProfiles)
-		//Compare if the change allowing underprovisioning really affect the selected vm set
-		if underVMSet.TotalReplicasCapacity < overVMSet.TotalReplicasCapacity {
-			newNumServiceReplicas = underNumServiceReplicas
-			return newNumServiceReplicas,vmSet
-		}
-	}
-	return newNumServiceReplicas,nil
-}*/
-/*
-func (p NaivePolicy)s (configurations *[]types.Configuration, performanceProfile types.PerformanceProfile, containerSet types.TRNConfiguration, timeStart time.Time, timeEnd time.Time){
-	services := make(map[string]types.ServiceInfo)
-	newNumServiceReplicas := containerSet.NumberReplicas
-
-	//Compute new  vmset.
-	vmSet := p.FindSuitableVMs(newNumServiceReplicas, performanceProfile.Limit)
-
-	stateLoadCapacity := containerSet.TRN
-	services[serviceProfile.Name] = types.ServiceInfo{
-		Scale:  newNumServiceReplicas,
-		CPU:    performanceProfile.Limit.NumberCores,
-		Memory: performanceProfile.Limit.MemoryGB,
-	}
-	state := types.State{
-		Services: services,
-		VMs:      vmSet,
-	}
-
-	totalServicesBootingTime := containerSet.BootTimeSec
-	setConfiguration(configurations, state, timeStart, timeEnd, serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
-}*/

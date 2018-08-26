@@ -30,7 +30,7 @@ type StepRepackPolicy struct {
 	out:
 		[] Policy. List of type Policy
 */
-func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForecast, serviceProfile types.ServiceProfile) [] types.Policy {
+func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForecast) [] types.Policy {
 	policies := []types.Policy{}
 	//Compute results for cluster of each type
 	newPolicy := types.Policy{}
@@ -45,8 +45,8 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 
 	for _, it := range processedForecast.CriticalIntervals {
 
-		ProfileSameLimits := selectProfileWithLimits(serviceProfile.PerformanceProfiles, it.Requests, currentContainerLimits)
-		ProfileNewLimits := selectProfile(serviceProfile.PerformanceProfiles, it.Requests, underProvisionAllowed)
+		ProfileSameLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
+		ProfileNewLimits := selectProfile(it.Requests, underProvisionAllowed)
 
 		containersConfig,_ := p.selectContainersConfig(ProfileSameLimits.Limit, ProfileSameLimits.TRNConfiguration[0],
 			ProfileNewLimits.Limit, ProfileNewLimits.TRNConfiguration[0], containerResizeEnabled)
@@ -73,7 +73,7 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 		}
 
 		services := make(map[string]types.ServiceInfo)
-		services[serviceProfile.Name] = types.ServiceInfo{
+		services[ p.sysConfiguration.ServiceName] = types.ServiceInfo{
 			Scale:  newNumServiceReplicas,
 			CPU:    limits.NumberCores,
 			Memory: limits.MemoryGB,
@@ -85,7 +85,7 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 
 			timeStart := it.TimeStart
 			timeEnd := it.TimeEnd
-			setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
+			setConfiguration(&configurations,state,timeStart,timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
 	}
 
 		//Add new policy
