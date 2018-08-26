@@ -22,10 +22,37 @@ func (vmSetTarget VMScale) Merge(vmSource VMScale){
 	}
 }
 
+/**/
+func (vmSet VMScale) Cost(mapVMProfiles map[string] VmProfile) float64{
+	cost := float64(0.0)
+	for k,v := range vmSet {
+		cost += mapVMProfiles[k].Pricing.Price * float64(v)
+	}
+	return cost
+}
+
+/**/
+func (vmSet VMScale) ReplicasCapacity(mapVMProfiles map[string] VmProfile) int{
+	totalCapacity :=0
+	for k,v := range vmSet {
+		totalCapacity += mapVMProfiles[k].ReplicasCapacity * v
+	}
+	return totalCapacity
+}
+
+/**/
+func (vmSet VMScale) TotalVMs() int{
+	totalNVMs := 0
+	for _,v := range vmSet {
+		totalNVMs += v
+	}
+	return totalNVMs
+}
+
 type ServiceInfo struct {
 	Scale 	int			`json:Scale`
 	CPU 	float64		`json:CPU`
-	Memory	float64		`json:Memory`
+	Memory	float64		`json:MemoryGB`
 }
 
 /*State is the metadata of the state expected to scale to*/
