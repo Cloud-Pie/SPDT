@@ -1,9 +1,11 @@
 ---
 version: v1
+service-name: hello_world
+service-type: web
 CSP: AWS
 pricing-model:
   monthly-budget: 2000
-  billing-unit: hour
+  billing-unit: second
 scaling-horizon:
   start-time: 2018-09-02T07:00:00.1Z
   end-time: 2018-09-03T07:00:10.1Z
@@ -22,14 +24,16 @@ scheduler-component:
   username:
   password:
   api-key:
-preferred-algorithm: naive
+preferred-algorithm: delta-repacked
 policy-settings:
   scaling-method: horizontal
   heterogeneous-vms-allowed: true
-  underprovisioning-allowed: true
-  max-percentage-underprovision: 20
+  underprovisioning-allowed: false
+  max-percentage-underprovision: 80
   pods-resize-allowed: true
-
+  vm-family: all
+  upper-vm-utilization: 90
+  lower-vm-utilization: 30
 
 
 

@@ -43,6 +43,8 @@ type PolicySettings struct{
 //Struct that models the system configuration to derive the scaling policies
 type SystemConfiguration struct {
 	CSP 							string				`yaml:"CSP"`
+	ServiceName						string				`yaml:"service-name"`
+	ServiceType						string				`yaml:"service-type"`
 	PricingModel					PricingModel  	    `yaml:"pricing-model"`
 	ForecastingComponent 			Component			`yaml:"forecasting-component"`
 	PerformanceProfilesComponent 	Component			`yaml:"performance-profiles-component"`
