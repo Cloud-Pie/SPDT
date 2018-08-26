@@ -42,18 +42,16 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 	}
 	underprovisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	//Select the performance profile that fits better
-	performanceProfile := selectProfile(serviceProfile.PerformanceProfiles)
-	//calculate the capacity of services replicas to each VM type
-	computeCapacity(&p.sortedVMProfiles, performanceProfile, &p.mapVMProfiles)
-	for _, it := range processedForecast.CriticalIntervals {
-		requests := it.Requests
-		services :=  make(map[string]types.ServiceInfo)
-		//Compute number of replicas needed depending on requests
-		newNumServiceReplicas := int(math.Ceil(requests / performanceProfile.TRN)) * performanceProfile.NumReplicas
 
-		//Compare with current state . It Assumes that there is only 1 service
-		var currentNumberReplicas int
-		for _,v := range p.currentState.Services { currentNumberReplicas = v.Scale }
+
+	for _, it := range processedForecast.CriticalIntervals {
+		//Compute number of replicas needed depending on requests
+		performanceProfile := selectProfile(serviceProfile.PerformanceProfiles, it.Requests, underprovisionAllowed)
+		computeCapacity(&p.sortedVMProfiles, performanceProfile, &p.mapVMProfiles)
+
+		newNumServiceReplicas := performanceProfile.TRNConfiguration[0].NumberReplicas
+		currentNumberReplicas := p.currentState.Services[p.sysConfiguration.ServiceName].Scale
+
 		var vmSet types.VMScale
 		deltaNumberReplicas := newNumServiceReplicas - currentNumberReplicas
 
@@ -61,21 +59,15 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 				vmSet = p.currentState.VMs
 		} else if deltaNumberReplicas > 0 {
 			//Need to increase resources
-			currentOpt := VMSet{VMSet:p.currentState.VMs}
-			currentOpt.setValues(p.mapVMProfiles)
+			currentReplicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
 			//Validate if the current configuration is able to handle the new replicas
-			if currentOpt.TotalReplicasCapacity >= currentNumberReplicas + deltaNumberReplicas {
+			if currentReplicasCapacity >= currentNumberReplicas + deltaNumberReplicas {
 				vmSet = p.currentState.VMs
 			} else {
 				//Find new suitable Vm(s) to cover the number of replicas missing.
 				vmSet = p.findSuitableVMs(deltaNumberReplicas)
 				if underprovisionAllowed {
-					deltaLoad := requests - float64(currentNumberReplicas/performanceProfile.NumReplicas) * performanceProfile.TRN
-					underProvReplicas,newVMset:= p.considerIfUnderprovision(vmSet, performanceProfile, deltaLoad)
-					if newVMset != nil {
-						newNumServiceReplicas = underProvReplicas
-						vmSet = newVMset
-					}
+					//TODO:implement
 				}
 				//Merge the current configuration with configuration for the new replicas
 				vmSet.Merge(p.currentState.VMs)
@@ -85,10 +77,11 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 			vmSet = p.removeVMs(p.currentState.VMs, -1*deltaNumberReplicas)
 		}
 
+		services :=  make(map[string]types.ServiceInfo)
 		services[serviceProfile.Name] = types.ServiceInfo{
 			Scale:  newNumServiceReplicas,
-			CPU:    performanceProfile.Limit.NumCores,
-			Memory: performanceProfile.Limit.Memory,
+			CPU:    performanceProfile.Limit.NumberCores,
+			Memory: performanceProfile.Limit.MemoryGB,
 		}
 		state := types.State{}
 		state.Services = services
@@ -96,8 +89,8 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast, se
 		state.VMs = vmSet
 		timeStart := it.TimeStart
 		timeEnd := it.TimeEnd
-		totalServicesBootingTime := performanceProfile.BootTimeSec
-		stateLoadCapacity := float64(newNumServiceReplicas/performanceProfile.NumReplicas) * performanceProfile.TRN
+		totalServicesBootingTime := performanceProfile.TRNConfiguration[0].BootTimeSec
+		stateLoadCapacity := performanceProfile.TRNConfiguration[0].TRN
 		setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
 		p.currentState = state
 	}
@@ -135,11 +128,14 @@ func (p TreePolicy) findSuitableVMs(nReplicas int) types.VMScale {
 
 	//Drucken (node, 1)
 	sort.Slice(mapVMScaleList, func(i, j int) bool {
-		map1 := VMSet{VMSet:mapVMScaleList[i]}
-		map1.setValues(p.mapVMProfiles)
-		map2 := VMSet{VMSet:mapVMScaleList[j]}
-		map2.setValues(p.mapVMProfiles)
-		return map1.Cost <=  map2.Cost
+		costi := mapVMScaleList[i].Cost(p.mapVMProfiles)
+		costj := mapVMScaleList[j].Cost(p.mapVMProfiles)
+		if costi < costj {
+			return true
+		} else if costi ==  costj {
+			return mapVMScaleList[i].TotalVMs() >= mapVMScaleList[j].TotalVMs()
+		}
+		return false
 	})
 	return mapVMScaleList[0]
 }
@@ -192,7 +188,7 @@ func (p TreePolicy) buildTree(node *Node, nReplicas int, vmScaleList *[]types.VM
 	return node
 }
 
-func (p TreePolicy)removeVMs(currentVMSet map[string] int, nReplicas int) types.VMScale{
+func (p TreePolicy)removeVMs(currentVMSet types.VMScale, nReplicas int) types.VMScale{
 	newVMSet := copyMap(currentVMSet)
 
 	type keyValue struct {
@@ -223,31 +219,4 @@ func (p TreePolicy)removeVMs(currentVMSet map[string] int, nReplicas int) types.
 	}
 
 	return  newVMSet
-}
-
-//Compares if according to the minimum percentage of underprovisioning is possible to find a cheaper VM set
-//by decreasing the number of replicas and comparing the capacity of a VM set for overprovisioning against the new one
-//found for underprovision
-func (p TreePolicy) considerIfUnderprovision(overVmSet types.VMScale, performanceProfile types.PerformanceProfile, requests float64)(int, types.VMScale){
-	var newNumServiceReplicas int
-
-	//Compute number of replicas that leads to  underprovision
-	underNumServiceReplicas := int(math.Floor(requests / performanceProfile.TRN)) * performanceProfile.NumReplicas
-	underProvisionTRN := float64(underNumServiceReplicas / performanceProfile.NumReplicas)*performanceProfile.TRN
-	percentageUnderProvisioned := underProvisionTRN * requests / 100.0
-	//Compare if underprovision in terms of number of request is acceptable
-	if percentageUnderProvisioned <= p.sysConfiguration.PolicySettings.MaxUnderprovision {
-		vmSet := p.findSuitableVMs(underNumServiceReplicas)
-		//Compare vm sets for underprovisioning and overprovisioning of service replicas
-		overVMSet := VMSet{VMSet:overVmSet}
-		overVMSet.setValues(p.mapVMProfiles)
-		underVMSet := VMSet{VMSet:vmSet}
-		underVMSet.setValues(p.mapVMProfiles)
-		//Compare if the change allowing underprovisioning really affect the selected vm set
-		if underVMSet.TotalReplicasCapacity < overVMSet.TotalReplicasCapacity {
-			newNumServiceReplicas = underNumServiceReplicas
-			return newNumServiceReplicas,vmSet
-		}
-	}
-	return newNumServiceReplicas,nil
 }

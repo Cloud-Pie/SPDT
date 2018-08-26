@@ -46,12 +46,12 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 		policies = naive.CreatePolicies(processedForecast, serviceProfiles)
 
 	case util.NAIVE_TYPES_ALGORITHM:
-		naive := NaiveTypesPolicy {algorithm:util.NAIVE_TYPES_ALGORITHM, timeWindow:timeWindows,
+		naive := BestBaseInstancePolicy{algorithm:util.NAIVE_TYPES_ALGORITHM, timeWindow:timeWindows,
 									mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies = naive.CreatePolicies(processedForecast, serviceProfiles)
 
 	case util.SMALL_STEP_ALGORITHM:
-		sstep := SStepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows,
+		sstep := StepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows,
 									mapVMProfiles:mapVMProfiles ,sysConfiguration: sysConfiguration}
 		policies = sstep.CreatePolicies(processedForecast, serviceProfiles)
 
@@ -71,12 +71,12 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 		policies1 := naive.CreatePolicies(processedForecast, serviceProfiles)
 		policies = append(policies, policies1...)
 		//types
-		naiveT := NaiveTypesPolicy {algorithm:util.NAIVE_TYPES_ALGORITHM, timeWindow:timeWindows,
+		naiveT := BestBaseInstancePolicy{algorithm:util.NAIVE_TYPES_ALGORITHM, timeWindow:timeWindows,
 			mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies2 := naiveT.CreatePolicies(processedForecast, serviceProfiles)
 		policies = append(policies, policies2...)
 		//sstep
-		sstep := SStepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows,
+		sstep := StepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows,
 			mapVMProfiles:mapVMProfiles ,sysConfiguration: sysConfiguration}
 		policies3 := sstep.CreatePolicies(processedForecast, serviceProfiles)
 		policies = append(policies, policies3...)
@@ -134,21 +134,24 @@ func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.Sy
 }
 
 func maxReplicasCapacityInVM(vmProfile types.VmProfile, resourceLimit types.Limit) int {
-		m := float64(vmProfile.NumCores) / float64(resourceLimit.NumCores)
-		n := float64(vmProfile.Memory) / float64(resourceLimit.Memory)
+		m := float64(vmProfile.NumCores) / float64(resourceLimit.NumberCores)
+		n := float64(vmProfile.Memory) / float64(resourceLimit.MemoryGB)
 		numReplicas := math.Min(n,m)
 		return int(numReplicas)
 }
 
-func selectProfile(performanceProfiles []types.PerformanceProfile) types.PerformanceProfile{
+func selectProfileWithLimits(performanceProfiles []types.PerformanceProfile, requests float64, limits types.Limit) types.PerformanceProfile {
 	//select the one with rank 1
-	for _,p := range performanceProfiles {
-		if p.RankWithLimits == 1 {
-			return p
-		}
-	}
+	//TODO:Implement
 	return performanceProfiles[0]
 }
+
+func selectProfile(performanceProfiles []types.PerformanceProfile, requests float64, underProvision bool) types.PerformanceProfile {
+	//select the one with rank 1
+	//TODO:Implement
+	return performanceProfiles[0]
+}
+
 
 func mapToList(vmSet map[string]int)[]types.StructMap {
 	var ss [] types.StructMap
@@ -163,7 +166,7 @@ func setConfiguration(configurations *[]types.Configuration, state types.State, 
 	if nConfigurations >= 1 && state.Equal((*configurations)[nConfigurations-1].State) {
 		(*configurations)[nConfigurations-1].TimeEnd = timeEnd
 	} else {
-		var deltaTime int //time in seconds
+		//var deltaTime int //time in seconds
 		var finishTimeVMRemoved int
 		var bootTimeVMAdded int
 
@@ -179,15 +182,8 @@ func setConfiguration(configurations *[]types.Configuration, state types.State, 
 			if len(vmAdded) > 0 {
 				bootTimeVMAdded = computeVMBootingTime(vmAdded, sysConfiguration)
 			}
-			//Select the biggest time
-			if finishTimeVMRemoved > bootTimeVMAdded {
-				deltaTime = finishTimeVMRemoved
-			} else {
-				deltaTime = bootTimeVMAdded
-			}
 		}
-
-		startTime := timeStart.Add(-1 * time.Duration(deltaTime) * time.Second)       //Booting/Termination time VM
+		startTime := timeStart.Add(-1 * time.Duration(bootTimeVMAdded) * time.Second)       //Booting/Termination time VM
 		startTime = startTime.Add(-1 * time.Duration(totalServicesBootingTime) * time.Second) //Start time containers
 		state.LaunchTime = startTime
 		state.Name = strconv.Itoa(nConfigurations) + "__" + name + "__" + startTime.Format(util.TIME_LAYOUT)

@@ -23,7 +23,7 @@ type StepRepackPolicy struct {
 }
 
 
-/* Derive a list of policies using the Best Instance Approach approach
+/* Derive a list of policies using the best homogeneous cluster, change of type is possible
 	in:
 		@processedForecast
 		@serviceProfile
