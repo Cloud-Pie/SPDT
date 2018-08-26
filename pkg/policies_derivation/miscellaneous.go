@@ -2,12 +2,31 @@ package policies_derivation
 
 import "github.com/Cloud-Pie/SPDT/types"
 
+/*
+Structure to keep the configuration associated to a set of containers
+It includes the resource limits per replica, number of replicas, bootTime of the set,
+a VMSet suitable to deploy the containers set and the cost of the solution
+*/
+type ContainersConfig struct {
+	ResourceLimits		types.Limit
+	PerformanceProfile	types.TRNConfiguration
+	VMSet				types.VMScale
+	Cost				float64
+}
+
+type TRNProfile struct {
+	ResourceLimits	types.Limit
+	NumberReplicas	int
+	TRN				float64
+}
+
 type VMSet struct {
 	VMSet                 types.VMScale
 	Cost                  float64
 	TotalNVMs             int
 	TotalReplicasCapacity int
 }
+
 
 // Set missing values for the VMSet structure
 func (set *VMSet) setValues(mapVMProfiles map[string]types.VmProfile) {
@@ -36,9 +55,9 @@ func computeCapacity(listVMProfiles *[]types.VmProfile, performanceProfile types
 }
 
 //calculate the capacity of services replicas to each VM type
-func computeVMsCapacity(performanceProfile types.PerformanceProfile,  mapVMProfiles *map[string]types.VmProfile) {
+func computeVMsCapacity(limits types.Limit,  mapVMProfiles *map[string]types.VmProfile) {
 	for _,v := range *mapVMProfiles {
-		cap := maxReplicasCapacityInVM(v,performanceProfile.Limit)
+		cap := maxReplicasCapacityInVM(v,limits)
 		profile := (*mapVMProfiles)[v.Type]
 		profile.ReplicasCapacity = cap
 		(*mapVMProfiles)[v.Type] = profile
