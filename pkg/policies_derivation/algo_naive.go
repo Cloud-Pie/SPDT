@@ -41,67 +41,71 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 	currentContainerLimits := p.currentContainerLimits()
 
 	for _, it := range processedForecast.CriticalIntervals {
-			//Select the performance profile that fits better
-			perfProfileOver := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
+		var resourceLimits types.Limit
 
-			//Compute the max capacity in terms of number of  service replicas for each VM type
-			//computeVMsCapacity(perfProfileOver,&p.mapVMProfiles)
+		//Select the performance profile that fits better
+		perfProfileOver := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
 
-			overProvision := perfProfileOver.TRNConfiguration[0]
-			newNumServiceReplicas := overProvision.NumberReplicas
-			vmSet := p.FindSuitableVMs(newNumServiceReplicas, perfProfileOver.Limit)
-			costOver := vmSet.Cost(p.mapVMProfiles)
-			stateLoadCapacity := overProvision.TRN
-			totalServicesBootingTime := overProvision.BootTimeSec
+		//Compute the max capacity in terms of number of  service replicas for each VM type
+		//computeVMsCapacity(perfProfileOver,&p.mapVMProfiles)
 
-			if underProvisionAllowed {
-				perfProfileUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-				underProvision := perfProfileUnder.TRNConfiguration[0]
-				vmSetUnder := p.FindSuitableVMs(underProvision.NumberReplicas, perfProfileOver.Limit)
-				costUnder := vmSetUnder.Cost(p.mapVMProfiles)
-				if costUnder < costOver {
-					vmSet = vmSetUnder
-					newNumServiceReplicas = underProvision.NumberReplicas
-					stateLoadCapacity = underProvision.TRN
-					totalServicesBootingTime = underProvision.BootTimeSec
-				}
+		confOverProvision := perfProfileOver.TRNConfiguration[0]
+		newNumServiceReplicas := confOverProvision.NumberReplicas
+		vmSet := p.FindSuitableVMs(newNumServiceReplicas, perfProfileOver.Limit)
+		costOver := vmSet.Cost(p.mapVMProfiles)
+		stateLoadCapacity := confOverProvision.TRN
+		totalServicesBootingTime := confOverProvision.BootTimeSec
+		resourceLimits = perfProfileOver.Limit
+		if underProvisionAllowed {
+			perfProfileUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
+			confUnderProvision := perfProfileUnder.TRNConfiguration[0]
+			vmSetUnder := p.FindSuitableVMs(confUnderProvision.NumberReplicas, perfProfileUnder.Limit)
+			costUnder := vmSetUnder.Cost(p.mapVMProfiles)
+			//Update values if the configuration that leads to under provisioning is cheaper
+			if costUnder < costOver {
+				vmSet = vmSetUnder
+				newNumServiceReplicas = confUnderProvision.NumberReplicas
+				stateLoadCapacity = confUnderProvision.TRN
+				totalServicesBootingTime = confUnderProvision.BootTimeSec
+				resourceLimits = perfProfileUnder.Limit
 			}
+		}
 
-			services := make(map[string]types.ServiceInfo)
-			services[p.sysConfiguration.ServiceName] = types.ServiceInfo {
-				Scale:  newNumServiceReplicas,
-				CPU:    perfProfileOver.Limit.NumberCores,
-				Memory: perfProfileOver.Limit.MemoryGB,
-			}
-			state := types.State{
-				Services: services,
-				VMs:      vmSet,
-			}
+		services := make(map[string]types.ServiceInfo)
+		services[p.sysConfiguration.ServiceName] = types.ServiceInfo{
+			Scale:  newNumServiceReplicas,
+			CPU:    resourceLimits.NumberCores,
+			Memory: resourceLimits.MemoryGB,
+		}
+		state := types.State{
+			Services: services,
+			VMs:      vmSet,
+		}
 
-			//update state before next iteration
-			timeStart := it.TimeStart
-			timeEnd := it.TimeEnd
-			setConfiguration(&configurations, state, timeStart, timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
-
-			parameters := make(map[string]string)
-			parameters[types.METHOD] = "horizontal"
-			parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(false)
-			parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
-
-			//Add new policy
-			numConfigurations := len(configurations)
-			newPolicy.Configurations = configurations
-			newPolicy.Algorithm = p.algorithm
-			newPolicy.ID = bson.NewObjectId()
-			newPolicy.Status = types.DISCARTED	//State by default
-			newPolicy.Parameters = parameters
-			newPolicy.Metrics.NumberConfigurations = numConfigurations
-			newPolicy.Metrics.FinishTimeDerivation = time.Now()
-			newPolicy.TimeWindowStart = configurations[0].TimeStart
-			newPolicy.TimeWindowEnd = configurations[numConfigurations -1].TimeEnd
-			policies = append(policies, newPolicy)
-
+		//update state before next iteration
+		timeStart := it.TimeStart
+		timeEnd := it.TimeEnd
+		setConfiguration(&configurations, state, timeStart, timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
 	}
+	parameters := make(map[string]string)
+	parameters[types.METHOD] = "horizontal"
+	parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(false)
+	parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
+
+	//Add new policy
+	numConfigurations := len(configurations)
+	newPolicy.Configurations = configurations
+	newPolicy.Algorithm = p.algorithm
+	newPolicy.ID = bson.NewObjectId()
+	newPolicy.Status = types.DISCARTED	//State by default
+	newPolicy.Parameters = parameters
+	newPolicy.Metrics.NumberConfigurations = numConfigurations
+	newPolicy.Metrics.FinishTimeDerivation = time.Now()
+	newPolicy.TimeWindowStart = configurations[0].TimeStart
+	newPolicy.TimeWindowEnd = configurations[numConfigurations -1].TimeEnd
+	policies = append(policies, newPolicy)
+
+
 	return policies
 }
 

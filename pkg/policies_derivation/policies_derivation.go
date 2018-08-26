@@ -18,7 +18,8 @@ var log = logging.MustGetLogger("spdt")
 
 //Interface for strategies of how to scale
 type PolicyDerivation interface {
-	CreatePolicies (processedForecast types.ProcessedForecast,serviceProfile types.ServiceProfile) []types.Policy
+	CreatePolicies (processedForecast types.ProcessedForecast) []types.Policy
+	FindSuitableVMs (numberReplicas int, limits types.Limit) types.VMScale
 }
 
 //Interface for strategies of when to scale
@@ -27,7 +28,7 @@ type TimeWindowDerivation interface {
 	WindowDerivation(values []float64, times [] time.Time)	types.ProcessedForecast
 }
 
-func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedVMProfiles []types.VmProfile, serviceProfiles types.ServiceProfile, sysConfiguration config.SystemConfiguration) []types.Policy {
+func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedVMProfiles []types.VmProfile, sysConfiguration config.SystemConfiguration) []types.Policy {
 	var policies []types.Policy
 
 	currentState,err := scheduler.CurrentState(sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_CURRENT_STATE)
@@ -143,11 +144,16 @@ func maxReplicasCapacityInVM(vmProfile types.VmProfile, resourceLimit types.Limi
 
 func selectProfileWithLimits(requests float64, limits types.Limit, underProvision bool) types.PerformanceProfile {
 	var profile types.PerformanceProfile
+	var err error
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
 	if underProvision {
-		profile,_ = serviceProfileDAO.FindByLimitsUnder(limits.NumberCores, limits.MemoryGB, requests)
+		profile,err = serviceProfileDAO.FindByLimitsUnder(limits.NumberCores, limits.MemoryGB, requests)
 	} else {
-		profile,_ = serviceProfileDAO.FindByLimitsOver(limits.NumberCores, limits.MemoryGB, requests)
+		profile,err = serviceProfileDAO.FindByLimitsOver(limits.NumberCores, limits.MemoryGB, requests)
+		if err != nil {
+			//TODO: Fix - Temporal solution to ensure that always there is a result
+			profile,err = serviceProfileDAO.FindByLimitsUnder(limits.NumberCores, limits.MemoryGB, requests)
+		}
 	}
 	return profile
 }
@@ -155,11 +161,16 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 func selectProfile(requests float64, underProvision bool) types.PerformanceProfile {
 
 	var profiles []types.PerformanceProfile
+	var err error
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
 	if underProvision {
-		profiles,_ = serviceProfileDAO.FindNewLimitsUnder(requests)
+		profiles,err = serviceProfileDAO.FindNewLimitsUnder(requests)
 	} else {
-		profiles,_ = serviceProfileDAO.FindNewLimitsOver(requests)
+		profiles,err = serviceProfileDAO.FindNewLimitsOver(requests)
+		if err != nil {
+			//TODO: Fix - Temporal solution to ensure that always there is a result
+			profiles,err = serviceProfileDAO.FindNewLimitsUnder(requests)
+		}
 	}
 
 	sort.Slice(profiles, func(i, j int) bool {
