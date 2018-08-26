@@ -63,6 +63,45 @@ func (p *PerformanceProfileDAO) Delete(performanceProfile types.ServiceProfile) 
 	return err
 }
 
+
+func (p *PerformanceProfileDAO) FindByLimitsOver(cores float64, memory float64, requests float64) (types.PerformanceProfile, error) {
+	//db.getCollection('trnProfiles').find({"limits.cpu_cores" : 1000,"limits.mem_gb" : 500, "trns": {$elemMatch:{"replicas":2} } }, {_id: 0, "trns.$":1})
+	var performanceProfile types.PerformanceProfile
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Find(bson.M{
+					"limits.cpu_cores" : cores,
+					 "limits.mem_gb" : memory,
+					"trns": bson.M{"$elemMatch": bson.M{"maximum_service_capacity_per_sec":bson.M{"$gte": requests}}}}).
+		Select(bson.M{"_id": 0, "trns.$":1}).One(&performanceProfile)
+	return performanceProfile,err
+}
+
+
+func (p *PerformanceProfileDAO) FindByLimitsUnder(cores float64, memory float64, requests float64) (types.PerformanceProfile, error) {
+	var performanceProfile types.PerformanceProfile
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Find(bson.M{
+		"limits.cpu_cores" : cores,
+		"limits.mem_gb" : memory,
+		"trns": bson.M{"$elemMatch": bson.M{"maximum_service_capacity_per_sec":bson.M{"$lt": requests}}}}).
+		Select(bson.M{"_id": 0, "trns.$":1}).One(&performanceProfile)
+	return performanceProfile,err
+}
+
+func (p *PerformanceProfileDAO) FindNewLimitsOver(requests float64) ([]types.PerformanceProfile, error) {
+	var performanceProfile []types.PerformanceProfile
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Find(bson.M{
+		"trns": bson.M{"$elemMatch": bson.M{"maximum_service_capacity_per_sec":bson.M{"$gte": requests}}}}).
+		Select(bson.M{"_id": 0, "limits":1, "trns.$":1}).All(&performanceProfile)
+	return performanceProfile,err
+}
+
+func (p *PerformanceProfileDAO) FindNewLimitsUner(requests float64) ([]types.PerformanceProfile, error) {
+	var performanceProfile []types.PerformanceProfile
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Find(bson.M{
+		"trns": bson.M{"$elemMatch": bson.M{"maximum_service_capacity_per_sec":bson.M{"$lt": requests}}}}).
+		Select(bson.M{"_id": 0, "limits":1, "trns.$":1}).All(&performanceProfile)
+	return performanceProfile,err
+}
+
 func GetPerformanceProfileDAO() *PerformanceProfileDAO {
 	if PerformanceProfileDB == nil {
 		PerformanceProfileDB = &PerformanceProfileDAO {

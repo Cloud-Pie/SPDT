@@ -26,14 +26,14 @@ type BootShutDownTime struct {
 }
 
 type Limit struct {
-	NumberCores      float64 `json:"num_cores" bson:"num_cores"`
+	NumberCores      float64 `json:"cpu_cores" bson:"cpu_cores"`
 	MemoryGB         float64 `json:"mem_gb" bson:"mem_gb"`
-	RequestPerSecond int     `json:"request_per_sercond" bson:"request_per_sercond"`
+	RequestPerSecond int     `json:"request_per_second" bson:"request_per_second"`
 }
 
 type PerformanceProfile struct {
 	TRNConfiguration    []TRNConfiguration 		`json:"trns" bson:"trns"`
-	Limit          		Limit   				`json:"limits bson:"limits"`
+	Limit          		Limit   				`json:"limits" bson:"limits"`
 }
 
 type ServiceProfile struct {
