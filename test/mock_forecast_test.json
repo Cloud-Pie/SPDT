@@ -2,29 +2,29 @@
   "values": [
     {
       "timestamp":"2019-08-08T07:24:45Z",
-      "requests": 1000
+      "requests": 100
     },
     {
       "timestamp":"2019-08-08T08:24:45Z",
-      "requests": 1600
+      "requests": 160
     },
     {
       "timestamp":"2019-08-08T09:24:45Z",
-      "requests": 2000
+      "requests": 200
     },
     {
       "timestamp":"2019-08-08T10:24:45Z",
-      "requests": 2200
+      "requests": 220
     },
     {
       "timestamp":"2019-08-08T11:24:45Z",
-      "requests": 1500
+      "requests": 150
     },
     {"timestamp":"2019-08-08T12:24:45Z",
-      "requests": 1000
+      "requests": 100
     },
     {"timestamp":"2019-08-08T13:24:45Z",
-      "requests": 1500
+      "requests": 150
     },
     {"timestamp":"2019-08-08T14:24:45Z",
       "requests": 100
@@ -66,22 +66,22 @@
       "requests": 100
     },
     {"timestamp":"2019-08-09T02:24:45Z",
-      "requests": 700
+      "requests": 70
     },
     {"timestamp":"2019-08-09T03:24:45Z",
-      "requests": 1200
+      "requests": 120
     },
     {"timestamp":"2019-08-09T04:24:45Z",
-      "requests": 1500
+      "requests": 150
     },
     {"timestamp":"2019-08-09T05:24:45Z",
-      "requests": 1000
+      "requests": 100
     },
     {"timestamp":"2019-08-09T06:24:45Z",
-      "requests": 1200
+      "requests": 120
     },
     {"timestamp":"2019-08-09T07:24:45Z",
-      "requests": 1000
+      "requests": 100
     }
   ]
 }

@@ -3,8 +3,8 @@
   "Services": {
     "hello_world": {
       "Scale":2,
-      "CPU":0.2,
-      "Memory":0.2
+      "CPU":1000,
+      "Memory":500
     }
   }
   ,
