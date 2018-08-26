@@ -10,6 +10,10 @@ import (
 	"strconv"
 )
 
+/*
+After each change in the workload it calculates the number of VMs of a predefined size needed
+Repeat the process for all the vm types available
+*/
 type DeltaRepackedPolicy struct {
 	algorithm        string              			 //Algorithm's name
 	timeWindow       TimeWindowDerivation 			//Algorithm used to process the forecasted time serie
@@ -19,118 +23,145 @@ type DeltaRepackedPolicy struct {
 	sysConfiguration	config.SystemConfiguration
 }
 
-//Create scaling policies
+/* Derive a list of policies
+   Add vmSet to handle delta load and compare the reconfiguration cost against the vmSet
+   optimized for a total load.
+	in:
+		@processedForecast
+		@serviceProfile
+	out:
+		[] Policy. List of type Policy
+*/
 func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedForecast, serviceProfile types.ServiceProfile) [] types.Policy {
-
 	policies := []types.Policy{}
-		newPolicy := types.Policy{}
-		newPolicy.Metrics = types.PolicyMetrics {
-			StartTimeDerivation:time.Now(),
+	newPolicy := types.Policy{}
+	newPolicy.Metrics = types.PolicyMetrics {
+		StartTimeDerivation:time.Now(),
+	}
+	configurations := []types.Configuration{}
+	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
+	containerResizeEnabled := true
+	currentContainerLimits := p.currentContainerLimits()
+
+	for i, it := range processedForecast.CriticalIntervals {
+		//Load in terms of number of requests
+		totalLoad := it.Requests
+		resourcesConfiguration := ContainersConfig{}
+
+		profileCurrentLimits := selectProfileWithLimits(serviceProfile.PerformanceProfiles, totalLoad, currentContainerLimits)
+		vmSetTLoadCurrentLimits := p.findOptimalVMSet(profileCurrentLimits.TRNConfiguration[0].NumberReplicas, profileCurrentLimits.Limit)
+		rConfigTLoadCurrentLimits := ContainersConfig {
+			ResourceLimits:profileCurrentLimits.Limit,
+			PerformanceProfile:profileCurrentLimits.TRNConfiguration[0],
+			VMSet:vmSetTLoadCurrentLimits,
 		}
-		configurations := []types.Configuration{}
-		underprovisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
-		//Select the performance profile that fits better
-		performanceProfile := selectProfile(serviceProfile.PerformanceProfiles)
-		//calculate the capacity of services replicas to each VM type
-		computeCapacity(&p.sortedVMProfiles, performanceProfile, &p.mapVMProfiles)
 
-		for i, it := range processedForecast.CriticalIntervals {
-			var newNumServiceReplicas 	int
-			var vmSet 					types.VMScale
-			var currentNumberReplicas int
+		profileNewLimits := selectProfile(serviceProfile.PerformanceProfiles, totalLoad, underProvisionAllowed)
+		vmSetTotalLoadNewLimits := p.findOptimalVMSet(profileNewLimits.TRNConfiguration[0].NumberReplicas, profileNewLimits.Limit)
+		rConfigTLoadNewLimits := ContainersConfig {
+			ResourceLimits:profileNewLimits.Limit,
+			PerformanceProfile:profileNewLimits.TRNConfiguration[0],
+			VMSet:vmSetTotalLoadNewLimits,
+		}
+		//Compute deltaLoad
+		currentLoadCapacity := p.currentLoadCapacity()
+		deltaLoad := totalLoad - currentLoadCapacity
 
-			//Load in terms of number of requests
-			totalLoad := it.Requests
-			services := make(map[string]types.ServiceInfo)
-			for _,v := range p.currentState.Services {	currentNumberReplicas = v.Scale }
+		if deltaLoad > 0 {
+			//Need to increase resources
+			computeVMsCapacity(profileCurrentLimits.Limit, &p.mapVMProfiles)
+			replicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
 
-			//Compute deltaLoad
-			currentLoadCapacity := float64(currentNumberReplicas/performanceProfile.NumReplicas) * performanceProfile.TRN
-			deltaLoad := totalLoad - currentLoadCapacity
-			//By default keep current configuration
-			newNumServiceReplicas = currentNumberReplicas
-			vmSet = p.currentState.VMs
-
-			if deltaLoad > 0 {
-				//Need to increase resources
-				//Compute number of replicas needed only to handle delta load
-				numReplicasDeltaLoad := int(math.Ceil(deltaLoad / performanceProfile.TRN)) * performanceProfile.NumReplicas
-				//increases number of replicas
-				newNumServiceReplicas = currentNumberReplicas + numReplicasDeltaLoad
-
+			//Validate if the current configuration is able to handle the new replicas
+			//Using the current Resource Limits configuration for the containers
+			if replicasCapacity > profileCurrentLimits.TRNConfiguration[0].NumberReplicas {
+				resourcesConfiguration.VMSet = p.currentState.VMs
+				resourcesConfiguration.ResourceLimits = profileCurrentLimits.Limit
+				resourcesConfiguration.PerformanceProfile = profileCurrentLimits.TRNConfiguration[0]
+			} else {
+				computeVMsCapacity(profileNewLimits.Limit, &p.mapVMProfiles)
+				replicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
 				//Validate if the current configuration is able to handle the new replicas
-				currentOpt := VMSet{VMSet:p.currentState.VMs}
-				currentOpt.setValues(p.mapVMProfiles)
-				if currentOpt.TotalReplicasCapacity >= newNumServiceReplicas {
-					vmSet = p.currentState.VMs
-				} else {
-					//Increase number of VMs and find Optimal VM Set to deploy services required to handle deltaLoad
-					vmSet = p.findOptimalVMSet(numReplicasDeltaLoad)
-					//Merge the current configuration with configuration for the new replicas
-					vmSet.Merge(p.currentState.VMs)
-				}
-				// Test if reconfigure the complete VM set for the totalLoad is better
-				opt := VMSet{VMSet: vmSet}
-				opt.setValues(p.mapVMProfiles)
-				//Find VM set for totalLoad and validate if a complete migration is better
-				if newVMSet,ok := p.repackVMSet(totalLoad,opt,i,processedForecast.CriticalIntervals,performanceProfile); ok {
-					vmSet = newVMSet
-				}
-
-			} else if deltaLoad < 0 {
-				//Need to decrease resources
-				deltaLoad *= -1
-				//Calculate number of replicas that should be removed to decrease -deltaLoad
-				numReplicasDeltaLoad := int(math.Floor(deltaLoad / performanceProfile.TRN)) * performanceProfile.NumReplicas
-				newNumServiceReplicas = currentNumberReplicas - numReplicasDeltaLoad
-				//Build new set of VMs and release some if necessary
-				if numReplicasDeltaLoad > 0 {
-					vmSet = p.releaseResources(numReplicasDeltaLoad, p.currentState.VMs)
-				}
-
-				if underprovisionAllowed {
-					underProvReplicas,newVMset:= p.considerIfUnderprovision(vmSet, performanceProfile, deltaLoad)
-					if newVMset != nil {
-						newNumServiceReplicas = underProvReplicas
-						vmSet = newVMset
-					}
-				}
-
-				// Test if reconfigure the complete VM set for the totalLoad is better
-				opt := VMSet{VMSet: vmSet}
-				opt.setValues(p.mapVMProfiles)
-				if rep,ok := p.repackVMSet(totalLoad,opt, i, processedForecast.CriticalIntervals,performanceProfile); ok {
-						vmSet = rep
+				//Using a new Resource Limits configuration for the containers
+				if replicasCapacity > profileNewLimits.TRNConfiguration[0].NumberReplicas {
+					resourcesConfiguration.VMSet = p.currentState.VMs
+					resourcesConfiguration.ResourceLimits = profileNewLimits.Limit
+					resourcesConfiguration.PerformanceProfile = profileNewLimits.TRNConfiguration[0]
 				}
 			}
 
-			services[serviceProfile.Name] = types.ServiceInfo {
-				Scale:  newNumServiceReplicas,
-				CPU:    performanceProfile.Limit.NumCores,
-				Memory: performanceProfile.Limit.Memory,
+			//Find vmSet to handle new replicas that supply deltaLoad
+			profileCurrentLimits = selectProfileWithLimits(serviceProfile.PerformanceProfiles, deltaLoad, currentContainerLimits)
+			profileNewLimits = selectProfile(serviceProfile.PerformanceProfiles, deltaLoad, underProvisionAllowed)
+			trnProfile,_ := p.selectContainersConfig(profileCurrentLimits.Limit, profileCurrentLimits.TRNConfiguration[0],
+				 									profileNewLimits.Limit, profileNewLimits.TRNConfiguration[0], containerResizeEnabled)
+			vmSetDeltaLoad := p.findOptimalVMSet(trnProfile.NumberReplicas,trnProfile.ResourceLimits)
+			vmSetDeltaLoad.Merge(p.currentState.VMs)
+			rConfigDLoad := ContainersConfig {
+				ResourceLimits:trnProfile.ResourceLimits,
+				PerformanceProfile:types.TRNConfiguration{NumberReplicas:trnProfile.NumberReplicas, TRN:trnProfile.TRN},
+				VMSet:vmSetDeltaLoad,
+			}
+			resourcesConfiguration = rConfigDLoad
+
+			//Find VM set for totalLoad and validate if a complete migration is better
+			if newConfig,ok := p.shouldRepackVMSet(rConfigDLoad, rConfigTLoadCurrentLimits,i,processedForecast.CriticalIntervals); ok {
+				resourcesConfiguration = newConfig
+				if newConfig,ok := p.shouldRepackVMSet(newConfig, rConfigTLoadNewLimits,i,processedForecast.CriticalIntervals); ok {
+					resourcesConfiguration = newConfig
+				}
 			}
 
-			//Create a new state
-			state := types.State{}
-			state.Services = services
-			cleanKeys(vmSet)
-			state.VMs = vmSet
-			stateLoadCapacity := float64(newNumServiceReplicas/performanceProfile.NumReplicas) * performanceProfile.TRN
-			timeStart := it.TimeStart
-			timeEnd := it.TimeEnd
-			totalServicesBootingTime := performanceProfile.BootTimeSec
-			setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration,stateLoadCapacity)
+		} else if deltaLoad < 0 {
+			//Need to decrease resources
+			deltaLoad *= -1
+			trnProfile,_ := p.selectContainersConfig(profileCurrentLimits.Limit, profileCurrentLimits.TRNConfiguration[0],
+													profileNewLimits.Limit, profileNewLimits.TRNConfiguration[0], containerResizeEnabled)
+			vmSetDeltaLoad := p.releaseResources(trnProfile.NumberReplicas,p.currentState.VMs)
 
-			//Update current state
-			p.currentState = state
+			rConfigDLoad := ContainersConfig {
+				ResourceLimits:trnProfile.ResourceLimits,
+				PerformanceProfile:types.TRNConfiguration{NumberReplicas:trnProfile.NumberReplicas, TRN:trnProfile.TRN},
+				VMSet:vmSetDeltaLoad,
+			}
+			// Test if reconfigure the complete VM set for the totalLoad is better
+			//Find VM set for totalLoad and validate if a complete migration is better
+			if newConfig,ok := p.shouldRepackVMSet(rConfigDLoad, rConfigTLoadCurrentLimits,i,processedForecast.CriticalIntervals); ok {
+				resourcesConfiguration = newConfig
+				if newConfig,ok := p.shouldRepackVMSet(newConfig, rConfigTLoadNewLimits,i,processedForecast.CriticalIntervals); ok {
+					resourcesConfiguration = newConfig
+				}
+			}
 		}
+
+		services := make(map[string]types.ServiceInfo)
+		services[serviceProfile.Name] = types.ServiceInfo {
+			Scale:  resourcesConfiguration.PerformanceProfile.NumberReplicas,
+			CPU:    resourcesConfiguration.ResourceLimits.NumberCores,
+			Memory: resourcesConfiguration.ResourceLimits.MemoryGB,
+		}
+
+		//Create a new state
+		state := types.State{}
+		state.Services = services
+		vmSet := resourcesConfiguration.VMSet
+		cleanKeys(vmSet)
+		state.VMs = vmSet
+		timeStart := it.TimeStart
+		timeEnd := it.TimeEnd
+		totalServicesBootingTime := resourcesConfiguration.PerformanceProfile.BootTimeSec
+		stateLoadCapacity := resourcesConfiguration.PerformanceProfile.TRN
+		setConfiguration(&configurations,state,timeStart,timeEnd,serviceProfile.Name, totalServicesBootingTime, p.sysConfiguration,stateLoadCapacity)
+		//Update current state
+		p.currentState = state
+	}
 
 		//Add new policy
 		parameters := make(map[string]string)
 		parameters[types.METHOD] = "horizontal"
 		parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(p.sysConfiguration.PolicySettings.HetereogeneousAllowed)
-		parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underprovisionAllowed)
-		if underprovisionAllowed {
+		parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
+		if underProvisionAllowed {
 			parameters[types.MAXUNDERPROVISION] = strconv.FormatFloat(p.sysConfiguration.PolicySettings.MaxUnderprovision, 'f', -1, 64)
 		}
 		numConfigurations := len(configurations)
@@ -148,55 +179,56 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		return policies
 }
 
-//Find an optimal set of virtual machines to support the deployment of of n number of service replicas
-func (p DeltaRepackedPolicy) findOptimalVMSet(nReplicas int) types.VMScale {
-	nVMProfiles := len(p.sortedVMProfiles)
-	solutions := []VMSet{}
-	currentVMType, isHomogeneous := p.isCurrentlyHomogeneous()
-	hetereougeneouseAllowed := p.sysConfiguration.PolicySettings.HetereogeneousAllowed
-		for i,v := range p.sortedVMProfiles {
-			vmScale :=  make(map[string]int)
-			capacity := v.ReplicasCapacity
-			if capacity > nReplicas {
-				vmScale[v.Type] = 1
-				set := VMSet{VMSet:vmScale}
-				set.setValues(p.mapVMProfiles)
-				solutions = append(solutions, set)
-				if !hetereougeneouseAllowed && isHomogeneous && v.Type == currentVMType {
-					return set.VMSet
-				}
-			} else if capacity > 0 {
-				//Homogeneous candidate set of type v
-				vmScale[v.Type] = int(nReplicas / capacity)
-				set := VMSet{VMSet:vmScale}
-				set.setValues(p.mapVMProfiles)
-				solutions = append(solutions, set)
+/*Calculate VM set able to host the required number of replicas
+ in:
+	@numberReplicas = Amount of replicas that should be hosted
+	@resourceLimits = Resources (CPU, Memory) constraints to configure the containers.
+ out:
+	@VMScale with the suggested number of VMs
+*/
+func (p DeltaRepackedPolicy) findOptimalVMSet(numberReplicas int, resourceLimits types.Limit) types.VMScale {
+	//nVMProfiles := len(p.sortedVMProfiles)
+	candidateSolutions := []types.VMScale{}
+	//currentVMType, isHomogeneous := p.isCurrentlyHomogeneous()
+	//heterogeneousAllowed := p.sysConfiguration.PolicySettings.HetereogeneousAllowed
 
-				if hetereougeneouseAllowed {
-					//heterogeneous candidate set of two types
-					//The current type and the next type in size order
-					if i < nVMProfiles-1 {
-						vmScale := buildHeterogeneousSet(nReplicas, v.Type, capacity,  p.sortedVMProfiles[i+1].Type,  p.sortedVMProfiles[i+1].ReplicasCapacity)
-						set := VMSet{VMSet:vmScale}
-						set.setValues(p.mapVMProfiles)
-						solutions = append(solutions, set)
-					}
-				}else if isHomogeneous && v.Type == currentVMType {
-					return set.VMSet
-				}
-			}
+	for _,v := range p.sortedVMProfiles {
+		vmScale :=  make(map[string]int)
+		replicasCapacity :=  maxReplicasCapacityInVM(v, resourceLimits)
+		if replicasCapacity > 0 {
+			numVMs := math.Ceil(float64(numberReplicas) / float64(replicasCapacity))
+			vmScale[v.Type] = int(numVMs)
+			candidateSolutions = append(candidateSolutions, vmScale)
 		}
+	}
 
-	sort.Slice(solutions, func(i, j int) bool {
-		if solutions[i].Cost < solutions[j].Cost {
+
+	/*TODO
+	if heterogeneousAllowed {
+		//heterogeneous candidate set of two types
+		//The current type and the next type in size order
+		if i < nVMProfiles-1 {
+			vmScale := buildHeterogeneousSet(numberReplicas, v.Type, capacity,  p.sortedVMProfiles[i+1].Type,  p.sortedVMProfiles[i+1].ReplicasCapacity)
+			set := VMSet{VMSet:vmScale}
+			set.setValues(p.mapVMProfiles)
+			candidateSolutions = append(candidateSolutions, set)
+		}
+	}else if isHomogeneous && v.Type == currentVMType {
+		return set.VMSet
+	}*/
+
+	sort.Slice(candidateSolutions, func(i, j int) bool {
+		costi := candidateSolutions[i].Cost(p.mapVMProfiles)
+		costj := candidateSolutions[j].Cost(p.mapVMProfiles)
+		if costi < costj {
 			return true
-		} else if solutions[i].Cost ==  solutions[j].Cost {
-			return solutions[i].TotalNVMs >= solutions[j].TotalNVMs
+		} else if costi ==  costj {
+			return candidateSolutions[i].TotalVMs() >= candidateSolutions[j].TotalVMs()
 		}
 		return false
 	})
 
-	return solutions[0].VMSet
+	return candidateSolutions[0]
 }
 
 //Use a greedy approach to build a VM cluster of two types  to support the
@@ -253,91 +285,13 @@ func (p DeltaRepackedPolicy) releaseResources(nReplicas int, currentVMSet types.
 	return  newVMSet
 }
 
-//Evaluate if the current configuration of VMS should be changed to a new configuration
-//searching a optimal vm set for the total Load
-func(p DeltaRepackedPolicy) repackVMSet(totalLoad float64, currentOptimalSet VMSet, indexTimeInterval int, timeIntervals[]types.CriticalInterval, performanceProfile types.PerformanceProfile) (types.VMScale, bool) {
-	numReplicasTotalLoad := int(math.Ceil(totalLoad / performanceProfile.TRN)) * performanceProfile.NumReplicas
-	newSet := p.findOptimalVMSet(numReplicasTotalLoad)
-	newOptimalSet := VMSet{VMSet:newSet}
-	newOptimalSet.setValues(p.mapVMProfiles)
-
-	if (newOptimalSet.Cost <= currentOptimalSet.Cost) {
-		//By default the tranisition policy would be to shut down VMs after launch new ones
-		//Calculate reconfiguration time
-		timeStart := timeIntervals[indexTimeInterval].TimeStart
-		var timeEnd time.Time
-		idx := indexTimeInterval
-		lenInterval := len(timeIntervals)
-		//Compute duration for new set
-		for idx < lenInterval {
-			currentLoadCapacity := float64(newOptimalSet.TotalReplicasCapacity/performanceProfile.NumReplicas) * performanceProfile.TRN
-			if timeIntervals[idx].Requests > currentLoadCapacity {
-				timeEnd = timeIntervals[idx].TimeStart
-				break
-			}
-			idx+=1
-		}
-		durationNewVMSet :=  timeEnd.Sub(timeStart).Seconds()
-		reconfigCostNew := p.calculateReconfigurationCost(newSet)
-
-		//Compute duration for current set
-		jdx := indexTimeInterval
-		for jdx < lenInterval {
-			currentLoadCapacity := float64(currentOptimalSet.TotalReplicasCapacity/performanceProfile.NumReplicas) * performanceProfile.TRN
-			if timeIntervals[jdx].Requests > currentLoadCapacity{
-				timeEnd = timeIntervals[jdx].TimeStart
-				break
-			}
-			jdx+=1
-		}
-		durationCurrentVMSet :=  timeEnd.Sub(timeStart).Seconds()
-		reconfigCostCurrent := p.calculateReconfigurationCost(currentOptimalSet.VMSet)
-
-		if newOptimalSet.Cost*durationNewVMSet + reconfigCostNew < currentOptimalSet.Cost * durationCurrentVMSet + reconfigCostCurrent {
-			return newSet, true
-		}
-	}
-	return nil, false
-}
-
-
-
 //Calculate the cost of a reconfiguration
 func(p DeltaRepackedPolicy) calculateReconfigurationCost(newSet types.VMScale) float64 {
 	//Compute reconfiguration cost
 	_, deletedVMS := deltaVMSet(p.currentState.VMs, newSet)
 	reconfigTime := computeVMTerminationTime(deletedVMS, p.sysConfiguration)
 
-	deletedSet := VMSet{VMSet : deletedVMS}
-	deletedSet.setValues(p.mapVMProfiles)
-	return deletedSet.Cost * float64(reconfigTime)
-}
-
-//Compares if according to the minimum percentage of underprovisioning is possible to find a cheaper VM set
-//by decreasing the number of replicas and comparing the capacity of a VM set for overprovisioning against the new one
-//found for underprovision
-func (p DeltaRepackedPolicy) considerIfUnderprovision(overVmSet types.VMScale, performanceProfile types.PerformanceProfile, requests float64)(int, types.VMScale){
-	var newNumServiceReplicas int
-
-	//Compute number of replicas that leads to  underprovision
-	underNumServiceReplicas := int(math.Ceil(requests / performanceProfile.TRN)) * performanceProfile.NumReplicas
-	underProvisionTRN := float64(underNumServiceReplicas / performanceProfile.NumReplicas)*performanceProfile.TRN
-	percentageUnderProvisioned := underProvisionTRN * requests / 100.0
-	//Compare if underprovision in terms of number of request is acceptable
-	if percentageUnderProvisioned <= p.sysConfiguration.PolicySettings.MaxUnderprovision {
-		vmSet := p.releaseResources(underNumServiceReplicas, p.currentState.VMs)
-		//Compare vm sets for underprovisioning and overprovisioning of service replicas
-		overVMSet := VMSet{VMSet:overVmSet}
-		overVMSet.setValues(p.mapVMProfiles)
-		underVMSet := VMSet{VMSet:vmSet}
-		underVMSet.setValues(p.mapVMProfiles)
-		//Compare if the change allowing underprovisioning really affect the selected vm set
-		if underVMSet.TotalReplicasCapacity < overVMSet.TotalReplicasCapacity {
-			newNumServiceReplicas = underNumServiceReplicas
-			return newNumServiceReplicas,vmSet
-		}
-	}
-	return newNumServiceReplicas,nil
+	return deletedVMS.Cost(p.mapVMProfiles) * float64(reconfigTime)
 }
 
 //Return the VM type used by the current Homogeneous VM cluster
@@ -352,4 +306,104 @@ func (p DeltaRepackedPolicy) isCurrentlyHomogeneous() (string, bool) {
 		isHomogeneous = false
 	}
 	return vmType, isHomogeneous
+}
+
+/*Return the Limit constraint of the current configuration
+	out:
+		Limit
+*/
+func (p DeltaRepackedPolicy) currentContainerLimits() types.Limit {
+	var limits types.Limit
+	for _,s := range p.currentState.Services {
+		limits.MemoryGB = s.Memory
+		limits.NumberCores = s.CPU
+	}
+	return limits
+}
+
+/*Return the load capacity of the current configuration
+	out:
+		Limit
+*/
+func (p DeltaRepackedPolicy) currentLoadCapacity() float64 {
+	//TODO
+	return 0.0
+}
+
+/*
+	in:
+		@currentLimits
+		@profileCurrentLimits
+		@newLimits
+		@profileNewLimits
+		@vmType
+		@containerResize
+	out:
+		@ContainersConfig
+		@error
+
+*/
+func (p DeltaRepackedPolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.TRNConfiguration,
+	newLimits types.Limit, profileNewLimits types.TRNConfiguration, containerResize bool) (TRNProfile, error) {
+
+	currentNumberReplicas := float64(profileCurrentLimits.NumberReplicas)
+	utilizationCurrent := (currentNumberReplicas * currentLimits.NumberCores)+(currentNumberReplicas * currentLimits.MemoryGB)
+
+	newNumberReplicas := float64(profileNewLimits.NumberReplicas)
+	utilizationNew := (newNumberReplicas * newLimits.NumberCores)+(newNumberReplicas * newLimits.MemoryGB)
+
+	if utilizationNew < utilizationCurrent && containerResize {
+		return TRNProfile{ResourceLimits:newLimits,
+							NumberReplicas:int(newNumberReplicas),
+							TRN:profileNewLimits.TRN,}, nil
+	} else {
+		return TRNProfile{ResourceLimits:currentLimits,
+			NumberReplicas:int(currentNumberReplicas),
+			TRN:profileCurrentLimits.TRN,}, nil
+	}
+}
+
+//Evaluate if the current configuration of VMS should be changed to a new configuration
+//searching a optimal vm set for the total Load
+func(p DeltaRepackedPolicy) shouldRepackVMSet(currentOption ContainersConfig, candidateOption ContainersConfig, indexTimeInterval int, timeIntervals[]types.CriticalInterval) (ContainersConfig, bool) {
+	currentCost := currentOption.VMSet.Cost(p.mapVMProfiles)
+	candidateCost := candidateOption.VMSet.Cost(p.mapVMProfiles)
+
+	if candidateCost <= currentCost {
+		//By default the tranisition policy would be to shut down VMs after launch new ones
+		//Calculate reconfiguration time
+		timeStart := timeIntervals[indexTimeInterval].TimeStart
+		var timeEnd time.Time
+		idx := indexTimeInterval
+		lenInterval := len(timeIntervals)
+		//Compute duration for new set
+		candidateLoadCapacity := candidateOption.PerformanceProfile.TRN
+		for idx < lenInterval {
+			if timeIntervals[idx].Requests > candidateLoadCapacity {
+				timeEnd = timeIntervals[idx].TimeStart
+				break
+			}
+			idx+=1
+		}
+		durationNewVMSet :=  timeEnd.Sub(timeStart).Seconds()
+		reconfigCostNew := p.calculateReconfigurationCost(candidateOption.VMSet)
+
+		//Compute duration for current set
+		jdx := indexTimeInterval
+		currentLoadCapacity := currentOption.PerformanceProfile.TRN
+		for jdx < lenInterval {
+			if timeIntervals[jdx].Requests > currentLoadCapacity{
+				timeEnd = timeIntervals[jdx].TimeStart
+				break
+			}
+			jdx+=1
+		}
+		durationCurrentVMSet :=  timeEnd.Sub(timeStart).Seconds()
+		reconfigCostCurrent := p.calculateReconfigurationCost(currentOption.VMSet)
+
+		if candidateCost*durationNewVMSet + reconfigCostNew < candidateCost * durationCurrentVMSet + reconfigCostCurrent {
+			return candidateOption, true
+		}
+	}
+	return ContainersConfig{}, false
 }
