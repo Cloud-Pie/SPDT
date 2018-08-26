@@ -64,9 +64,8 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 			if underProvisionAllowed {
 				ProfileSameLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
 				ProfileNewLimits := selectProfile(it.Requests, underProvisionAllowed)
-				underContainersConfig,err := p.selectContainersConfig(ProfileSameLimits.Limit,
-																	ProfileSameLimits.TRNConfiguration[0], ProfileNewLimits.Limit,
-																	ProfileNewLimits.TRNConfiguration[0], containerResizeEnabled, vmType)
+				underContainersConfig,err := p.selectContainersConfig(ProfileSameLimits.Limit,ProfileSameLimits.TRNConfiguration[0],
+					ProfileNewLimits.Limit, ProfileNewLimits.TRNConfiguration[0], containerResizeEnabled, vmType)
 				if err !=  nil {
 					vmTypeSuitable = false
 					break // No VMset fits for the containers set
@@ -95,6 +94,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 			timeStart := it.TimeStart
 			timeEnd := it.TimeEnd
 			setConfiguration(&configurations,state,timeStart,timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
+			p.currentState = state
 		}
 
 		if !vmTypeSuitable {

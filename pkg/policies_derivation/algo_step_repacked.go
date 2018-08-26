@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"sort"
 	"errors"
+	"github.com/Cloud-Pie/SPDT/util"
 )
 
 /*
@@ -40,17 +41,17 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 
 	configurations := []types.Configuration{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
-	containerResizeEnabled := true
+	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 	currentContainerLimits := p.currentContainerLimits()
 
 	for _, it := range processedForecast.CriticalIntervals {
 
-		ProfileSameLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
-		ProfileNewLimits := selectProfile(it.Requests, underProvisionAllowed)
+		ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
+		ProfileNewLimits := selectProfile(it.Requests, false)
 
-		containersConfig,_ := p.selectContainersConfig(ProfileSameLimits.Limit, ProfileSameLimits.TRNConfiguration[0],
+		containersConfig,_ := p.selectContainersConfig(ProfileCurrentLimits.Limit, ProfileCurrentLimits.TRNConfiguration[0],
 			ProfileNewLimits.Limit, ProfileNewLimits.TRNConfiguration[0], containerResizeEnabled)
-		//TODO: check for case -> vm set dont fit and not underprovision
+
 		newNumServiceReplicas := containersConfig.PerformanceProfile.NumberReplicas
 		stateLoadCapacity := containersConfig.PerformanceProfile.TRN
 		totalServicesBootingTime := containersConfig.PerformanceProfile.BootTimeSec
@@ -58,9 +59,11 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 		limits := containersConfig.ResourceLimits
 
 		if underProvisionAllowed {
-			underContainersConfig,_ := p.selectContainersConfig(ProfileSameLimits.Limit,
-				ProfileSameLimits.TRNConfiguration[1], ProfileNewLimits.Limit,
-				ProfileNewLimits.TRNConfiguration[1], containerResizeEnabled)
+			ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
+			ProfileNewLimits := selectProfile(it.Requests, underProvisionAllowed)
+			underContainersConfig,_ := p.selectContainersConfig(ProfileCurrentLimits.Limit,
+				ProfileCurrentLimits.TRNConfiguration[0], ProfileNewLimits.Limit,
+				ProfileNewLimits.TRNConfiguration[0], containerResizeEnabled)
 
 				if underContainersConfig.Cost > containersConfig.Cost {
 					newNumServiceReplicas = underContainersConfig.PerformanceProfile.NumberReplicas
@@ -69,7 +72,6 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 					vmSet = underContainersConfig.VMSet
 					limits = underContainersConfig.ResourceLimits
 				}
-
 		}
 
 		services := make(map[string]types.ServiceInfo)
@@ -80,20 +82,21 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 		}
 
 		state := types.State{}
-			state.Services = services
-			state.VMs = vmSet
+		state.Services = services
+		state.VMs = vmSet
 
-			timeStart := it.TimeStart
-			timeEnd := it.TimeEnd
-			setConfiguration(&configurations,state,timeStart,timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
+		timeStart := it.TimeStart
+		timeEnd := it.TimeEnd
+		setConfiguration(&configurations,state,timeStart,timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
+		p.currentState = state
 	}
 
 		//Add new policy
 		parameters := make(map[string]string)
-		parameters[types.METHOD] = "hybrid"
+		parameters[types.METHOD] =  util.SCALE_METHOD_HORIZONTAL
 		parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(false)
 		parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
-
+		parameters[types.ISRESIZEPODS] = strconv.FormatBool(containerResizeEnabled)
 		numConfigurations := len(configurations)
 		newPolicy.Configurations = configurations
 		newPolicy.Algorithm = p.algorithm
@@ -122,10 +125,9 @@ func (p StepRepackPolicy) FindSuitableVMs(numberReplicas int, resourcesLimit typ
 			vmScale :=  make(map[string]int)
 			if maxReplicas > 0 {
 				numVMs := math.Ceil(float64(numberReplicas) / float64(maxReplicas))
-				vmScale :=  make(map[string]int)
 				vmScale[vmType] = int(numVMs)
+				vmScaleList = append(vmScaleList, copyMap(vmScale))
 			}
-			vmScaleList = append(vmScaleList, vmScale)
 		}
 
 	sort.Slice(vmScaleList, func(i, j int) bool {
