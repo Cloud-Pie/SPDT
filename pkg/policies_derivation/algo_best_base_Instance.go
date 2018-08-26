@@ -8,6 +8,7 @@ import (
 	"github.com/Cloud-Pie/SPDT/config"
 	"strconv"
 	"errors"
+	"github.com/Cloud-Pie/SPDT/util"
 )
 
 /*
@@ -53,9 +54,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 																	ProfileNewLimits.Limit, ProfileNewLimits.TRNConfiguration[0], containerResizeEnabled, vmType)
 			if err !=  nil {
 				vmTypeSuitable = false
-				break // No VMset fits for the containers set
 			}
-			//TODO: check for case -> vm set dont fit and not underprovision
 			newNumServiceReplicas := containersConfig.PerformanceProfile.NumberReplicas
 			stateLoadCapacity := containersConfig.PerformanceProfile.TRN
 			totalServicesBootingTime := containersConfig.PerformanceProfile.BootTimeSec
@@ -78,6 +77,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 						totalServicesBootingTime = underContainersConfig.PerformanceProfile.BootTimeSec
 						vmSet = underContainersConfig.VMSet
 						limits = underContainersConfig.ResourceLimits
+						vmTypeSuitable = true
 					}
 				}
 			}
@@ -105,12 +105,10 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 		if numConfigurations > 0 {
 			//Add new policy
 			parameters := make(map[string]string)
-			parameters[types.METHOD] = "horizontal"
+			parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL
 			parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(false)
 			parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
-			if underProvisionAllowed {
-				parameters[types.MAXUNDERPROVISION] = strconv.FormatFloat(p.sysConfiguration.PolicySettings.MaxUnderprovision, 'f', -1, 64)
-			}
+			parameters[types.ISRESIZEPODS] = strconv.FormatBool(containerResizeEnabled)
 			newPolicy.Configurations = configurations
 			newPolicy.Algorithm = p.algorithm
 			newPolicy.ID = bson.NewObjectId()

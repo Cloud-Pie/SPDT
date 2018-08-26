@@ -50,8 +50,8 @@ func main () {
 
 	out := make(chan types.Forecast)
 	server := SetUpServer(out)
-	go updatePolicyDerivation(out)
-	go periodicPolicyDerivation()
+	//go updatePolicyDerivation(out)
+	//go periodicPolicyDerivation()
 	server.Run(":" + FlagsVar.Port)
 
 }
@@ -148,7 +148,7 @@ func getServiceProfile(){
 func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64, times []time.Time){
 	//Derive Strategies
 	log.Info("Start policies derivation")
-	policies = policies_derivation.Policies(poiList, values, times, vmProfiles, serviceProfiles, sysConfiguration)
+	policies = policies_derivation.Policies(poiList, values, times, vmProfiles, sysConfiguration)
 	log.Info("Finish policies derivation")
 
 	log.Info("Start policies evaluation")

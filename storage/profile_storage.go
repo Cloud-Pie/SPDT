@@ -71,7 +71,7 @@ func (p *PerformanceProfileDAO) FindByLimitsOver(cores float64, memory float64, 
 					"limits.cpu_cores" : cores,
 					 "limits.mem_gb" : memory,
 					"trns": bson.M{"$elemMatch": bson.M{"maximum_service_capacity_per_sec":bson.M{"$gte": requests}}}}).
-		Select(bson.M{"_id": 0, "trns.$":1}).One(&performanceProfile)
+		Select(bson.M{"_id": 0, "limits":1, "trns.$":1}).One(&performanceProfile)
 	return performanceProfile,err
 }
 
@@ -82,7 +82,7 @@ func (p *PerformanceProfileDAO) FindByLimitsUnder(cores float64, memory float64,
 		"limits.cpu_cores" : cores,
 		"limits.mem_gb" : memory,
 		"trns": bson.M{"$elemMatch": bson.M{"maximum_service_capacity_per_sec":bson.M{"$lt": requests}}}}).
-		Select(bson.M{"_id": 0, "trns.$":1}).One(&performanceProfile)
+		Select(bson.M{"_id": 0, "limits":1, "trns.$":1}).One(&performanceProfile)
 	return performanceProfile,err
 }
 

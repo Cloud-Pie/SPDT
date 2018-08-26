@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"gopkg.in/mgo.v2/bson"
 	"math"
+	"github.com/Cloud-Pie/SPDT/util"
 )
 
 /*
@@ -38,6 +39,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 
 	configurations := []types.Configuration {}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
+	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 	currentContainerLimits := p.currentContainerLimits()
 
 	for _, it := range processedForecast.CriticalIntervals {
@@ -88,10 +90,10 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 		setConfiguration(&configurations, state, timeStart, timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
 	}
 	parameters := make(map[string]string)
-	parameters[types.METHOD] = "horizontal"
+	parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL
 	parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(false)
 	parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
-
+	parameters[types.ISRESIZEPODS] = strconv.FormatBool(containerResizeEnabled)
 	//Add new policy
 	numConfigurations := len(configurations)
 	newPolicy.Configurations = configurations

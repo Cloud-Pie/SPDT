@@ -47,14 +47,14 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 							 currentState:currentState, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies = naive.CreatePolicies(processedForecast)
 
-	case util.NAIVE_TYPES_ALGORITHM:
-		naive := BestBaseInstancePolicy{algorithm:util.NAIVE_TYPES_ALGORITHM, timeWindow:timeWindows,
-									mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
+	case util.BASE_INSTANCE_ALGORITHM:
+		naive := BestBaseInstancePolicy{algorithm:util.BASE_INSTANCE_ALGORITHM, timeWindow:timeWindows,
+										currentState:currentState,mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies = naive.CreatePolicies(processedForecast)
 
 	case util.SMALL_STEP_ALGORITHM:
 		sstep := StepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows,
-									mapVMProfiles:mapVMProfiles ,sysConfiguration: sysConfiguration}
+									mapVMProfiles:mapVMProfiles ,sysConfiguration: sysConfiguration, currentState:currentState}
 		policies = sstep.CreatePolicies(processedForecast)
 
 	case util.SEARCH_TREE_ALGORITHM:
@@ -73,7 +73,7 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 		policies1 := naive.CreatePolicies(processedForecast)
 		policies = append(policies, policies1...)
 		//types
-		naiveT := BestBaseInstancePolicy{algorithm:util.NAIVE_TYPES_ALGORITHM, timeWindow:timeWindows,
+		naiveT := BestBaseInstancePolicy{algorithm:util.BASE_INSTANCE_ALGORITHM, timeWindow:timeWindows,
 			mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies2 := naiveT.CreatePolicies(processedForecast)
 		policies = append(policies, policies2...)
@@ -167,7 +167,7 @@ func selectProfile(requests float64, underProvision bool) types.PerformanceProfi
 		profiles,err = serviceProfileDAO.FindNewLimitsUnder(requests)
 	} else {
 		profiles,err = serviceProfileDAO.FindNewLimitsOver(requests)
-		if err != nil {
+		if err != nil || len(profiles)==0{
 			//TODO: Fix - Temporal solution to ensure that always there is a result
 			profiles,err = serviceProfileDAO.FindNewLimitsUnder(requests)
 		}
