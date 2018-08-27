@@ -1,4 +1,4 @@
-package main
+package spd
 
 import (
 	Pservice "github.com/Cloud-Pie/SPDT/rest_clients/performance_profiles"
@@ -33,7 +33,7 @@ var (
 )
 
 // Main function to start the scaling policy derivation
-func main () {
+func Start () {
 	StyleEntry()
 	setLogger()
 

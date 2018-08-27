@@ -11,12 +11,14 @@ var deriveCmd = &cobra.Command{
 	Use:   "derive",
 	Short: "Derive scaling policy",
 	Long: `Derive scaling policy for the specified scaling horizon:
-	It expects a configuration file with the settings.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Print("called derive")
-		sysConfiguration := spd.ReadSysConfiguration()
-		timeStart := sysConfiguration.ScalingHorizon.StartTime
-		timeEnd := sysConfiguration.ScalingHorizon.EndTime
-		spd.StartPolicyDerivation(timeStart,timeEnd)
-	},
+	The configuration settings must be specified in a file config.yml.`,
+	Run: derive,
+}
+
+func derive (cmd *cobra.Command, args []string) {
+	fmt.Print("called derive")
+	sysConfiguration := spd.ReadSysConfiguration()
+	timeStart := sysConfiguration.ScalingHorizon.StartTime
+	timeEnd := sysConfiguration.ScalingHorizon.EndTime
+	spd.StartPolicyDerivation(timeStart,timeEnd)
 }
