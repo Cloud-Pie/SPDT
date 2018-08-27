@@ -9,8 +9,13 @@ import (
 	"fmt"
 	"sort"
 	"github.com/Cloud-Pie/SPDT/config"
+	"github.com/Cloud-Pie/SPDT/util"
 )
 
+/*
+	Constructs different VM clusters (heterogeneous included) to add resources every time the workload
+	increases in a factor of deltaLoad.
+ */
 type TreePolicy struct {
 	algorithm  		string               //Algorithm's name
 	limitNVMS  		int                  //Max number of vms of the same type in a cluster
@@ -21,6 +26,9 @@ type TreePolicy struct {
 	sysConfiguration	config.SystemConfiguration
 }
 
+/*
+	Node that represents a candidate option to scale
+*/
 type Node struct {
 	NReplicas	int
 	vmType	string
@@ -28,10 +36,19 @@ type Node struct {
 	vmScale types.VMScale
 }
 
+/**
+	Tree structure used to create different combinations of VM types
+ */
 type Tree struct {
 	Root *Node
 }
 
+/* Derive a list of policies using this approach
+	in:
+		@processedForecast
+	out:
+		[] Policy. List of type Policy
+*/
 func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []types.Policy {
 
 	policies := []types.Policy {}
@@ -40,48 +57,76 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 	newPolicy.Metrics = types.PolicyMetrics {
 		StartTimeDerivation:time.Now(),
 	}
-	underprovisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
-	//Select the performance profile that fits better
-
+	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
+	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 
 	for _, it := range processedForecast.CriticalIntervals {
-		//Compute number of replicas needed depending on requests
-		performanceProfile := selectProfile(it.Requests, underprovisionAllowed)
-		computeCapacity(&p.sortedVMProfiles, performanceProfile, &p.mapVMProfiles)
-
-		newNumServiceReplicas := performanceProfile.TRNConfiguration[0].NumberReplicas
-		currentNumberReplicas := p.currentState.Services[p.sysConfiguration.ServiceName].Scale
 
 		var vmSet types.VMScale
-		deltaNumberReplicas := newNumServiceReplicas - currentNumberReplicas
+		var newNumServiceReplicas int
+		var resourceLimits types.Limit
+		var totalServicesBootingTime int
+		var stateLoadCapacity float64
 
-		if deltaNumberReplicas == 0 {
-				vmSet = p.currentState.VMs
-		} else if deltaNumberReplicas > 0 {
-			//Need to increase resources
-			currentReplicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
-			//Validate if the current configuration is able to handle the new replicas
-			if currentReplicasCapacity >= currentNumberReplicas + deltaNumberReplicas {
-				vmSet = p.currentState.VMs
-			} else {
-				//Find new suitable Vm(s) to cover the number of replicas missing.
-				vmSet = p.findSuitableVMs(deltaNumberReplicas)
-				if underprovisionAllowed {
-					//TODO:implement
-				}
-				//Merge the current configuration with configuration for the new replicas
-				vmSet.Merge(p.currentState.VMs)
-			}
+		//Current configuration
+		totalLoad := it.Requests
+		currentContainerLimits := p.currentContainerLimits()
+		currentNumberReplicas := p.currentState.Services[p.sysConfiguration.ServiceName].Scale
+		currentLoadCapacity := configurationCapacity(currentNumberReplicas, currentContainerLimits)
+		deltaLoad := totalLoad - currentLoadCapacity
+
+		if deltaLoad == 0 {
+			vmSet = p.currentState.VMs
+			newNumServiceReplicas = currentNumberReplicas
+			resourceLimits  = currentContainerLimits
+			stateLoadCapacity = currentLoadCapacity
 		} else {
-			//Need to decrease resources
-			vmSet = p.removeVMs(p.currentState.VMs, -1*deltaNumberReplicas)
+			//Alternative configuration
+			ProfileCurrentLimits := selectProfileWithLimits(totalLoad, currentContainerLimits, false)
+			newNumServiceReplicas = ProfileCurrentLimits.TRNConfiguration[0].NumberReplicas
+			resourceLimits  = ProfileCurrentLimits.Limit
+			stateLoadCapacity = ProfileCurrentLimits.TRNConfiguration[0].TRN
+			totalServicesBootingTime = ProfileCurrentLimits.TRNConfiguration[0].BootTimeSec
+
+			if deltaLoad > 0 {
+				computeCapacity(&p.sortedVMProfiles, ProfileCurrentLimits.Limit, &p.mapVMProfiles)
+				currentReplicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
+				if currentReplicasCapacity >= ProfileCurrentLimits.TRNConfiguration[0].NumberReplicas {
+					//case 1: Increases number of replicas but VMS remain the same
+					vmSet = p.currentState.VMs
+				} else {
+					if underProvisionAllowed {
+						//case 2: search a new service profile with underprovisioning that possible fit into the
+						//current VM set
+						ProfileNewLimits := selectProfile(totalLoad, underProvisionAllowed)
+						computeCapacity(&p.sortedVMProfiles, ProfileNewLimits.Limit, &p.mapVMProfiles)
+						currentReplicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
+						if currentReplicasCapacity >= ProfileNewLimits.TRNConfiguration[0].NumberReplicas {
+							vmSet = p.currentState.VMs
+							newNumServiceReplicas = ProfileNewLimits.TRNConfiguration[0].NumberReplicas
+							resourceLimits  = ProfileNewLimits.Limit
+							stateLoadCapacity = ProfileNewLimits.TRNConfiguration[0].TRN
+							totalServicesBootingTime = ProfileNewLimits.TRNConfiguration[0].BootTimeSec
+						}
+					} else {
+						//case 3: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.
+						deltaNumberReplicas := newNumServiceReplicas - currentNumberReplicas
+						vmSet = p.FindSuitableVMs(deltaNumberReplicas, ProfileCurrentLimits.Limit)
+						//Merge the current configuration with configuration for the new replicas
+						vmSet.Merge(p.currentState.VMs)
+					}
+				}
+			} else {
+				deltaReplicas := currentNumberReplicas - ProfileCurrentLimits.TRNConfiguration[0].NumberReplicas
+				vmSet = p.removeVMs(p.currentState.VMs, deltaReplicas, currentContainerLimits)
+			}
 		}
 
 		services :=  make(map[string]types.ServiceInfo)
 		services[ p.sysConfiguration.ServiceName] = types.ServiceInfo{
 			Scale:  newNumServiceReplicas,
-			CPU:    performanceProfile.Limit.NumberCores,
-			Memory: performanceProfile.Limit.MemoryGB,
+			CPU:    resourceLimits.NumberCores,
+			Memory: resourceLimits.MemoryGB,
 		}
 		state := types.State{}
 		state.Services = services
@@ -89,20 +134,16 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 		state.VMs = vmSet
 		timeStart := it.TimeStart
 		timeEnd := it.TimeEnd
-		totalServicesBootingTime := performanceProfile.TRNConfiguration[0].BootTimeSec
-		stateLoadCapacity := performanceProfile.TRNConfiguration[0].TRN
 		setConfiguration(&configurations,state,timeStart,timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
 		p.currentState = state
 	}
 
 	//Add new policy
 	parameters := make(map[string]string)
-	parameters[types.METHOD] = "horizontal"
+	parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL
 	parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(true)
-	parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underprovisionAllowed)
-	if underprovisionAllowed {
-		parameters[types.MAXUNDERPROVISION] = strconv.FormatFloat(p.sysConfiguration.PolicySettings.MaxUnderprovision, 'f', -1, 64)
-	}
+	parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
+	parameters[types.ISRESIZEPODS] = strconv.FormatBool(containerResizeEnabled)
 	numConfigurations := len(configurations)
 	newPolicy.Configurations = configurations
 	newPolicy.Algorithm = p.algorithm
@@ -117,14 +158,21 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 	return policies
 }
 
-func (p TreePolicy) findSuitableVMs(nReplicas int) types.VMScale {
+/*Calculate VM set able to host the required number of replicas
+ in:
+	@numberReplicas = Amount of replicas that should be hosted
+	@limits = Resources (CPU, Memory) constraints to configure the containers.
+ out:
+	@VMScale with the suggested number of VMs for that type
+*/
+func (p TreePolicy) FindSuitableVMs(numberReplicas int, limits types.Limit) types.VMScale {
 	tree := &Tree{}
 	node := new(Node)
-	node.NReplicas = nReplicas
+	node.NReplicas = numberReplicas
 	node.vmScale = make(map[string]int)
 	tree.Root = node
 	mapVMScaleList := []types.VMScale {}
-	p.buildTree(tree.Root,nReplicas,&mapVMScaleList)
+	p.buildTree(tree.Root, numberReplicas,&mapVMScaleList)
 
 	//Drucken (node, 1)
 	sort.Slice(mapVMScaleList, func(i, j int) bool {
@@ -152,13 +200,21 @@ func Drucken (n *Node, level int) {
 	}
 }
 
-func (p TreePolicy) buildTree(node *Node, nReplicas int, vmScaleList *[]types.VMScale) *Node {
+/*
+	Form scaling options using clusters of heterogeneous VMs
+	Builds a tree to form the different combinations
+	in:
+		@node			- Node of the tree
+		@numberReplicas	- Number of replicas that the VM set should host
+		@vmScaleList	- List filled with the candidates VM sets
+*/
+func (p TreePolicy) buildTree(node *Node, numberReplicas int, vmScaleList *[]types.VMScale) *Node {
 	if node.NReplicas == 0 {
 		return node
 	}
 	for k,v := range p.mapVMProfiles {
 		maxReplicas := v.ReplicasCapacity
-		if maxReplicas >= nReplicas {
+		if maxReplicas >= numberReplicas {
 			newNode := new(Node)
 			newNode.vmType = k
 			newNode.NReplicas = 0
@@ -174,22 +230,33 @@ func (p TreePolicy) buildTree(node *Node, nReplicas int, vmScaleList *[]types.VM
 		} else if maxReplicas > 0 {
 			newNode := new(Node)
 			newNode.vmType = k
-			newNode.NReplicas = nReplicas-maxReplicas
+			newNode.NReplicas = numberReplicas -maxReplicas
 			newNode.vmScale = copyMap(node.vmScale)
 			if _, ok := newNode.vmScale[newNode.vmType]; ok {
 				newNode.vmScale[newNode.vmType] = newNode.vmScale[newNode.vmType] + 1
 			} else {
 				newNode.vmScale[newNode.vmType] = 1
 			}
-			newNode = p.buildTree(newNode,nReplicas-maxReplicas, vmScaleList)
+			newNode = p.buildTree(newNode, numberReplicas-maxReplicas, vmScaleList)
 			node.children = append(node.children, newNode)
 		}
 	}
 	return node
 }
 
-func (p TreePolicy)removeVMs(currentVMSet types.VMScale, nReplicas int) types.VMScale{
-	newVMSet := copyMap(currentVMSet)
+/*
+	Remove VMs from the current set of VMs, the resources that hosts the defined number of container replicas
+	underprovisioning is not allowed.
+	in:
+		@currentVMSet
+		@numberReplicas
+		@limits
+	out:
+		@VMScale
+*/
+func (p TreePolicy)removeVMs(currentVMSet types.VMScale, numberReplicas int, limits types.Limit) types.VMScale{
+	var newVMSet types.VMScale
+	newVMSet = copyMap(currentVMSet)
 
 	type keyValue struct {
 		Key   string
@@ -203,20 +270,66 @@ func (p TreePolicy)removeVMs(currentVMSet types.VMScale, nReplicas int) types.VM
 	sort.Slice(ss, func(i, j int) bool { return ss[i].Value > ss[j].Value })
 
 	for _,kv := range ss {
-		cap := p.mapVMProfiles[kv.Key].ReplicasCapacity
-		if nReplicas == cap && kv.Value > 0{
-			//Remove 1 VM of this type
-			newVMSet[kv.Key]= newVMSet[kv.Key] - 1
-			break
-		} else if nReplicas > cap && kv.Value * cap > nReplicas {
-			rmvVM := int(math.Floor(float64(nReplicas/cap)))
-			newVMSet[kv.Key]= newVMSet[kv.Key] - rmvVM
-			break
-		} else if nReplicas > cap && kv.Value > 0 {
-			newVMSet[kv.Key]= newVMSet[kv.Key] - 1
-			nReplicas -= cap
+		cap := maxReplicasCapacityInVM(p.mapVMProfiles[kv.Key], limits)
+		if  newVMSet.TotalVMs() > 1 {
+			if numberReplicas == cap && kv.Value > 0{
+				//Remove 1 VM of this type
+				newVMSet[kv.Key]= newVMSet[kv.Key] - 1
+				break
+			} else if numberReplicas > cap && kv.Value * cap > numberReplicas {
+				rmvVM := int(math.Floor(float64(numberReplicas /cap)))
+				newVMSet[kv.Key]= newVMSet[kv.Key] - rmvVM
+				break
+			} else if numberReplicas > cap && kv.Value > 0{
+				newVMSet[kv.Key]= newVMSet[kv.Key] - 1
+				numberReplicas -= cap
+			}
 		}
 	}
-
 	return  newVMSet
+}
+
+/*Return the Limit constraint of the current configuration
+	out:
+		Limit
+*/
+func (p TreePolicy) currentContainerLimits() types.Limit {
+	var limits types.Limit
+	for _,s := range p.currentState.Services {
+		limits.MemoryGB = s.Memory
+		limits.NumberCores = s.CPU
+	}
+	return limits
+}
+
+/*
+	in:
+		@currentLimits
+		@profileCurrentLimits
+		@newLimits
+		@profileNewLimits
+		@vmType
+		@containerResize
+	out:
+		@ContainersConfig
+		@error
+*/
+func (p TreePolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.TRNConfiguration,
+	newLimits types.Limit, profileNewLimits types.TRNConfiguration, containerResize bool) (TRNProfile, error) {
+
+	currentNumberReplicas := float64(profileCurrentLimits.NumberReplicas)
+	utilizationCurrent := (currentNumberReplicas * currentLimits.NumberCores)+(currentNumberReplicas * currentLimits.MemoryGB)
+
+	newNumberReplicas := float64(profileNewLimits.NumberReplicas)
+	utilizationNew := (newNumberReplicas * newLimits.NumberCores)+(newNumberReplicas * newLimits.MemoryGB)
+
+	if utilizationNew < utilizationCurrent && containerResize {
+		return TRNProfile{ResourceLimits:newLimits,
+			NumberReplicas:int(newNumberReplicas),
+			TRN:profileNewLimits.TRN,}, nil
+	} else {
+		return TRNProfile{ResourceLimits:currentLimits,
+			NumberReplicas:int(currentNumberReplicas),
+			TRN:profileCurrentLimits.TRN,}, nil
+	}
 }

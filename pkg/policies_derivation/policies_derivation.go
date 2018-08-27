@@ -3,7 +3,6 @@ package policies_derivation
 import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"github.com/Cloud-Pie/SPDT/util"
-	"github.com/Cloud-Pie/SPDT/config"
 	"time"
 	"github.com/Cloud-Pie/SPDT/rest_clients/scheduler"
 	"math"
@@ -12,6 +11,7 @@ import (
 	"strconv"
 	"github.com/op/go-logging"
 	"github.com/Cloud-Pie/SPDT/storage"
+	"github.com/Cloud-Pie/SPDT/config"
 )
 
 var log = logging.MustGetLogger("spdt")
@@ -182,6 +182,13 @@ func selectProfile(requests float64, underProvision bool) types.PerformanceProfi
 	return profiles[0]
 }
 
+func configurationCapacity(numberReplicas int, limits types.Limit) float64 {
+	serviceProfileDAO := storage.GetPerformanceProfileDAO()
+	profile,_ := serviceProfileDAO.FindProfileTRN(limits.NumberCores, limits.MemoryGB, numberReplicas)
+	currentLoadCapacity := profile.TRNConfiguration[0].TRN
+
+	return currentLoadCapacity
+}
 
 func mapToList(vmSet map[string]int)[]types.StructMap {
 	var ss [] types.StructMap

@@ -102,6 +102,16 @@ func (p *PerformanceProfileDAO) FindNewLimitsUnder(requests float64) ([]types.Pe
 	return performanceProfile,err
 }
 
+func (p *PerformanceProfileDAO) FindProfileTRN(cores float64, memory float64, numberReplicas int) (types.PerformanceProfile, error) {
+	var performanceProfile types.PerformanceProfile
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Find(bson.M{
+		"limits.cpu_cores" : cores,
+		"limits.mem_gb" : memory,
+		"trns": bson.M{"$elemMatch": bson.M{"replicas":bson.M{"$gte": numberReplicas}}}}).
+		Select(bson.M{"_id": 0, "limits":1, "trns.$":1}).One(&performanceProfile)
+	return performanceProfile,err
+}
+
 func GetPerformanceProfileDAO() *PerformanceProfileDAO {
 	if PerformanceProfileDB == nil {
 		PerformanceProfileDB = &PerformanceProfileDAO {

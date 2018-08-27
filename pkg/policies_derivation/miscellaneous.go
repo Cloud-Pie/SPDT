@@ -43,10 +43,10 @@ func (set *VMSet) setValues(mapVMProfiles map[string]types.VmProfile) {
 	set.TotalReplicasCapacity = totalCapacity
 }
 
-func computeCapacity(listVMProfiles *[]types.VmProfile, performanceProfile types.PerformanceProfile,  mapVMProfiles *map[string]types.VmProfile) {
+func computeCapacity(listVMProfiles *[]types.VmProfile, limits types.Limit,  mapVMProfiles *map[string]types.VmProfile) {
 	//calculate the capacity of services replicas to each VM type
 	for i,v := range *listVMProfiles {
-		cap := maxReplicasCapacityInVM(v,performanceProfile.Limit)
+		cap := maxReplicasCapacityInVM(v,limits)
 		(*listVMProfiles)[i].ReplicasCapacity = cap
 		profile := (*mapVMProfiles)[v.Type]
 		profile.ReplicasCapacity = cap

@@ -38,14 +38,12 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 	newPolicy.Metrics = types.PolicyMetrics {
 		StartTimeDerivation:time.Now(),
 	}
-
 	configurations := []types.Configuration{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
-	currentContainerLimits := p.currentContainerLimits()
 
 	for _, it := range processedForecast.CriticalIntervals {
-
+		currentContainerLimits := p.currentContainerLimits()
 		ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
 		ProfileNewLimits := selectProfile(it.Requests, false)
 
@@ -75,7 +73,7 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 		}
 
 		services := make(map[string]types.ServiceInfo)
-		services[ p.sysConfiguration.ServiceName] = types.ServiceInfo{
+		services[ p.sysConfiguration.ServiceName] = types.ServiceInfo {
 			Scale:  newNumServiceReplicas,
 			CPU:    limits.NumberCores,
 			Memory: limits.MemoryGB,
@@ -149,7 +147,6 @@ func (p StepRepackPolicy) FindSuitableVMs(numberReplicas int, resourcesLimit typ
 	out:
 		@ContainersConfig
 		@error
-
 */
 func (p StepRepackPolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.TRNConfiguration,
 	newLimits types.Limit, profileNewLimits types.TRNConfiguration, containerResize bool) (ContainersConfig, error) {
