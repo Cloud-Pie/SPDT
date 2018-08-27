@@ -1,37 +1,13 @@
 const policiesEndpoint = 'http://localhost:8083/api/policies/'
 const request_url = 'http://localhost:8083/api/forecast/5b70aab9780b410a1ccce3dc'
-const url_forecast_capacity = 'http://localhost:8083/api/forecast/5b73f235780b41401462afb3/5b73f453780b41428cabef03'
-
-app = {
-  spdInit: function(){
-      fetch(policiesEndpoint)
-          .then((response) => response.json())
-          .then(function (data){
-              units = getVirtualUnits(data)
-              plotVirtualUnits(units.time, units.vms, units.replicas)
-          })
-          .catch(function(err) {
-              console.log('Fetch Error :-S', err);
-          });
-  },
-  capacity: function() {
-        fetch(url_forecast_capacity)
-            .then((response) => response.json())
-            .then(function (data2){
-                plotCapacity(data2)
-            })
-            .catch(function(err) {
-                console.log('Fetch Error :-S', err);
-            });
-    },
-};
-
+const url_forecast_capacity = 'http://localhost:8083/api/forecast/5b82c61f780b411f94d7d674'
 
 function getVirtualUnits(data){
     console.log(data)
     time = [];
     vms = [];
     replicas = [];
+    TRN = [];
     arrayConfig = data.configuration
     arrayConfig.forEach(function (conf) {
         time.push(conf.TimeStart)
@@ -44,11 +20,13 @@ function getVirtualUnits(data){
         for (var key in services) {
             replicas.push(services[key].Scale)
         }
+        TRN.push(conf.Metrics.CapacityTRN)
     })
    return {
         time: time,
         vms: vms,
-        replicas: replicas
+        replicas: replicas,
+        trn: TRN
     }
 }
 
@@ -82,19 +60,21 @@ function plotVirtualUnits(time, vms, replicas) {
     Plotly.newPlot('virtualUnits', data,layout);
 }
 
-function plotCapacity(time, demand, supply){
+function plotCapacity(time, demand, supply, timeSuply){
     var trace1 = {
         x: time,
         y: demand,
         name: 'Demand',
-        type: 'scatter'
+        type: 'scatter',
+        line: {shape: 'spline'}
     };
 
     var trace2 = {
-        x: time,
+        x: timeSuply,
         y: supply,
         name: 'Supply',
-        type: 'scatter'
+        type: 'scatter',
+        line: {shape: 'hv'}
     };
 
     var layout = {
@@ -113,7 +93,7 @@ function plotCapacity(time, demand, supply){
 function searchByID() {
     var policyId = document.getElementById("searchpolicyid").value;
     requestURL=policiesEndpoint+policyId
-
+    var units
     fetch(requestURL)
         .then((response) => response.json())
         .then(function (data){
@@ -121,10 +101,22 @@ function searchByID() {
             plotVirtualUnits(units.time, units.vms, units.replicas)
             fillData(data)
             fillParameters(data)
+
+            fetch(url_forecast_capacity)
+                .then((response) => response.json())
+                .then(function (data){
+                    plotCapacity(data.Timestamp, data.Requests, units.trn, units.time)
+                })
+                .catch(function(err) {
+                    console.log('Fetch Error :-S', err);
+                });
+
         })
         .catch(function(err) {
             console.log('Fetch Error :-S', err);
         });
+
+
 }
 
 function searchByTimestamp() {
@@ -141,11 +133,11 @@ function searchByTimestamp() {
         });
 }
 
-function fillCandidateTable(policyCandidates) {
-    $("tBodyCandidates").children().remove()
+function fillCandidateTable(policyCandidates){
+    $("#tBodyCandidates").children().remove()
     for(var i = 0; i < policyCandidates.length; i++) {
         $("#tCandidates > tbody").append("<tr>" +
-            "<td>"+policyCandidates[i].id+"</td>" +
+            "<td onclick=\"clickedRaw(this);\">"+policyCandidates[i].id+"</td>" +
             "<td>"+policyCandidates[i].algorithm+"</td>" +
             "<td>"+policyCandidates[i].metrics.Cost+"</td>" +
             "<td>"+policyCandidates[i].Status+"</td>" +
@@ -165,10 +157,20 @@ function fillData(policy){
 }
 
 function fillParameters(policy){
+    $("#lParameters").children().remove()
+
+    $("#lParameters").append(
+        "<li>"+"Algorithm:"+"<span>"+policy.algorithm+"</span></li>");
+
+
     parameters = policy.Parameters
-    console.log(parameters)
     for (var key in parameters) {
         $("#lParameters").append(
             "<li>"+key+":"+"<span>"+parameters[key]+"</span></li>");
     }
+}
+
+function clickedRaw(item){
+   var id = item.value
+  console.log(id)
 }

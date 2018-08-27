@@ -85,7 +85,7 @@ footer {
   left: 0;
   position: relative;
   float: right;
-  background-color: #f5f5fa; }
+  background-color: #ffffff; }
 
 #wrapper #sidebar-nav,
 #wrapper .main {
@@ -170,7 +170,7 @@ html.fullscreen-bg #wrapper {
   padding: 0;
   margin: 0;
   border: none;
-  background-color: #fff; }
+  background-color: #000000; }
   .navbar-default .navbar-nav > .open > a, .navbar-default .navbar-nav > .open > a:hover, .navbar-default .navbar-nav > .open > a:focus {
     background-color: #fafafa; }
   .navbar-default .navbar-toggle, .navbar-default .navbar-toggle:hover, .navbar-default .navbar-toggle:focus {
@@ -178,7 +178,7 @@ html.fullscreen-bg #wrapper {
   .navbar-default .brand {
     float: left;
     padding: 30px 39px;
-    background-color: #fff; }
+    background-color: #000000; }
   @media screen and (max-width: 1024px) {
     .navbar-default .brand {
       padding-left: 30px;
@@ -631,11 +631,11 @@ fieldset[disabled] .btn {
   -moz-box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   -webkit-box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  background-color: #fff;
   margin-bottom: 30px; }
   .panel .panel-heading,
   .panel .panel-body,
   .panel .panel-footer {
+    background-color: #ffffff;
     padding-left: 25px;
     padding-right: 25px; }
   .panel .panel-heading {
@@ -717,6 +717,7 @@ fieldset[disabled] .btn {
   border-radius: 3px;
   padding: 20px;
   margin-bottom: 30px;
+  background-color: #ffffff;
   border: 1px solid #DCE6EB; }
   .metric .icon {
     -webkit-border-radius: 50%;
@@ -1764,4 +1765,3 @@ ul.activity-timeline > li {
     width: 22px;
     border: 1px solid #CCC; }
 
-/*# sourceMappingURL=main.css.map */

@@ -25,7 +25,8 @@ func SetUpServer( fc chan types.Forecast ) *gin.Engine {
 	router.DELETE("/api/policies/:id", deletePolicyByID)
 	router.DELETE("/api/policies", deletePolicyWindow)
 	router.PUT("/api/policies/:id", invalidatePolicyByID)
-	router.GET("/api/forecast/:id/:id2", getRequests)
+	router.GET("/api/forecast/:id", getRequests)
+	router.GET("/api/test", getTRN)
 
 	return router
 }
@@ -67,7 +68,7 @@ func deletePolicyByID(c *gin.Context) {
 }
 
 // This handler retrieve information of all policies that match the query paramenters
-// The request responds to a url matching:  /api/policies?start=2018-08-07T20:28:20&end=2018-08-07T20:28:20
+// The request responds to a policiesEndpoint matching:  /api/policies?start=2018-08-07T20:28:20&end=2018-08-07T20:28:20
 func getPolicies(c *gin.Context) {
 	windowTimeStart := c.DefaultQuery("start", "")
 	windowTimeEnd := c.DefaultQuery("end","")
@@ -110,7 +111,7 @@ func getPolicies(c *gin.Context) {
 }
 
 // This handler delete policy that match the query paramenters
-// The request responds to a url matching:  /api/policies?start=2018-08-07T20:28:20&end=2018-08-07T20:28:20
+// The request responds to a policiesEndpoint matching:  /api/policies?start=2018-08-07T20:28:20&end=2018-08-07T20:28:20
 func deletePolicyWindow(c *gin.Context) {
 	windowTimeStart := c.DefaultQuery("start", "")
 	windowTimeEnd := c.DefaultQuery("end","")
@@ -178,9 +179,8 @@ func userInterface(c *gin.Context) {
 func getRequests(c *gin.Context) {
 
 	type data struct {
-		Timestamp 	time.Time
-		Requests 	float64
-		Capacity	float64
+		Timestamp 	[]time.Time
+		Requests 	[]float64
 	}
 
 	id := c.Param("id")
@@ -192,37 +192,58 @@ func getRequests(c *gin.Context) {
 	forecastDAO.Connect()
 	forecast,err := forecastDAO.FindByID(id)
 
-	id = c.Param("id2")
+	/*id = c.Param("id2")
 	policyDAO := db.PolicyDAO{
 		Server:util.DEFAULT_DB_SERVER_POLICIES,
 		Database:util.DEFAULT_DB_POLICIES,
-	}
-	policyDAO.Connect()
-	policy,err := policyDAO.FindByID(id)
+	}*/
 
-	datalist := []data{}
-	currentConfig := 0
+	timestamps :=[]time.Time{}
+	forecastedValues :=[]float64{}
+
+
+	/*policyDAO.Connect()
+	policy,err := policyDAO.FindByID(id)
+	/*currentConfig := 0
 	configurations := policy.Configurations
-	var cap float64
+	var cap float64*/
+
 	for _,v := range forecast.ForecastedValues {
-		if configurations[currentConfig].TimeEnd.After(v.TimeStamp){
+		/*if configurations[currentConfig].TimeEnd.After(v.TimeStamp){
 			cap = configurations[currentConfig].Metrics.CapacityTRN
 		} else {
 			currentConfig+=1
 			if currentConfig < len(configurations) -1 {
 				cap = configurations[currentConfig].Metrics.CapacityTRN
 			}
-		}
-		datalist = append(datalist,
-			data{
-					Timestamp:v.TimeStamp,
-					Requests:v.Requests,
-					Capacity:cap,
-				},
-			)
+		}*/
+		timestamps = append(timestamps, v.TimeStamp)
+		forecastedValues = append(forecastedValues, v.Requests)
 	}
 	if err != nil {
 		c.JSON(http.StatusBadRequest, err.Error())
 	}
-	c.JSON(http.StatusOK, datalist)
+
+	output := data{
+		Timestamp:timestamps,
+		Requests:forecastedValues,
+	}
+
+	c.JSON(http.StatusOK, output)
+}
+
+func getTRN(c *gin.Context) {
+	cpu := 1.0
+	mem := 0.5
+	rep := 1
+
+	profileDAO := db.PerformanceProfileDAO{
+		Server:util.DEFAULT_DB_SERVER_PROFILES,
+		Database:util.DEFAULT_DB_PROFILES,
+	}
+	profileDAO.Connect()
+
+	profileDAO.FindProfileTRN(cpu, mem, rep)
+
+	c.JSON(http.StatusOK, "")
 }
