@@ -43,6 +43,13 @@ func (set *VMSet) setValues(mapVMProfiles map[string]types.VmProfile) {
 	set.TotalReplicasCapacity = totalCapacity
 }
 
+
+/* Compute the maximum capacity regarding the number of replicas hosted in each VM type
+	in:
+		@listVMProfiles
+		@limits
+		@mapVMProfiles
+*/
 func computeCapacity(listVMProfiles *[]types.VmProfile, limits types.Limit,  mapVMProfiles *map[string]types.VmProfile) {
 	//calculate the capacity of services replicas to each VM type
 	for i,v := range *listVMProfiles {
@@ -54,7 +61,11 @@ func computeCapacity(listVMProfiles *[]types.VmProfile, limits types.Limit,  map
 	}
 }
 
-//calculate the capacity of services replicas to each VM type
+/* Compute the maximum capacity regarding the number of replicas hosted in each VM type
+	in:
+		@limits
+		@mapVMProfiles
+*/
 func computeVMsCapacity(limits types.Limit,  mapVMProfiles *map[string]types.VmProfile) {
 	for _,v := range *mapVMProfiles {
 		cap := maxReplicasCapacityInVM(v,limits)
@@ -64,6 +75,12 @@ func computeVMsCapacity(limits types.Limit,  mapVMProfiles *map[string]types.VmP
 	}
 }
 
+/* Build a map taking as input a list
+	in:
+		@listVMProfiles
+	out:
+		@map[string]types.VmProfile
+*/
 func VMListToMap(listVMProfiles []types.VmProfile) map[string]types.VmProfile{
 	mapVMProfiles := make(map[string]types.VmProfile)
 	for _,p := range listVMProfiles {
@@ -72,7 +89,26 @@ func VMListToMap(listVMProfiles []types.VmProfile) map[string]types.VmProfile{
 	return mapVMProfiles
 }
 
-//Creates a map duplicate
+/* Build a list of maps
+	in:
+		@map[string]int - Map with VM type as key and number of VMs of that VM type as value
+	out:
+		@[]types.VmProfile - List of key values
+*/
+func mapToList(vmSet map[string]int)[]types.StructMap {
+	var ss [] types.StructMap
+	for k, v := range vmSet {
+		ss = append(ss, types.StructMap{k, v})
+	}
+	return ss
+}
+
+/* Duplicate a map
+	in:
+		@map[string]int
+	out:
+		@map[string]int
+*/
 func copyMap(m map[string]int) map[string]int {
 	newM := make(map[string] int)
 	for k,v := range m {
@@ -81,13 +117,14 @@ func copyMap(m map[string]int) map[string]int {
 	return newM
 }
 
-//Compare 2 VM Sets
-//Params:
-// - currentVMSet: current configuration of VMs
-// - candidateVMSet: set of VMs to which a reconfiguration could be possible
-// Output:
-// - Set of VMs that were added
-// - Set of VMs that were removed
+/* compare the changes (vms added, vms removed) from one VM set to a candidate VM set
+	in:
+		@current	- Map with current VM cluster
+		@candidate	- Map with candidate VM cluster
+	out:
+		@VMScale	- Map with VM cluster of the VMs that were added into the candidate VM set
+		@VMScale	- Map with VM cluster of the VMs that were removed from the candidate VM set
+*/
 func deltaVMSet(current types.VMScale, candidate types.VMScale) (types.VMScale, types.VMScale){
 	delta := types.VMScale{}
 	startSet := types.VMScale{}
@@ -117,7 +154,10 @@ func deltaVMSet(current types.VMScale, candidate types.VMScale) (types.VMScale, 
 	return startSet, shutdownSet
 }
 
-//Removes the keys of a map that have as value 0
+/* Remove the keys from a map where the value is zero
+	in:
+		@m	- Map
+*/
 func cleanKeys(m map[string]int){
 	for k,v := range m {
 		if v == 0 {

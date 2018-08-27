@@ -190,14 +190,6 @@ func configurationCapacity(numberReplicas int, limits types.Limit) float64 {
 	return currentLoadCapacity
 }
 
-func mapToList(vmSet map[string]int)[]types.StructMap {
-	var ss [] types.StructMap
-	for k, v := range vmSet {
-		ss = append(ss, types.StructMap{k, v})
-	}
-	return ss
-}
-
 func setConfiguration(configurations *[]types.Configuration, state types.State, timeStart time.Time, timeEnd time.Time, name string, totalServicesBootingTime int, sysConfiguration config.SystemConfiguration, stateLoadCapacity float64) {
 	nConfigurations := len(*configurations)
 	if nConfigurations >= 1 && state.Equal((*configurations)[nConfigurations-1].State) {
