@@ -150,7 +150,7 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 		profile,err = serviceProfileDAO.FindByLimitsUnder(limits.NumberCores, limits.MemoryGB, requests)
 	} else {
 		profile,err = serviceProfileDAO.FindByLimitsOver(limits.NumberCores, limits.MemoryGB, requests)
-		if err != nil {
+		if len(profile.TRNConfiguration)==0 || err != nil {
 			//TODO: Fix - Temporal solution to ensure that always there is a result
 			profile,err = serviceProfileDAO.FindByLimitsUnder(limits.NumberCores, limits.MemoryGB, requests)
 		}
