@@ -17,7 +17,7 @@ func computePolicyCost(policy types.Policy, billingUnit string, mapVMProfiles ma
 	totalCost := 0.0
 	for cfi,cf := range policy.Configurations {
 		configurationCost := computeConfigurationCost(cf, billingUnit, mapVMProfiles)
-		policy.Configurations[cfi].Metrics.Cost = configurationCost
+		policy.Configurations[cfi].Metrics.Cost = math.Ceil(configurationCost*100)/100
 		totalCost += configurationCost
 	}
 	return totalCost
