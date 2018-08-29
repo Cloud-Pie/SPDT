@@ -7,13 +7,15 @@ COPY . .
 # install dependencies
 RUN dep ensure
 # build the source
-RUN cd cmd/spd && CGO_ENABLED=0 GOOS=linux go build
+RUN CGO_ENABLED=0 GOOS=linux go build
 
 # use a minimal image
 FROM ubuntu:16.04
 # set working directory
 WORKDIR /root
 # copy the binary from builder
-COPY --from=builder /go/src/app/cmd/spd/config.yml /go/src/app/cmd/spd/prices_test.yml /go/src/app/cmd/spd/spd ./
-# run the binary
-CMD ["./spd"]
+COPY --from=builder /go/src/app/config.yml /go/src/app/SPDT.exe ./
+# Document that the service listens on port 8080.
+EXPOSE 8082
+# Run the  command by default when the container starts.
+CMD ["./SPDT"]
