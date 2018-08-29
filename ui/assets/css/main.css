@@ -715,8 +715,8 @@ fieldset[disabled] .btn {
   -webkit-border-radius: 3px;
   -moz-border-radius: 3px;
   border-radius: 3px;
-  padding: 20px;
-  margin-bottom: 30px;
+  padding: 10px;
+  margin-bottom: 10px;
   background-color: #ffffff;
   border: 1px solid #DCE6EB; }
   .metric .icon {
@@ -724,9 +724,9 @@ fieldset[disabled] .btn {
     -moz-border-radius: 50%;
     border-radius: 50%;
     float: left;
-    width: 50px;
-    height: 50px;
-    line-height: 50px;
+    width: 40px;
+    height: 40px;
+    line-height: 30px;
     background-color: #0081c2;
     text-align: center; }
     .metric .icon i {
@@ -738,8 +738,8 @@ fieldset[disabled] .btn {
     text-align: right; }
   .metric .number {
     display: block;
-    font-size: 28px;
-    font-weight: 300; }
+    font-size: 18px;
+    font-weight: 200; }
   .metric .title {
     font-size: 16px; }
 

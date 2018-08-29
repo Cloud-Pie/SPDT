@@ -7,6 +7,8 @@ function getVirtualUnits(data){
     vms = [];
     replicas = [];
     TRN = [];
+    cpuCores = [];
+    memGB = [];
     arrayConfig = data.configuration
     arrayConfig.forEach(function (conf) {
         time.push(conf.TimeStart)
@@ -18,6 +20,8 @@ function getVirtualUnits(data){
         services = conf.State.Services
         for (var key in services) {
             replicas.push(services[key].Scale)
+            cpuCores.push(services[key].CPU * services[key].Scale)
+            memGB.push(services[key].Memory * services[key].Scale)
         }
         TRN.push(conf.Metrics.CapacityTRN)
     })
@@ -25,7 +29,9 @@ function getVirtualUnits(data){
         time: time,
         vms: vms,
         replicas: replicas,
-        trn: TRN
+        trn: TRN,
+        cpuCores: cpuCores,
+        memGB: memGB
     }
 }
 
@@ -89,8 +95,40 @@ function plotCapacity(time, demand, supply, timeSuply){
     Plotly.newPlot('requestsUnits', data,layout);
 }
 
-function searchByID() {
-    var policyId = document.getElementById("searchpolicyid").value;
+function plotMemCPU(time, memGB, cpuCores) {
+    var trace1 = {
+        x: time,
+        y: memGB,
+        type: 'scatter',
+        name: 'Mem GB',
+
+    };
+
+    var trace2 = {
+        x: time,
+        y: cpuCores,
+        type: 'scatter',
+        name: 'CPU Cores',
+
+    };
+
+    var layout = {
+        title: 'Utilization',
+        autosize:true,
+        margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
+        paper_bgcolor:'rgba(0,0,0,0)',
+        plot_bgcolor:'rgba(0,0,0,0)',
+        width: 640,
+        height: 200
+    };
+    var data = [trace1, trace2];
+    Plotly.newPlot('resourceUtilization', data,layout);
+}
+
+function searchByID(policyId) {
+    if (policyId == null) {
+        policyId = document.getElementById("searchpolicyid").value;
+    }
 
     requestURL=policiesEndpoint+policyId
     var units
@@ -101,6 +139,7 @@ function searchByID() {
             var timeEnd = new Date( data.window_time_end).toISOString();
             units = getVirtualUnits(data)
             plotVirtualUnits(units.time, units.vms, units.replicas)
+            plotMemCPU(units.time, units.memGB, units.cpuCores)
             fillData(data)
             fillParameters(data)
             let params = {
@@ -153,16 +192,27 @@ function searchByTimestamp() {
         });
 }
 
-function fillCandidateTable(policyCandidates){
+function fillCandidateTable(policyCandidates) {
     $("#tBodyCandidates").children().remove()
     for(var i = 0; i < policyCandidates.length; i++) {
         $("#tCandidates > tbody").append("<tr>" +
-            "<td onclick=\"clickedRaw(this);\">"+policyCandidates[i].id+"</td>" +
+            "<td>"+policyCandidates[i].id+"</td>" +
             "<td>"+policyCandidates[i].algorithm+"</td>" +
             "<td>"+policyCandidates[i].metrics.Cost+"</td>" +
             "<td>"+policyCandidates[i].Status+"</td>" +
             "</tr>");
     }
+
+    $("tr").click(function() {
+        var id = $(this).find('td:first').text()
+        var x = document.getElementById("multiplePolicyDiv");
+        x.style.display = "none";
+        var y = document.getElementById("singlePolicyDiv");
+        if (y.style.display === "none") {
+            y.style.display = "block";
+        }
+        searchByID(id)
+    });
 }
 
 function fillData(policy){
@@ -190,7 +240,12 @@ function fillParameters(policy){
     }
 }
 
-function clickedRaw(item){
-   var id = item.value
-  console.log(id)
+function clickedCompareAll(){
+    var x = document.getElementById("singlePolicyDiv");
+    x.style.display = "none";
+
+    var y = document.getElementById("multiplePolicyDiv");
+    if (y.style.display === "none") {
+        y.style.display = "block";
+    }
 }

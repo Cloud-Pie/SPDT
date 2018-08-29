@@ -130,67 +130,111 @@
 					</div>
 					<!-- OVERVIEW -->
                     <div class="row">
-						<div class="col-md-4">
+						<div class="col-md-5">
 							<!-- DETAILS -->
-							<div class="panel panel-headline">
-								<div class="panel-heading">
-									<h3 class="panel-title">Policy ID: <label id="policyid"></label> </h3>
-									<p class="panel-subtitle">Period: <label id="startperiod"></label>  - <label id="endperiod"></label> </p>
+							<div class="row" id="detailsDiv">
+								<div class="panel panel-headline">
+									<div class="panel-heading">
+										<h3 class="panel-title">Policy ID: <label id="policyid"></label> </h3>
+										<p class="panel-subtitle">Period: <label id="startperiod"></label>  - <label id="endperiod"></label> </p>
+									</div>
+									<div class="panel-body">
+										<ul class="list-unstyled list-justify" id="lParameters">
+										</ul>
+									</div>
 								</div>
-								<div class="panel-body">
-									<ul class="list-unstyled list-justify" id="lParameters">
-									</ul>
-								</div>
+                            </div>
+							<div class="row" id="candidatesDiv">
+                                <div class="panel">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Policy Candidates</h3>
+                                    </div>
+                                    <div class="panel-body no-padding">
+                                        <table class="table" id="tCandidates">
+                                            <thead>
+                                            <tr>
+                                                <th>Policy ID</th>
+                                                <th>Algorithm</th>
+                                                <th>Cost</th>
+                                                <th>Status</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody id="tBodyCandidates"></tbody>
+                                        </table>
+                                    </div>
+                                    <div class="panel-footer">
+                                        <div class="row">
+                                            <span class="input-group-btn"><button type="button" class="btn btn-primary" onclick="clickedCompareAll()">Compare All</button></span>
+                                        </div>
+                                    </div>
+                                </div>
+
 							</div>
 							<!-- END DETAILS -->
 						</div>
-						<div class="col-md-8">
-							<div class="panel">
-								<div class="panel-body">
-										<div class="row">
-												<div id="virtualUnits" class="ct-chart"></div>
-										</div>
-										<div class="row">
-												<div id="requestsUnits" class="ct-chart"></div>
-										</div>
-								</div>
-							</div>
-						</div>
+
+                        <div class="col-md-6" id="singlePolicyDiv">
+                            <div class="row">
+                                <div class="panel">
+                                    <div class="panel-body">
+                                            <div id="requestsUnits" class="ct-chart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="panel">
+                                    <div class="panel-body">
+                                            <div id="virtualUnits" class="ct-chart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="panel">
+                                    <div class="panel-body">
+                                        <div id="resourceUtilization" class="ct-chart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="multiplePolicyDiv">
+                            <div class="row">
+                                <div class="panel">
+                                    <div class="panel-body">
+                                        <div id="requestsUnits" class="ct-chart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="panel">
+                                    <div class="panel-body">
+                                        <div id="vmUnitsAll" class="ct-chart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="panel">
+                                    <div class="panel-body">
+                                        <div id="replicaUnitsAll" class="ct-chart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="panel">
+                                    <div class="panel-body">
+                                        <div id="cpuUtilizationAll" class="ct-chart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="panel">
+                                    <div class="panel-body">
+                                        <div id="memoryUtilizationAll" class="ct-chart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 					</div>
 					<!-- END OVERVIEW -->
-					<div class="row">
-						<div class="col-md-12">
-							<!-- POLICY CANDIDATES -->
-							<div class="panel">
-								<div class="panel-heading">
-									<h3 class="panel-title">Policy Candidates</h3>
-									<div class="right">
-										<button type="button" class="btn-toggle-collapse"><i class="lnr lnr-chevron-up"></i></button>
-										<button type="button" class="btn-remove"><i class="lnr lnr-cross"></i></button>
-									</div>
-								</div>
-								<div class="panel-body no-padding">
-									<table class="table" id="tCandidates">
-										<thead>
-											<tr>
-												<th>Policy ID</th>
-												<th>Algorithm</th>
-												<th>Cost</th>
-                                                <th>Status</th>
-											</tr>
-										</thead>
-										<tbody id="tBodyCandidates"></tbody>
-									</table>
-								</div>
-								<div class="panel-footer">
-									<div class="row">
-										<div class="col-md-6 text-right"><a href="#" class="btn btn-primary">View Selected Policy</a></div>
-									</div>
-								</div>
-							</div>
-							<!-- END POLICY OVERVIEW -->
-						</div>
-					</div>
 				</div>
 			</div>
 			<!-- END MAIN CONTENT -->
@@ -225,6 +269,11 @@
             });
         });
     </script>
+
+	<script>
+        var x = document.getElementById("multiplePolicyDiv");
+        x.style.display = "none"
+	</script>
 </body>
 
 </html>
