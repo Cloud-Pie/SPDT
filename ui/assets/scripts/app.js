@@ -1,6 +1,5 @@
 const policiesEndpoint = 'http://localhost:8083/api/policies/'
-const request_url = 'http://localhost:8083/api/forecast/5b70aab9780b410a1ccce3dc'
-const url_forecast_capacity = 'http://localhost:8083/api/forecast/5b82c61f780b411f94d7d674'
+const forecastRequestsEndpoint = 'http://localhost:8083/api/forecast?'
 
 function getVirtualUnits(data){
     console.log(data)
@@ -92,17 +91,29 @@ function plotCapacity(time, demand, supply, timeSuply){
 
 function searchByID() {
     var policyId = document.getElementById("searchpolicyid").value;
+
     requestURL=policiesEndpoint+policyId
     var units
     fetch(requestURL)
         .then((response) => response.json())
         .then(function (data){
+            var timeStart = new Date(data.window_time_start).toISOString();
+            var timeEnd = new Date( data.window_time_end).toISOString();
             units = getVirtualUnits(data)
             plotVirtualUnits(units.time, units.vms, units.replicas)
             fillData(data)
             fillParameters(data)
+            let params = {
+                "start": timeStart,
+                "end": timeEnd
+            }
+            let esc = encodeURIComponent
+            let query = Object.keys(params)
+                .map(k => esc(k) + '=' + esc(params[k]))
+                .join('&')
 
-            fetch(url_forecast_capacity)
+            url_forecast = forecastRequestsEndpoint + query
+            fetch(url_forecast)
                 .then((response) => response.json())
                 .then(function (data){
                     plotCapacity(data.Timestamp, data.Requests, units.trn, units.time)
@@ -110,7 +121,6 @@ function searchByID() {
                 .catch(function(err) {
                     console.log('Fetch Error :-S', err);
                 });
-
         })
         .catch(function(err) {
             console.log('Fetch Error :-S', err);
@@ -120,10 +130,20 @@ function searchByID() {
 }
 
 function searchByTimestamp() {
-    var timeStart = document.getElementById("datetimestart").value;
-    var timeEnd = document.getElementById("datetimeend").value;
-    requestURL=policiesEndpoint
-    fetch(requestURL)
+    var timeStart = new Date(document.getElementById("datetimestart").value).toISOString();
+    var timeEnd = new Date(document.getElementById("datetimeend").value).toISOString();
+    let params = {
+        "start": timeStart,
+        "end": timeEnd
+    }
+    let esc = encodeURIComponent
+    let query = Object.keys(params)
+        .map(k => esc(k) + '=' + esc(params[k]))
+        .join('&')
+
+    requestURL = forecastRequestsEndpoint + query
+
+    fetch(policiesEndpoint)
         .then((response) => response.json())
         .then(function (data){
             fillCandidateTable(data)

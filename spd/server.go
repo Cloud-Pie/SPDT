@@ -17,15 +17,15 @@ func SetUpServer( fc chan types.Forecast ) *gin.Engine {
 	router := gin.Default()
 	router.Static("/assets", "./ui/assets")
 	router.LoadHTMLGlob("ui/*.html")
-	router.GET("/api/forecast", serverCall)
+	router.POST("/api/policies", serverCall)
 	router.GET("/ui", userInterface)
-	router.PUT("/api/forecast", updateForecast)
+	router.PUT("/api/policies", updateForecast)
 	router.GET("/api/policies/:id", policyByID)
 	router.GET("/api/policies", getPolicies)
 	router.DELETE("/api/policies/:id", deletePolicyByID)
 	router.DELETE("/api/policies", deletePolicyWindow)
 	router.PUT("/api/policies/:id", invalidatePolicyByID)
-	router.GET("/api/forecast/:id", getRequests)
+	router.GET("/api/forecast", getRequests)
 	router.GET("/api/test", getTRN)
 
 	return router
@@ -177,73 +177,54 @@ func userInterface(c *gin.Context) {
 
 
 func getRequests(c *gin.Context) {
+	windowTimeStart := c.DefaultQuery("start", "")
+	windowTimeEnd := c.DefaultQuery("end","")
 
 	type data struct {
 		Timestamp 	[]time.Time
 		Requests 	[]float64
 	}
 
-	id := c.Param("id")
-
 	forecastDAO := db.ForecastDAO{
 		Server:util.DEFAULT_DB_SERVER_FORECAST,
 		Database:util.DEFAULT_DB_FORECAST,
 	}
 	forecastDAO.Connect()
-	forecast,err := forecastDAO.FindByID(id)
-
-	/*id = c.Param("id2")
-	policyDAO := db.PolicyDAO{
-		Server:util.DEFAULT_DB_SERVER_POLICIES,
-		Database:util.DEFAULT_DB_POLICIES,
-	}*/
 
 	timestamps :=[]time.Time{}
 	forecastedValues :=[]float64{}
 
-
-	/*policyDAO.Connect()
-	policy,err := policyDAO.FindByID(id)
-	/*currentConfig := 0
-	configurations := policy.Configurations
-	var cap float64*/
-
-	for _,v := range forecast.ForecastedValues {
-		/*if configurations[currentConfig].TimeEnd.After(v.TimeStamp){
-			cap = configurations[currentConfig].Metrics.CapacityTRN
+	if windowTimeStart != "" && windowTimeEnd != "" {
+		startTime, err := time.Parse(util.STD_TIME_LAYOUT, windowTimeStart)
+		endTime, err := time.Parse(util.STD_TIME_LAYOUT, windowTimeEnd)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, err.Error())
 		} else {
-			currentConfig+=1
-			if currentConfig < len(configurations) -1 {
-				cap = configurations[currentConfig].Metrics.CapacityTRN
+			forecast,err := forecastDAO.FindOneByTimeWindow(startTime, endTime)
+			if err != nil {
+				c.JSON(http.StatusOK, err.Error())
 			}
-		}*/
-		timestamps = append(timestamps, v.TimeStamp)
-		forecastedValues = append(forecastedValues, v.Requests)
-	}
-	if err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
-	}
+			for _,v := range forecast.ForecastedValues {
+				timestamps = append(timestamps, v.TimeStamp)
+				forecastedValues = append(forecastedValues, v.Requests)
+			}
+			output := data{
+				Timestamp:timestamps,
+				Requests:forecastedValues,
+			}
+			c.JSON(http.StatusOK, output)
+		}
 
-	output := data{
-		Timestamp:timestamps,
-		Requests:forecastedValues,
+	}else {
+		c.JSON(http.StatusBadRequest, "Missing parameters [start,end]")
 	}
-
-	c.JSON(http.StatusOK, output)
 }
 
 func getTRN(c *gin.Context) {
-	cpu := 1.0
-	mem := 0.5
-	rep := 1
+	dao := db.GetForecastDAO()
+	startTime, _ := time.Parse(util.STD_TIME_LAYOUT, "2019-08-08T05:24:00.000Z")
+	endTime, _ := time.Parse(util.STD_TIME_LAYOUT, "2019-08-09T05:25:00.000Z")
+	f, _ := dao.FindOneByTimeWindow(startTime, endTime)
 
-	profileDAO := db.PerformanceProfileDAO{
-		Server:util.DEFAULT_DB_SERVER_PROFILES,
-		Database:util.DEFAULT_DB_PROFILES,
-	}
-	profileDAO.Connect()
-
-	profileDAO.FindProfileTRN(cpu, mem, rep)
-
-	c.JSON(http.StatusOK, "")
+	c.JSON(http.StatusOK, f)
 }

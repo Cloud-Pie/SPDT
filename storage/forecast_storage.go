@@ -66,9 +66,29 @@ func (p *ForecastDAO) Update(id bson.ObjectId, forecast types.Forecast) error {
 //Retrieve all policies for start time greater than or equal to time t
 func (p *ForecastDAO) FindOneByTimeWindow(startTime time.Time, endTime time.Time) (types.Forecast, error) {
 	var forecast types.Forecast
+	//Search for that retrieves exact time window
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_FORECAST).
-		Find(bson.M{"window_time_start": bson.M{"$eq":startTime},
-		"window_time_end": bson.M{"$eq":endTime}}).One(&forecast)
+		Find(bson.M{"window_time_start": bson.M{"$gte":startTime},
+					"window_time_end": bson.M{"$lte":endTime}}).One(&forecast)
+
+	//If user specified search parameters which are not precise, then search the closest time window
+	if err != nil {
+		err = p.db.C(util.DEFAULT_DB_COLLECTION_FORECAST).
+			Find(bson.M{"window_time_start": bson.M{"$gte":startTime, "$lte":endTime},
+			"window_time_end": bson.M{"$gte":endTime}}).One(&forecast)
+
+		if err != nil {
+			err = p.db.C(util.DEFAULT_DB_COLLECTION_FORECAST).
+				Find(bson.M{"window_time_start": bson.M{"$lte":startTime},
+				"window_time_end": bson.M{"$lte":endTime, "$gte":startTime}}).One(&forecast)
+
+			if err != nil {
+				err = p.db.C(util.DEFAULT_DB_COLLECTION_FORECAST).
+					Find(bson.M{"window_time_start": bson.M{"$lte":startTime},
+					"window_time_end": bson.M{"$gte":endTime}}).One(&forecast)
+			}
+		}
+	}
 	return forecast,err
 }
 
