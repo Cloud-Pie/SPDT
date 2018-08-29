@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/Cloud-Pie/SPDT/config"
 	misc "github.com/Cloud-Pie/SPDT/pkg/policies_derivation"
+	"math"
 )
 
 func SelectPolicy(policies *[]types.Policy, sysConfig config.SystemConfiguration, vmProfiles []types.VmProfile, forecast types.Forecast)(types.Policy, error) {
@@ -12,7 +13,8 @@ func SelectPolicy(policies *[]types.Policy, sysConfig config.SystemConfiguration
 	mapVMProfiles := misc.VMListToMap(vmProfiles)
 	//Calculate total cost of the policy
 	for i := range *policies {
-		(*policies)[i].Metrics.Cost = computePolicyCost((*policies)[i],sysConfig.PricingModel.BillingUnit, mapVMProfiles)
+		cost := computePolicyCost((*policies)[i],sysConfig.PricingModel.BillingUnit, mapVMProfiles)
+		(*policies)[i].Metrics.Cost = math.Ceil(cost*100)/100
 	}
 	//Sort policies based on price
 	sort.Slice(*policies, func(i, j int) bool {
