@@ -24,8 +24,8 @@ func SelectPolicy(policies *[]types.Policy, sysConfig config.SystemConfiguration
 	//Calculate total cost of the policy
 	for i := range *policies {
 		over, under := computeMetricsCapacity(&(*policies)[i].Configurations,forecast.ForecastedValues)
-		(*policies)[i].Metrics.OverProvision = over
-		(*policies)[i].Metrics.UnderProvision = under
+		(*policies)[i].Metrics.OverProvision = math.Ceil(over*100)/100
+		(*policies)[i].Metrics.UnderProvision = math.Ceil(under*100)/100
 	}
 
 	if len(*policies) >0 {
