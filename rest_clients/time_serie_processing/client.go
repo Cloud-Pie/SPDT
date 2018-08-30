@@ -18,10 +18,10 @@ type ResponsePoI struct {
 }
 
 
-func ProcessData(values []float64, threshold int, endpoint string) ([]types.PoI, error){
+func ProcessData(values []float64, endpoint string) ([]types.PoI, error){
 	poiList:= []types.PoI{}
 
-	serie := Serie{Serie:values, Threshold:threshold}
+	serie := Serie{Serie:values}
 	jsonValue, err := json.Marshal(serie)
 	if err != nil {
 		return poiList,err

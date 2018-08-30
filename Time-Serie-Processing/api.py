@@ -14,12 +14,16 @@ def processSignal():
 
 @app.route("/api/peaks/plot", methods=['POST'])
 def processAndPlotSignal():
-    threshold = request.json['threshold']
-    serie = request.json['serie']
-    response,peaks, valleys, properties, propValleys, vector, invvector = getMeassures(serie, threshold)
-    plotGraph(serie, peaks, valleys, properties, propValleys, vector, invvector, threshold, response)
-    y ={"PoI": response}
-    return jsonify(y)
+    try:
+        threshold = request.json['threshold']
+        serie = request.json['serie']
+        response,peaks, valleys, properties, propValleys, vector, invvector = getMeassures(serie, threshold)
+        if len(peaks)>0:
+            plotGraph(serie, peaks, valleys, properties, propValleys, vector, invvector, threshold, response)
+        y ={"PoI": response}
+        return jsonify(y)
+    except ValueError:
+        return "error"
 
 
 if __name__ == "__main__":

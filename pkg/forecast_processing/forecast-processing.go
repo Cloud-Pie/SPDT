@@ -15,7 +15,6 @@ func PointsOfInterest(forecast types.Forecast) ([]types.PoI, []float64, [] time.
 		values = append(values,x.Requests)
 		times = append(times,x.TimeStamp)
 	}
-	threshold := 1200		//TODO: Get current TRN
-	poiList,err := SProcessing.ProcessData(values, threshold, util.URL_SERIE_PROCESSING)
+	poiList,err := SProcessing.ProcessData(values, util.URL_SERIE_PROCESSING)
 	return  poiList,values,times, err
 }
