@@ -61,55 +61,73 @@ def getMeassures(x, threshold):
         except IndexError:
             print("IndexError ","i:", i, " j:", j)
 
-    # Add points before first valley
-    firstIndex = response[0]["index_left_valley"]["index"]
-    if (firstIndex > 0):
-        interval = {}
-        #First Interval does not include a peak
-        interval["peak"] = False
-        #Start with the first position
-        interval["index"] = 0
-        valley = {}
-        valley["index"] = 0
-        interval["index_left_valley"] = valley
-        start = interval["index_left_valley"]["index"]
+    if len(response)!=0 :
+        # Add points before first valley
+        firstIndex = response[0]["index_left_valley"]["index"]
+        if (firstIndex > 0):
+            interval = {}
+            #First Interval does not include a peak
+            interval["peak"] = False
+            #Start with the first position
+            interval["index"] = 0
+            valley = {}
+            valley["index"] = 0
+            interval["index_left_valley"] = valley
+            start = interval["index_left_valley"]["index"]
 
-        valley = {}
-        valley["index"] = firstIndex
-        interval["index_right_valley"] = valley
-        end = interval["index_right_valley"]["index"]
-        # all indices between the second element and the first valley
-        interval["index_in_interval_left"] = list(range(start + 1, interval["index"]))
-        interval["index_in_interval_right"] = list(range(interval["index"] + 1, end))
-        response.insert(0,interval)
+            valley = {}
+            valley["index"] = firstIndex
+            interval["index_right_valley"] = valley
+            end = interval["index_right_valley"]["index"]
+            # all indices between the second element and the first valley
+            interval["index_in_interval_left"] = list(range(start + 1, interval["index"]))
+            interval["index_in_interval_right"] = list(range(interval["index"] + 1, end))
+            response.insert(0,interval)
 
-    #Add points after the first valley
-    lenResponse = len(response)
-    lastIndex = response[lenResponse-1]["index_right_valley"]["index"]
-    nSamples = len(x)
-    if(nSamples - 1 > lastIndex):
-        interval = {}
-        # First Interval does not include a peak
-        interval["peak"] = False
-        # Start with the last position
-        interval["index"] = nSamples - 1
+        #Add points after the first valley
+        lenResponse = len(response)
+        lastIndex = response[lenResponse-1]["index_right_valley"]["index"]
+        nSamples = len(x)
+        if(nSamples - 1 > lastIndex):
+            interval = {}
+            # First Interval does not include a peak
+            interval["peak"] = False
+            # Start with the last position
+            interval["index"] = nSamples - 1
 
-        valley = {}
-        valley["index"] = lastIndex
-        interval["index_left_valley"] = valley
-        start = interval["index_left_valley"]["index"]
+            valley = {}
+            valley["index"] = lastIndex
+            interval["index_left_valley"] = valley
+            start = interval["index_left_valley"]["index"]
 
-        valley = {}
-        valley["index"] = nSamples - 1
-        interval["index_right_valley"] = valley
-        end = interval["index_right_valley"]["index"]
+            valley = {}
+            valley["index"] = nSamples - 1
+            interval["index_right_valley"] = valley
+            end = interval["index_right_valley"]["index"]
 
-        # all indices between the last valley to the right and the last element
-        interval["index_in_interval_left"] = list(range(start + 1, interval["index"]))
-        interval["index_in_interval_right"] = list(range(interval["index"] + 1, end))
-        response.append(interval)
+            # all indices between the last valley to the right and the last element
+            interval["index_in_interval_left"] = list(range(start + 1, interval["index"]))
+            interval["index_in_interval_right"] = list(range(interval["index"] + 1, end))
+            response.append(interval)
 
-    return response,peaks, valleys, properties, propValleys, vector, invvector
+        return response,peaks, valleys, properties, propValleys, vector, invvector
+    else:
+        for t in range(1,len(vector)-2):
+            interval = {}
+            # First Interval does not include a peak
+            interval["peak"] = True
+            # Start with the first position
+            interval["index"] = t
+            valley = {}
+            valley["index"] = t-1
+            interval["index_left_valley"] = valley
+            start = interval["index_left_valley"]["index"]
+
+            valley = {}
+            valley["index"] = t+1
+            interval["index_right_valley"] = valley
+            response.append(interval)
+        return  response,peaks, valleys, properties, propValleys, vector, invvector
 
 #DEPRECATED
 def findIntersection(x, index, threshold, step):
