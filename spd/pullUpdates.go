@@ -1,14 +1,14 @@
-package spd
+package main
 
 import (
 	Fservice "github.com/Cloud-Pie/SPDT/rest_clients/forecast"
 	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
 	"sort"
 	"github.com/Cloud-Pie/SPDT/storage"
-	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/pkg/reconfiguration"
 	"github.com/Cloud-Pie/SPDT/util"
 	"time"
+	"gopkg.in/mgo.v2/bson"
 )
 
 func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
@@ -36,22 +36,23 @@ func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
 	forecastDAO := storage.GetForecastDAO()
 
 	//Check if already exist, then update
-	//resultQuery,err := forecastDAO.FindAll()
 	resultQuery,err := forecastDAO.FindOneByTimeWindow(timeStart, timeEnd)
-	if err == nil {
-		id := resultQuery.ID
-		forecast.ID = id
-		forecastDAO.Update(id, forecast)
-	} else {
+	forecast.TimeWindowStart = forecast.ForecastedValues[0].TimeStamp
+	l := len(forecast.ForecastedValues)
+	forecast.TimeWindowEnd = forecast.ForecastedValues[l-1].TimeStamp
+
+	if err != nil && resultQuery.ID == ""{
+		//error should be not found
 		//Store received information about forecast
 		forecast.ID = bson.NewObjectId()
-		forecast.TimeWindowStart = forecast.ForecastedValues[0].TimeStamp
-		l := len(forecast.ForecastedValues)
-		forecast.TimeWindowEnd = forecast.ForecastedValues[l-1].TimeStamp
 		err = forecastDAO.Insert(forecast)
 		if err != nil {
 			log.Error(err.Error())
 		}
+	} else if resultQuery.ID != ""{
+		id := resultQuery.ID
+		forecast.ID = id
+		forecastDAO.Update(id, forecast)
 	}
 
 	log.Info("Start points of interest search in time serie")
@@ -70,13 +71,7 @@ func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
 
 	setNewPolicy(forecast, poiList,values,times)
 
-	policyDAO := storage.GetPolicyDAO()
-	selectedPolicy.ID = bson.NewObjectId()
-	err = policyDAO.Insert(selectedPolicy)
 
-	if err != nil {
-		log.Error("The policy could not be stored. Error %s\n", err)
-	}
 	log.Info("Start request Scheduler")
 	err = reconfiguration.TriggerScheduler(selectedPolicy, sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES)
 	if err != nil {
