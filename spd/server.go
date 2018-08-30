@@ -103,7 +103,9 @@ func getPolicies(c *gin.Context) {
 		startTime, err := time.Parse(util.STD_TIME_LAYOUT, windowTimeStart)
 		endTime, err := time.Parse(util.STD_TIME_LAYOUT, windowTimeEnd)
 		policies,err = policyDAO.FindAllByTimeWindow(startTime,endTime)
-		if err != nil {
+		if err != nil && len(policies)==0{
+			c.JSON(http.StatusOK, policies)
+		} else if err != nil {
 			c.JSON(http.StatusBadRequest, err.Error())
 		}
 	}
