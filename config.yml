@@ -1,14 +1,14 @@
 ---
 version: v1
-service-name: hello_world
+service-name: movieapp
 service-type: web
 CSP: AWS
 pricing-model:
   monthly-budget: 2000
   billing-unit: second
 scaling-horizon:
-  start-time: 2018-09-02T07:00:00.1Z
-  end-time: 2018-09-03T07:00:10.1Z
+  start-time: 2018-08-08T07:00:00.1Z
+  end-time: 2018-08-12T07:00:00.1Z
 forecasting-component:
   endpoint: http://localhost:8081
   username:
@@ -24,16 +24,13 @@ scheduler-component:
   username:
   password:
   api-key:
-preferred-algorithm: delta-repacked
+preferred-algorithm: naive
 policy-settings:
   scaling-method: horizontal
   heterogeneous-vms-allowed: true
   underprovisioning-allowed: false
-  max-percentage-underprovision: 80
-  pods-resize-allowed: true
+  pods-resize-allowed: false
   vm-family: all
-  upper-vm-utilization: 90
-  lower-vm-utilization: 30
 
 
 

@@ -45,7 +45,7 @@
       "requests": 100
     },
     {"timestamp":"2018-08-08T20:00:00Z",
-      "requests": 500
+      "requests": 350
     },
     {"timestamp":"2018-08-08T21:00:00Z",
       "requests": 140
@@ -121,7 +121,7 @@
       "requests": 100
     },
     {"timestamp":"2018-08-09T20:00:00Z",
-      "requests": 500
+      "requests": 350
     },
     {"timestamp":"2018-08-09T21:00:00Z",
       "requests": 140
@@ -197,7 +197,7 @@
       "requests": 100
     },
     {"timestamp":"2018-08-10T20:00:00Z",
-      "requests": 500
+      "requests": 350
     },
     {"timestamp":"2018-08-10T21:00:00Z",
       "requests": 140
@@ -273,7 +273,7 @@
       "requests": 100
     },
     {"timestamp":"2018-08-11T20:00:00Z",
-      "requests": 500
+      "requests": 350
     },
     {"timestamp":"2018-08-11T21:00:00Z",
       "requests": 140

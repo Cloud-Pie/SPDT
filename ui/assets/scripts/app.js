@@ -29,6 +29,21 @@ function getVirtualUnits(data){
         }
         TRN.push(conf.Metrics.CapacityTRN)
     })
+    //Needed to include the last time t into the plot
+    lastConf = arrayConfig[arrayConfig.length - 1]
+    time.push(lastConf.TimeEnd)
+    vmSet = lastConf.State.VMs
+    for (var key in vmSet) {
+        vms.push(vmSet[key])
+    }
+    services = lastConf.State.Services
+    for (var key in services) {
+        replicas.push(services[key].Scale)
+        cpuCores.push(services[key].CPU * services[key].Scale)
+        memGB.push(services[key].Memory * services[key].Scale)
+    }
+    TRN.push(lastConf.Metrics.CapacityTRN)
+
    return {
         time: time,
         vms: vms,
