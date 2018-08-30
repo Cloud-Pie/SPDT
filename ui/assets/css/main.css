@@ -644,7 +644,7 @@ fieldset[disabled] .btn {
     position: relative; }
     .panel .panel-heading .panel-title {
       margin: 0;
-      font-size: 18px;
+      font-size: 15px;
       font-weight: 300; }
     .panel .panel-heading button {
       padding: 0;
@@ -672,11 +672,11 @@ fieldset[disabled] .btn {
     border-bottom: none; }
     .panel.panel-headline .panel-heading .panel-title {
       margin-bottom: 8px;
-      font-size: 22px;
+      font-size: 15px;
       font-weight: normal; }
     .panel.panel-headline .panel-heading .panel-subtitle {
       margin-bottom: 0;
-      font-size: 14px;
+      font-size: 13px;
       color: #8D99A8; }
   .panel.panel-scrolling .btn-bottom {
     margin-bottom: 30px; }
@@ -686,15 +686,18 @@ fieldset[disabled] .btn {
   .panel .table > tbody > tr > th:first-child,
   .panel .table > tfoot > tr > td:first-child,
   .panel .table > tfoot > tr > th:first-child {
-    padding-left: 25px; }
+    padding-left: 5px; }
   .panel .table > thead > tr > td:last-child,
   .panel .table > thead > tr > th:last-child,
   .panel .table > tbody > tr > td:last-child,
   .panel .table > tbody > tr > th:last-child,
   .panel .table > tfoot > tr > td:last-child,
   .panel .table > tfoot > tr > th:last-child {
-    padding-left: 25px; }
+    padding-left: 5px; }
 
+.panel .table > tbody {
+  font-size: 13px;
+}
 .panel-footer {
   background-color: #fafafa; }
 
@@ -730,7 +733,7 @@ fieldset[disabled] .btn {
     background-color: #0081c2;
     text-align: center; }
     .metric .icon i {
-      font-size: 18px;
+      font-size: 15px;
       color: #fff; }
   .metric p {
     margin-bottom: 0;
@@ -738,10 +741,10 @@ fieldset[disabled] .btn {
     text-align: right; }
   .metric .number {
     display: block;
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 200; }
   .metric .title {
-    font-size: 16px; }
+    font-size: 15px; }
 
 ul.activity-list > li {
   padding: 25px 0; }
@@ -756,6 +759,10 @@ ul.activity-list > li {
     display: block;
     font-size: 13px;
     color: #a3a3a3; }
+
+.parameters-list > li {
+  font-size: 13px;
+}
 
 /* task list */
 .task-list > li {
@@ -1760,7 +1767,7 @@ ul.activity-timeline > li {
   font-size: 10px; }
 
 .project-table > tbody > tr > td {
-  padding: 12px 8px; }
+  padding: 5px 5px; }
   .project-table > tbody > tr > td .avatar {
     width: 22px;
     border: 1px solid #CCC; }

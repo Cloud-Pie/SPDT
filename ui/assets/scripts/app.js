@@ -62,7 +62,7 @@ function plotVirtualUnits(time, vms, replicas) {
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        width: 640,
+
         height: 200
     };
     var data = [trace1, trace2];
@@ -131,7 +131,7 @@ function plotMemCPU(time, memGB, cpuCores) {
 
 function searchByID(policyId) {
 
-    hideSinglePolicyPannels()
+    showSinglePolicyPannels()
 
     if (policyId == null) {
         policyId = document.getElementById("searchpolicyid").value;
@@ -195,6 +195,9 @@ function searchByTimestamp() {
         .then(function (data){
             fillCandidateTable(data)
             allPolicies = data
+            if(allPolicies.length > 0) {
+                searchByID(allPolicies[0].id)
+            }
         })
         .catch(function(err) {
             console.log('Fetch Error :-S', err);
@@ -204,11 +207,17 @@ function searchByTimestamp() {
 function fillCandidateTable(policyCandidates) {
     $("#tBodyCandidates").children().remove()
     for(var i = 0; i < policyCandidates.length; i++) {
+
+        label = "label-warning"
+        if (policyCandidates[i].Status == "selected") {
+            label = "label-success"
+        }
+
         $("#tCandidates > tbody").append("<tr>" +
             "<td>"+policyCandidates[i].id+"</td>" +
             "<td>"+policyCandidates[i].algorithm+"</td>" +
             "<td>"+policyCandidates[i].metrics.Cost+"</td>" +
-            "<td>"+policyCandidates[i].Status+"</td>" +
+            "<td> <span class='label "+ label+" '>" +policyCandidates[i].Status+ "</span> </td>" +
             "</tr>");
     }
 
@@ -225,17 +234,14 @@ function fillData(policy){
     document.getElementById("reconfid").innerText = policy.metrics.NumberConfigurations;
 
     document.getElementById("policyid").innerText = policy.id;
-    document.getElementById("startperiod").innerText = policy.window_time_start;
-    document.getElementById("endperiod").innerText = policy.window_time_end;
+    document.getElementById("startperiod").innerText =  new Date( policy.window_time_start).toLocaleString();
+    document.getElementById("endperiod").innerText = new Date( policy.window_time_end).toLocaleString();
 }
 
 function fillParameters(policy){
     $("#lParameters").children().remove()
-
     $("#lParameters").append(
         "<li>"+"Algorithm:"+"<span>"+policy.algorithm+"</span></li>");
-
-
     parameters = policy.Parameters
     for (var key in parameters) {
         $("#lParameters").append(
@@ -244,13 +250,7 @@ function fillParameters(policy){
 }
 
 function clickedCompareAll(){
-    var x = document.getElementById("singlePolicyDiv");
-    x.style.display = "none";
-
-    var y = document.getElementById("multiplePolicyDiv");
-    if (y.style.display === "none") {
-        y.style.display = "block";
-    }
+    hideSinglePolicyPannels()
     units = getVirtualUnitsAll(allPolicies)
     plotCapacityAll(units.time, units.trnAll)
     plotVMsAll(units.time, units.vmsAll)
@@ -260,16 +260,33 @@ function clickedCompareAll(){
 }
 
 function hideSinglePolicyPannels() {
-    var x = document.getElementById("multiplePolicyDiv");
+    var x = document.getElementById("singlePolicyDiv");
     x.style.display = "none";
-    var y = document.getElementById("singlePolicyDiv");
+
+    var m = document.getElementById("metricsDiv");
+    m.style.display = "none";
+
+    var d = document.getElementById("detailsDiv");
+    d.style.display = "none";
+
+    var y = document.getElementById("multiplePolicyDiv");
     if (y.style.display === "none") {
         y.style.display = "block";
     }
 }
 
 function showSinglePolicyPannels() {
-    
+    var x = document.getElementById("multiplePolicyDiv");
+    x.style.display = "none";
+    var y = document.getElementById("singlePolicyDiv");
+    if (y.style.display === "none") {
+        y.style.display = "block";
+    }
+    var m = document.getElementById("metricsDiv");
+    m.style.display = "block";
+
+    var d = document.getElementById("detailsDiv");
+    d.style.display = "block";
 }
 
 function getVirtualUnitsAll(policies) {
@@ -453,7 +470,6 @@ function plotVMsAll(time, vmsAll) {
 
     Plotly.newPlot('vmUnitsAll', data,layout);
 }
-
 
 function plotReplicasAll(time, replicasAll) {
     var data = [];

@@ -34,9 +34,8 @@
 		<!-- NAVBAR -->
 		<nav class="navbar navbar-default navbar-fixed-top">
 			<div class="brand">
-				<a href="index.html"><img src="assets/img/logo-dark.png" alt="Klorofil Logo" class="img-responsive logo"></a>
 			</div>
-			<div class="container-fluid">
+			<div class="container">
 				<form class="navbar-form navbar-right">
 					<div class="row">
 						<div class="input-group">
@@ -47,10 +46,9 @@
 				</form>
 			</div>
 		</nav>
-		<div class="container-fluid settings">
+		<div class="container settings">
 			<form class="navbar-form navbar-right">
             <div class="row">
-                <div>
                     <div class="form-group">
                         <label for="datetimepicker6">Start time</label>
                         <div class='input-group date' id='datetimepicker6'>
@@ -70,7 +68,6 @@
                         </div>
                     </div>
                     <button class="btn btn-primary btn-md" type="button" onclick="searchByTimestamp()"> Search  </button>
-                </div>
             </div>
             </form>
 		</div>
@@ -80,8 +77,7 @@
 			<!-- MAIN CONTENT -->
 			<div class="main-content">
                 <div class="container-fluid">
-					<div>
-						<div class="row">
+						<div class="row" id="metricsDiv">
 							<div class="col-md-3">
 								<div class="metric">
 									<span class="icon"><i class="fa fa-dollar"></i></span>
@@ -127,30 +123,32 @@
 								</div>
 							</div>
 						</div>
-					</div>
+
 					<!-- OVERVIEW -->
                     <div class="row">
-						<div class="col-md-5">
+                        <div class="col-md-4">
 							<!-- DETAILS -->
-							<div class="row" id="detailsDiv">
-								<div class="panel panel-headline">
-									<div class="panel-heading">
-										<h3 class="panel-title">Policy ID: <label id="policyid"></label> </h3>
-										<p class="panel-subtitle">Period: <label id="startperiod"></label>  - <label id="endperiod"></label> </p>
-									</div>
-									<div class="panel-body">
-										<ul class="list-unstyled list-justify" id="lParameters">
-										</ul>
-									</div>
-								</div>
-                            </div>
+                            <div class="container-fluid">
+                                <div class="row" id="detailsDiv">
+                                    <div class="panel panel-headline">
+                                        <div class="panel-heading">
+                                            <h5 class="panel-title">Policy ID: <label id="policyid"></label> </h5>
+                                            <p class="panel-subtitle">From: <label id="startperiod"></label>  To: <label id="endperiod"></label> </p>
+                                        </div>
+                                        <div class="panel-body">
+                                            <ul class="list-unstyled parameters-list list-justify" id="lParameters">
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
 							<div class="row" id="candidatesDiv">
-                                <div class="panel">
+                                <div class="panel panel-headline">
                                     <div class="panel-heading">
-                                        <h3 class="panel-title">Policy Candidates</h3>
+                                            <h5 class="panel-title">Policy Candidates</h5>
                                     </div>
                                     <div class="panel-body no-padding">
-                                        <table class="table" id="tCandidates">
+                                        <table class="table table-hover" id="tCandidates">
                                             <thead>
                                             <tr>
                                                 <th>Policy ID</th>
@@ -164,71 +162,76 @@
                                     </div>
                                     <div class="panel-footer">
                                         <div class="row">
-                                            <span class="input-group-btn"><button type="button" class="btn btn-primary" onclick="clickedCompareAll()">Compare All</button></span>
+                                            <span class="input-group-btn"><button type="button" class="btn btn-primary" onclick="clickedCompareAll()">Compare all</button></span>
                                         </div>
                                     </div>
                                 </div>
-
 							</div>
+                        </div>
 							<!-- END DETAILS -->
 						</div>
 
-                        <div class="col-md-6" id="singlePolicyDiv">
-                            <div class="row">
-                                <div class="panel">
-                                    <div class="panel-body">
-                                            <div id="requestsUnits" class="ct-chart"></div>
+                        <div class="col-md-8" id="singlePolicyDiv">
+                            <div class="container-fluid">
+                                <div class="row" >
+                                    <div class="panel">
+                                        <div class="panel-body">
+                                                <div id="requestsUnits" class="ct-chart"></div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="row">
-                                <div class="panel">
-                                    <div class="panel-body">
-                                            <div id="virtualUnits" class="ct-chart"></div>
+                                <div class="row">
+                                    <div class="panel">
+                                        <div class="panel-body">
+                                                <div id="virtualUnits" class="ct-chart"></div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="row">
-                                <div class="panel">
-                                    <div class="panel-body">
-                                        <div id="resourceUtilization" class="ct-chart"></div>
+                                <div class="row">
+                                    <div class="panel">
+                                        <div class="panel-body">
+                                            <div id="resourceUtilization" class="ct-chart"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6" id="multiplePolicyDiv">
-                            <div class="row">
-                                <div class="panel">
-                                    <div class="panel-body">
-                                        <div id="requestsUnitsAll" class="ct-chart"></div>
+
+                        <div class="col-md-8" id="multiplePolicyDiv">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <div class="panel">
+                                        <div class="panel-body">
+                                            <div id="requestsUnitsAll" class="ct-chart"></div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="row">
-                                <div class="panel">
-                                    <div class="panel-body">
-                                        <div id="vmUnitsAll" class="ct-chart"></div>
+                                <div class="row">
+                                    <div class="panel">
+                                        <div class="panel-body">
+                                            <div id="vmUnitsAll" class="ct-chart"></div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="row">
-                                <div class="panel">
-                                    <div class="panel-body">
-                                        <div id="replicaUnitsAll" class="ct-chart"></div>
+                                <div class="row">
+                                    <div class="panel">
+                                        <div class="panel-body">
+                                            <div id="replicaUnitsAll" class="ct-chart"></div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="row">
-                                <div class="panel">
-                                    <div class="panel-body">
-                                        <div id="cpuUtilizationAll" class="ct-chart"></div>
+                                <div class="row">
+                                    <div class="panel">
+                                        <div class="panel-body">
+                                            <div id="cpuUtilizationAll" class="ct-chart"></div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="row">
-                                <div class="panel">
-                                    <div class="panel-body">
-                                        <div id="memoryUtilizationAll" class="ct-chart"></div>
+                                <div class="row">
+                                    <div class="panel">
+                                        <div class="panel-body">
+                                            <div id="memoryUtilizationAll" class="ct-chart"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
