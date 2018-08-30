@@ -40,7 +40,8 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 	configurations := []types.Configuration {}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
-	currentContainerLimits := p.currentContainerLimits()
+	serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
+	currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, NumberCores:serviceToScale.CPU }
 
 	for _, it := range processedForecast.CriticalIntervals {
 		var resourceLimits types.Limit
@@ -144,17 +145,4 @@ func (p NaivePolicy) currentVMType() string {
 		log.Warning("Current config has more than one VM type, type %s was selected to continue", vmType)
 	}
 	return vmType
-}
-
-/*Return the Limit constraint of the current configuration
-	out:
-		Limit
-*/
-func (p NaivePolicy) currentContainerLimits() types.Limit {
-	var limits types.Limit
-	for _,s := range p.currentState.Services {
-		limits.MemoryGB = s.Memory
-		limits.NumberCores = s.CPU
-	}
-	return limits
 }

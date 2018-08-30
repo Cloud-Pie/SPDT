@@ -48,8 +48,9 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		//Load in terms of number of requests
 		totalLoad := it.Requests
 		resourcesConfiguration := ContainersConfig{}
-		currentContainerLimits := p.currentContainerLimits()
-		currentNumberReplicas := p.currentState.Services[p.sysConfiguration.ServiceName].Scale
+		serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
+		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, NumberCores:serviceToScale.CPU }
+		currentNumberReplicas := serviceToScale.Scale
 
 		//Candidate option to handle total load
 		profileCurrentLimits := selectProfileWithLimits(totalLoad, currentContainerLimits, false)
@@ -310,20 +311,6 @@ func (p DeltaRepackedPolicy) isCurrentlyHomogeneous() (string, bool) {
 	}
 	return vmType, isHomogeneous
 }
-
-/*Return the Limit constraint of the current configuration
-	out:
-		Limit
-*/
-func (p DeltaRepackedPolicy) currentContainerLimits() types.Limit {
-	var limits types.Limit
-	for _,s := range p.currentState.Services {
-		limits.MemoryGB = s.Memory
-		limits.NumberCores = s.CPU
-	}
-	return limits
-}
-
 
 /*
 	in:

@@ -70,8 +70,9 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 
 		//Current configuration
 		totalLoad := it.Requests
-		currentContainerLimits := p.currentContainerLimits()
-		currentNumberReplicas := p.currentState.Services[p.sysConfiguration.ServiceName].Scale
+		serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
+		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, NumberCores:serviceToScale.CPU }
+		currentNumberReplicas := serviceToScale.Scale
 		currentLoadCapacity := configurationCapacity(currentNumberReplicas, currentContainerLimits)
 		deltaLoad := totalLoad - currentLoadCapacity
 
@@ -289,18 +290,6 @@ func (p TreePolicy)removeVMs(currentVMSet types.VMScale, numberReplicas int, lim
 	return  newVMSet
 }
 
-/*Return the Limit constraint of the current configuration
-	out:
-		Limit
-*/
-func (p TreePolicy) currentContainerLimits() types.Limit {
-	var limits types.Limit
-	for _,s := range p.currentState.Services {
-		limits.MemoryGB = s.Memory
-		limits.NumberCores = s.CPU
-	}
-	return limits
-}
 
 /*
 	in:

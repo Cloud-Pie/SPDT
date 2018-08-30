@@ -43,7 +43,8 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 
 	for _, it := range processedForecast.CriticalIntervals {
-		currentContainerLimits := p.currentContainerLimits()
+		serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
+		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, NumberCores:serviceToScale.CPU }
 		ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
 		ProfileNewLimits := selectProfile(it.Requests, false)
 
@@ -173,17 +174,4 @@ func (p StepRepackPolicy) selectContainersConfig(currentLimits types.Limit, prof
 			Cost:costCurrent,
 		}, nil
 	}
-}
-
-/*Return the Limit constraint of the current configuration
-	out:
-		Limit
-*/
-func (p StepRepackPolicy) currentContainerLimits() types.Limit {
-	var limits types.Limit
-	for _,s := range p.currentState.Services {
-		limits.MemoryGB = s.Memory
-		limits.NumberCores = s.CPU
-	}
-	return limits
 }
