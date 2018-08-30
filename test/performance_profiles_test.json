@@ -1,88 +1,276 @@
 {
-    "name":"hello_world",
-    "docker_image":"docker.io/ansjin/micro:hello",
-    "perf_profiles_vm_full_occupancy": [
-      {
-        "_comment": "Only 1 service per VM (here VM type matters), but it can have more replicas..... this perf_profiles_vm_full_occupancy is not required as with limits we can control the VM core limits and mem, just added here for my testing whether the number matches or not",
-        "id": "aws_t2_micro_001",
-        "profiles_vm_full_occupancy_rank": 1,
-        "overall_perf_profile_rank": 2,
-        "vm_config": {
-          "type": "t2.micro",
-          "num_cores": 2,
-          "mem_gb": 2,
-          "boot_time_ms": 3000
-        },
-        "replicas": 1,
-        "resources_limit": {
-          "cpu_cores": 0,
-          "mem_gb": 0,
-          "request_per_sercond": 0
-        },
-        "maximum_service_capacity_per_sec": 400,
-        "pod_boot_time_ms": 1000
+  "service_name":"movieapp",
+  "profiles":[
+    {
+      "limits":{
+        "cpu_cores":1,
+        "mem_gb":0.5,
+        "request_per_sercond":0
       },
-      {
-        "id": "aws_t2_micro_002",
-        "profiles_vm_full_occupancy_rank": 2,
-        "overall_perf_profile_rank": 4,
-        "vm_config": {
-          "type": "t2.micro",
-          "num_cores": 2,
-          "mem_gb": 2,
-          "boot_time_ms": 3000
+      "trns":[
+        {
+          "replicas":1,
+          "maximum_service_capacity_per_sec":167,
+          "pod_boot_time_ms":2000
         },
-        "replicas": 2,
-        "resources_limit": {
-          "cpu_cores": 0,
-          "mem_gb": 0,
-          "request_per_sercond": 0
+        {
+          "replicas":2,
+          "maximum_service_capacity_per_sec":186,
+          "pod_boot_time_ms":2000
         },
-        "maximum_service_capacity_per_sec": 350,
-        "pod_boot_time_ms": 1000
-      }
-    ],
-    "perf_profiles_with_limits": [
-      {
-        "_comment": "Here VM type doesnot matter, only thing that needs to be taken care that underneath VM/Cluster has enough resources",
-        "id": "aws_limit_001",
-        "profiles_with_limits_rank": 3,
-        "overall_perf_profile_rank": 5,
-        "replicas": 1,
-        "resources_limit": {
-          "num_cores": 3,
-          "mem_gb": 0.2,
-          "request_per_sercond": 0
+        {
+          "replicas":3,
+          "maximum_service_capacity_per_sec":195,
+          "pod_boot_time_ms":2000
         },
-        "maximum_service_capacity_per_sec": 200,
-        "pod_boot_time_sec": 100
+        {
+          "replicas":4,
+          "maximum_service_capacity_per_sec":215,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":5,
+          "maximum_service_capacity_per_sec":231,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":6,
+          "maximum_service_capacity_per_sec":240,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":7,
+          "maximum_service_capacity_per_sec":252,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":8,
+          "maximum_service_capacity_per_sec":260,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":9,
+          "maximum_service_capacity_per_sec":262,
+          "pod_boot_time_ms":2000
+        }
+      ]
+    },
+    {
+      "limits":{
+        "cpu_cores":1,
+        "mem_gb":1,
+        "request_per_sercond":0
       },
-      {
-        "id": "aws_limit_002",
-        "profiles_with_limits_rank": 1,
-        "overall_perf_profile_rank": 1,
-        "replicas": 2,
-        "resources_limit": {
-          "num_cores": 0.1,
-          "mem_gb": 0.2,
-          "request_per_sercond": 0
+      "trns":[
+        {
+          "replicas":1,
+          "maximum_service_capacity_per_sec":183,
+          "pod_boot_time_ms":2000
         },
-        "maximum_service_capacity_per_sec": 150,
-        "pod_boot_time_sec": 100
+        {
+          "replicas":2,
+          "maximum_service_capacity_per_sec":196,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":3,
+          "maximum_service_capacity_per_sec":204,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":4,
+          "maximum_service_capacity_per_sec":219,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":5,
+          "maximum_service_capacity_per_sec":227,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":6,
+          "maximum_service_capacity_per_sec":239,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":7,
+          "maximum_service_capacity_per_sec":252,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":8,
+          "maximum_service_capacity_per_sec":265,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":9,
+          "maximum_service_capacity_per_sec":272,
+          "pod_boot_time_ms":2000
+        }
+
+      ]
+    },
+    {
+      "limits":{
+        "cpu_cores":1,
+        "mem_gb":2,
+        "request_per_sercond":0
       },
-      {
-        "id": "aws_limit_003",
-        "_comment": "this should match with aws_t2_micro_001",
-        "profiles_with_limits_rank": 2,
-        "overall_perf_profile_rank": 3,
-        "replicas": 3,
-        "resources_limit": {
-          "num_cores": 2,
-          "mem_gb": 2,
-          "request_per_sercond": 0
+      "trns":[
+        {
+          "replicas":1,
+          "maximum_service_capacity_per_sec":195,
+          "pod_boot_time_ms":2000
         },
-        "maximum_service_capacity_per_sec": 400,
-        "pod_boot_time_sec": 100
-      }
-    ]
+        {
+          "replicas":2,
+          "maximum_service_capacity_per_sec":211,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":3,
+          "maximum_service_capacity_per_sec":224,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":4,
+          "maximum_service_capacity_per_sec":239,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":5,
+          "maximum_service_capacity_per_sec":251,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":6,
+          "maximum_service_capacity_per_sec":270,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":7,
+          "maximum_service_capacity_per_sec":285,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":8,
+          "maximum_service_capacity_per_sec":299,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":9,
+          "maximum_service_capacity_per_sec":315,
+          "pod_boot_time_ms":2000
+        }
+      ]
+    },
+    {
+      "limits":{
+        "cpu_cores":2,
+        "mem_gb":4,
+        "request_per_sercond":0
+      },
+      "trns":[
+        {
+          "replicas":1,
+          "maximum_service_capacity_per_sec":197,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":2,
+          "maximum_service_capacity_per_sec":216,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":3,
+          "maximum_service_capacity_per_sec":241,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":4,
+          "maximum_service_capacity_per_sec":259,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":5,
+          "maximum_service_capacity_per_sec":273,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":6,
+          "maximum_service_capacity_per_sec":290,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":7,
+          "maximum_service_capacity_per_sec":311,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":8,
+          "maximum_service_capacity_per_sec":329,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":9,
+          "maximum_service_capacity_per_sec":341,
+          "pod_boot_time_ms":2000
+        }
+      ]
+    },
+    {
+      "limits":{
+        "cpu_cores":2,
+        "mem_gb":8,
+        "request_per_sercond":0
+      },
+      "trns":[
+        {
+          "replicas":1,
+          "maximum_service_capacity_per_sec":200,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":2,
+          "maximum_service_capacity_per_sec":221,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":3,
+          "maximum_service_capacity_per_sec":239,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":4,
+          "maximum_service_capacity_per_sec":259,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":5,
+          "maximum_service_capacity_per_sec":271,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":6,
+          "maximum_service_capacity_per_sec":290,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":7,
+          "maximum_service_capacity_per_sec":315,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":8,
+          "maximum_service_capacity_per_sec":347,
+          "pod_boot_time_ms":2000
+        },
+        {
+          "replicas":9,
+          "maximum_service_capacity_per_sec":360,
+          "pod_boot_time_ms":2000
+        }
+      ]
+    }
+  ]
 }

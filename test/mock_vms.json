@@ -3,8 +3,6 @@
     "type": "m1.nano",
     "num_cores": 1,
     "mem_gb": 0.5,
-    "boot_time_sec": 200,
-    "term_time_sec": 200,
     "pricing":{
       "price": 0.0067,
       "unit": "Hour"
@@ -14,8 +12,6 @@
     "type": "m1.micro",
     "num_cores": 1,
     "mem_gb": 1,
-    "boot_time_sec": 300,
-    "term_time_sec": 220,
       "pricing":{
         "price": 0.0134,
         "unit": "Hour"
@@ -25,8 +21,6 @@
     "type": "m1.small",
     "num_cores": 1,
     "mem_gb": 2,
-    "boot_time_sec": 200,
-    "term_time_sec": 250,
     "pricing":{
       "price": 0.0268,
       "unit": "Hour"
@@ -36,8 +30,6 @@
     "type": "m1.medium",
     "num_cores": 2,
     "mem_gb": 4,
-    "boot_time_sec": 300,
-    "term_time_sec": 280,
     "pricing":{
       "price": 0.0536,
       "unit": "Hour"
@@ -47,8 +39,6 @@
     "type": "m1.large",
     "num_cores": 2,
     "mem_gb": 8,
-    "boot_time_sec": 300,
-    "term_time_sec": 280,
     "pricing":{
       "price": 0.0536,
       "unit": "Hour"
@@ -58,8 +48,6 @@
     "type": "m1.xlarge",
     "num_cores": 4,
     "mem_gb": 16,
-    "boot_time_sec": 300,
-    "term_time_sec": 280,
     "pricing":{
       "price": 0.0536,
       "unit": "Hour"
@@ -69,8 +57,6 @@
     "type": "m1.2xlarge",
     "num_cores": 8,
     "mem_gb": 32,
-    "boot_time_sec": 300,
-    "term_time_sec": 280,
     "pricing":{
       "price": 0.0536,
       "unit": "Hour"

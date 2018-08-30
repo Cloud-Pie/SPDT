@@ -31,34 +31,27 @@ func (p *PerformanceProfileDAO) Connect() (*mgo.Database, error) {
 }
 
 //Retrieve all the stored elements
-func (p *PerformanceProfileDAO) FindAll() ([]types.ServiceProfile, error) {
-	var performanceProfiles []types.ServiceProfile
+func (p *PerformanceProfileDAO) FindAll() ([]types.PerformanceProfile, error) {
+	var performanceProfiles []types.PerformanceProfile
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Find(bson.M{}).All(&performanceProfiles)
 	return performanceProfiles, err
 }
 
 //Retrieve the item with the specified ID
-func (p *PerformanceProfileDAO) FindByID(id string) (types.ServiceProfile, error) {
-	var performanceProfile types.ServiceProfile
+func (p *PerformanceProfileDAO) FindByID(id string) (types.PerformanceProfile, error) {
+	var performanceProfile types.PerformanceProfile
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).FindId(bson.ObjectIdHex(id)).One(&performanceProfile)
 	return performanceProfile,err
 }
 
-//Retrieve the item with the specified ID
-func (p *PerformanceProfileDAO) FindByAppName(name string) (types.ServiceProfile, error) {
-	var performanceProfile types.ServiceProfile
-	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Find(bson.M{"name": name}).One(&performanceProfile)
-	return performanceProfile,err
-}
-
 //Insert a new Performance Profile
-func (p *PerformanceProfileDAO) Insert(performanceProfile types.ServiceProfile) error {
+func (p *PerformanceProfileDAO) Insert(performanceProfile types.PerformanceProfile) error {
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Insert(&performanceProfile)
 	return err
 }
 
 //Delete the specified item
-func (p *PerformanceProfileDAO) Delete(performanceProfile types.ServiceProfile) error {
+func (p *PerformanceProfileDAO) Delete(performanceProfile types.PerformanceProfile) error {
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Remove(&performanceProfile)
 	return err
 }
