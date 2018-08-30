@@ -159,7 +159,8 @@ func (p StepRepackPolicy) selectContainersConfig(currentLimits types.Limit, prof
 	if len(vmSet1) == 0 && len(vmSet2)== 0 {
 		return ContainersConfig{}, errors.New("Containers ")
 	}
-	if costNew < costCurrent && containerResize {
+	//TODO:Review logic
+	if containerResize {
 		return ContainersConfig{ResourceLimits:newLimits,
 			PerformanceProfile:	profileNewLimits,
 			VMSet:vmSet2,

@@ -175,9 +175,9 @@ func (p BestBaseInstancePolicy) selectContainersConfig(currentLimits types.Limit
 	costCurrent := vmSet1.Cost(p.mapVMProfiles)
 	vmSet2 := p.FindSuitableVMs(profileNewLimits.NumberReplicas, newLimits, vmType)
 	costNew := vmSet2.Cost(p.mapVMProfiles)
-
+	//TODO:Review logic.
 	if len(vmSet1) != 0 && len(vmSet2) != 0 {
-		if costNew < costCurrent && containerResize {
+		if  containerResize {
 			return ContainersConfig{ResourceLimits: newLimits,
 				PerformanceProfile: profileNewLimits,
 				VMSet: vmSet2,

@@ -107,7 +107,6 @@ function plotCapacity(time, demand, supply, timeSuply){
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        width: 640,
         height: 200
     };
     var data = [trace1, trace2];
@@ -120,7 +119,7 @@ function plotMemCPU(time, memGB, cpuCores) {
         y: memGB,
         type: 'scatter',
         name: 'Mem GB',
-
+        line: {shape: 'hv'}
     };
 
     var trace2 = {
@@ -128,16 +127,15 @@ function plotMemCPU(time, memGB, cpuCores) {
         y: cpuCores,
         type: 'scatter',
         name: 'CPU Cores',
-
+        line: {shape: 'hv'}
     };
 
     var layout = {
-        title: 'Utilization',
+        title: 'Resources provisioned',
         autosize:true,
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        width: 640,
         height: 200
     };
     var data = [trace1, trace2];
@@ -177,7 +175,6 @@ function searchByID(policyId) {
             fetch(url_forecast)
                 .then((response) => response.json())
                 .then(function (data){
-                    requestDemand = data.Requests
                     plotCapacity(data.Timestamp, data.Requests, units.trn, units.time)
                 })
                 .catch(function(err) {
@@ -205,18 +202,30 @@ function searchByTimestamp() {
 
     requestURL = forecastRequestsEndpoint + query
 
-    fetch(policiesEndpoint)
+    fetch(requestURL)
         .then((response) => response.json())
         .then(function (data){
-            fillCandidateTable(data)
-            allPolicies = data
-            if(allPolicies.length > 0) {
-                searchByID(allPolicies[0].id)
-            }
+            requestDemand = data.Requests
+
+            fetch(policiesEndpoint)
+                .then((response) => response.json())
+                .then(function (data){
+                    fillCandidateTable(data)
+                    allPolicies = data
+                    if(allPolicies.length > 0) {
+                        searchByID(allPolicies[0].id)
+                    }
+                })
+                .catch(function(err) {
+                    console.log('Fetch Error :-S', err);
+                });
+
         })
         .catch(function(err) {
             console.log('Fetch Error :-S', err);
         });
+
+
 }
 
 function fillCandidateTable(policyCandidates) {
@@ -266,8 +275,9 @@ function fillParameters(policy){
 
 function clickedCompareAll(){
     hideSinglePolicyPannels()
+
     units = getVirtualUnitsAll(allPolicies)
-    plotCapacityAll(units.time, units.trnAll)
+    plotCapacityAll(units.time,requestDemand, units.trnAll)
     plotVMsAll(units.time, units.vmsAll)
     plotReplicasAll(units.time, units.replicasAll)
     plotCPUAll(units.time, units.cpuCoresAll)
@@ -353,13 +363,13 @@ function getVirtualUnitsAll(policies) {
     }
 }
 
-function plotCapacityAll(time, supplyAll){
-   console.log(requestDemand)
+function plotCapacityAll(time, demand, supplyAll){
+   console.log(demand)
     var data = [];
     data.push(
         {
             x: time,
-            y: requestDemand,
+            y: demand,
             name: 'Demand',
             type: 'scatter',
             line: {shape: 'spline'}
@@ -385,7 +395,6 @@ function plotCapacityAll(time, supplyAll){
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        width: 640,
         height: 200
     };
 
@@ -403,6 +412,7 @@ function plotMemAll(time, memGBAll) {
                     y: item,
                     type: 'scatter',
                     name: 'Mem GB',
+                    line: {shape: 'hv'}
 
                 }
             )
@@ -411,12 +421,11 @@ function plotMemAll(time, memGBAll) {
 
 
     var layout = {
-        title: 'Utilization Memory',
+        title: 'Memory provisioned',
         autosize:true,
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        width: 640,
         height: 200
     };
 
@@ -434,6 +443,7 @@ function plotCPUAll(time, cpuCoresAll) {
                     y: item,
                     type: 'scatter',
                     name: 'Mem GB',
+                    line: {shape: 'hv'}
 
                 }
             )
@@ -442,12 +452,11 @@ function plotCPUAll(time, cpuCoresAll) {
 
 
     var layout = {
-        title: 'Utilization CPU',
+        title: 'CPU cores provisioned',
         autosize:true,
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        width: 640,
         height: 200
     };
 
@@ -479,7 +488,6 @@ function plotVMsAll(time, vmsAll) {
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        width: 640,
         height: 200
     };
 
@@ -509,7 +517,6 @@ function plotReplicasAll(time, replicasAll) {
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        width: 640,
         height: 200
     };
 
