@@ -7,7 +7,6 @@ import (
 	"github.com/Cloud-Pie/SPDT/util"
 	"github.com/Cloud-Pie/SPDT/config"
 	"github.com/Cloud-Pie/SPDT/storage"
-	"gopkg.in/mgo.v2/bson"
 	"fmt"
 	"github.com/Cloud-Pie/SPDT/types"
 	"time"
@@ -123,9 +122,7 @@ func getServiceProfile(){
 	var err error
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
 	storedServiceProfiles,_ := serviceProfileDAO.FindAll()
-	if(len(storedServiceProfiles)>0) {
-		serviceProfiles = storedServiceProfiles[0]
-	}else {
+	if(len(storedServiceProfiles)==0) {
 		log.Info("Start request Performance Profiles")
 		serviceProfiles, err = Pservice.GetPerformanceProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILES)
 		if err != nil {
@@ -134,12 +131,11 @@ func getServiceProfile(){
 		log.Info("Finish request Performance Profiles")
 
 		//Store received information about Performance Profiles
-		serviceProfiles.ID = bson.NewObjectId()
-		err = serviceProfileDAO.Insert(serviceProfiles)
-		if err != nil {
-			log.Error(err.Error())
-		} else {
-			log.Info("The Service Performance Profiles were stored")
+		for _,p := range serviceProfiles.PerformanceProfiles {
+			err = serviceProfileDAO.Insert(p)
+			if err != nil {
+				log.Error(err.Error())
+			}
 		}
 	}
 }
@@ -158,5 +154,13 @@ func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64
 		log.Error(err.Error())
 	}else {
 		log.Info("Finish policies evaluation")
+	}
+
+	policyDAO := storage.GetPolicyDAO()
+	for _,p := range policies {
+		err = policyDAO.Insert(p)
+		if err != nil {
+			log.Error("The policy with ID = %s could not be stored. Error %s\n", p.ID, err)
+		}
 	}
 }

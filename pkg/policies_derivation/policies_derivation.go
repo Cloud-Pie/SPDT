@@ -48,9 +48,9 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 		policies = naive.CreatePolicies(processedForecast)
 
 	case util.BASE_INSTANCE_ALGORITHM:
-		naive := BestBaseInstancePolicy{algorithm:util.BASE_INSTANCE_ALGORITHM, timeWindow:timeWindows,
+		base := BestBaseInstancePolicy{algorithm:util.BASE_INSTANCE_ALGORITHM, timeWindow:timeWindows,
 										currentState:currentState,mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
-		policies = naive.CreatePolicies(processedForecast)
+		policies = base.CreatePolicies(processedForecast)
 
 	case util.SMALL_STEP_ALGORITHM:
 		sstep := StepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows,
@@ -73,13 +73,13 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 		policies1 := naive.CreatePolicies(processedForecast)
 		policies = append(policies, policies1...)
 		//types
-		naiveT := BestBaseInstancePolicy{algorithm:util.BASE_INSTANCE_ALGORITHM, timeWindow:timeWindows,
-			mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
-		policies2 := naiveT.CreatePolicies(processedForecast)
+		base := BestBaseInstancePolicy{algorithm:util.BASE_INSTANCE_ALGORITHM, timeWindow:timeWindows,
+			currentState:currentState,mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
+		policies2 := base.CreatePolicies(processedForecast)
 		policies = append(policies, policies2...)
 		//sstep
 		sstep := StepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows,
-			mapVMProfiles:mapVMProfiles ,sysConfiguration: sysConfiguration}
+			mapVMProfiles:mapVMProfiles ,sysConfiguration: sysConfiguration, currentState:currentState}
 		policies3 := sstep.CreatePolicies(processedForecast)
 		policies = append(policies, policies3...)
 		//delta repack
@@ -161,9 +161,9 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 func selectProfile(requests float64, underProvision bool) types.PerformanceProfile {
 
 	var profiles []types.PerformanceProfile
-	var err error
+	//var err error
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
-	if underProvision {
+	/*if underProvision {
 		profiles,err = serviceProfileDAO.FindNewLimitsUnder(requests)
 	} else {
 		profiles,err = serviceProfileDAO.FindNewLimitsOver(requests)
@@ -171,7 +171,19 @@ func selectProfile(requests float64, underProvision bool) types.PerformanceProfi
 			//TODO: Fix - Temporal solution to ensure that always there is a result
 			profiles,err = serviceProfileDAO.FindNewLimitsUnder(requests)
 		}
+	}*/
+
+	profilesUnder,_:= serviceProfileDAO.FindNewLimitsUnder(requests)
+	profilesOver,_ := serviceProfileDAO.FindNewLimitsOver(requests)
+
+	if underProvision && len(profilesUnder)>0{
+		profiles = profilesUnder
+	}else if len(profilesOver) > 0{
+		profiles = profilesOver
+	} else {
+		profiles = profilesUnder
 	}
+
 
 	sort.Slice(profiles, func(i, j int) bool {
 		utilizationFactori := float64(profiles[i].TRNConfiguration[0].NumberReplicas) * profiles[i].Limit.NumberCores
