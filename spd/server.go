@@ -202,10 +202,8 @@ func getRequests(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, err.Error())
 		} else {
-			forecast,err := forecastDAO.FindOneByTimeWindow(startTime, endTime)
-			if err != nil {
-				c.JSON(http.StatusOK, err.Error())
-			}
+			forecast,_ := forecastDAO.FindOneByTimeWindow(startTime, endTime)
+
 			for _,v := range forecast.ForecastedValues {
 				timestamps = append(timestamps, v.TimeStamp)
 				forecastedValues = append(forecastedValues, v.Requests)
