@@ -6,7 +6,7 @@ var requestDemand
 var timeLine
 
 function getVirtualUnits(data){
-    console.log(data)
+
     time = [];
     vms = [];
     replicas = [];
@@ -143,9 +143,6 @@ function plotMemCPU(time, memGB, cpuCores) {
 }
 
 function searchByID(policyId) {
-
-    showSinglePolicyPannels()
-
     if (policyId == null) {
         policyId = document.getElementById("searchpolicyid").value;
     }
@@ -155,6 +152,9 @@ function searchByID(policyId) {
     fetch(requestURL)
         .then((response) => response.json())
         .then(function (data){
+
+            showResultsPannel()
+            showSinglePolicyPannels()
             var timeStart = new Date(data.window_time_start).toISOString();
             var timeEnd = new Date( data.window_time_end).toISOString();
             units = getVirtualUnits(data)
@@ -183,6 +183,7 @@ function searchByID(policyId) {
         })
         .catch(function(err) {
             console.log('Fetch Error :-S', err);
+            showNoResultsPannel()
         });
 
 
@@ -206,14 +207,16 @@ function searchByTimestamp() {
         .then((response) => response.json())
         .then(function (data){
             requestDemand = data.Requests
-
             fetch(policiesEndpoint)
                 .then((response) => response.json())
                 .then(function (data){
-                    fillCandidateTable(data)
                     allPolicies = data
                     if(allPolicies.length > 0) {
+                        showResultsPannel()
+                        fillCandidateTable(data)
                         searchByID(allPolicies[0].id)
+                    }else{
+                        showNoResultsPannel()
                     }
                 })
                 .catch(function(err) {
@@ -229,6 +232,7 @@ function searchByTimestamp() {
 }
 
 function fillCandidateTable(policyCandidates) {
+
     $("#tBodyCandidates").children().remove()
     for(var i = 0; i < policyCandidates.length; i++) {
 
@@ -277,11 +281,11 @@ function clickedCompareAll(){
     hideSinglePolicyPannels()
 
     units = getVirtualUnitsAll(allPolicies)
-    plotCapacityAll(units.time,requestDemand, units.trnAll)
-    plotVMsAll(units.time, units.vmsAll)
-    plotReplicasAll(units.time, units.replicasAll)
-    plotCPUAll(units.time, units.cpuCoresAll)
-    plotMemAll(units.time, units.memGBAll)
+    plotCapacityAll(units.time,requestDemand, units.trnAll, units.tracesAll)
+    plotVMsAll(units.time, units.vmsAll, units.tracesAll)
+    plotReplicasAll(units.time, units.replicasAll,units.tracesAll)
+    plotCPUAll(units.time, units.cpuCoresAll, units.tracesAll)
+    plotMemAll(units.time, units.memGBAll, units.tracesAll)
 }
 
 function hideSinglePolicyPannels() {
@@ -298,11 +302,13 @@ function hideSinglePolicyPannels() {
     if (y.style.display === "none") {
         y.style.display = "block";
     }
+
 }
 
 function showSinglePolicyPannels() {
     var x = document.getElementById("multiplePolicyDiv");
     x.style.display = "none";
+
     var y = document.getElementById("singlePolicyDiv");
     if (y.style.display === "none") {
         y.style.display = "block";
@@ -363,8 +369,8 @@ function getVirtualUnitsAll(policies) {
     }
 }
 
-function plotCapacityAll(time, demand, supplyAll){
-   console.log(demand)
+function plotCapacityAll(time, demand, supplyAll,tracesAll){
+
     var data = [];
     data.push(
         {
@@ -375,17 +381,19 @@ function plotCapacityAll(time, demand, supplyAll){
             line: {shape: 'spline'}
         }
     )
+    var i = 0
     supplyAll.forEach(function (item) {
         {
             data.push(
                 {
                     x: time,
                     y: item,
-                    name: 'supply',
+                    name: tracesAll[i],
                     type: 'scatter',
                     line: {shape: 'hv'}
                 }
             )
+            i=i+1
         }
     })
 
@@ -401,9 +409,10 @@ function plotCapacityAll(time, demand, supplyAll){
     Plotly.newPlot('requestsUnitsAll', data,layout);
 }
 
-function plotMemAll(time, memGBAll) {
+function plotMemAll(time, memGBAll, tracesAll) {
 
     var data = [];
+    var i = 0
     memGBAll.forEach(function (item) {
         {
             data.push(
@@ -411,11 +420,12 @@ function plotMemAll(time, memGBAll) {
                     x: time,
                     y: item,
                     type: 'scatter',
-                    name: 'Mem GB',
+                    name: tracesAll[i],
                     line: {shape: 'hv'}
 
                 }
             )
+            i=i+1
         }
     })
 
@@ -432,9 +442,10 @@ function plotMemAll(time, memGBAll) {
     Plotly.newPlot('memoryUtilizationAll', data,layout);
 }
 
-function plotCPUAll(time, cpuCoresAll) {
+function plotCPUAll(time, cpuCoresAll, tracesAll) {
 
     var data = [];
+    var i = 0;
     cpuCoresAll.forEach(function (item) {
         {
             data.push(
@@ -442,11 +453,12 @@ function plotCPUAll(time, cpuCoresAll) {
                     x: time,
                     y: item,
                     type: 'scatter',
-                    name: 'Mem GB',
+                    name: tracesAll[i],
                     line: {shape: 'hv'}
 
                 }
             )
+            i=i+1
         }
     })
 
@@ -463,9 +475,10 @@ function plotCPUAll(time, cpuCoresAll) {
     Plotly.newPlot('cpuUtilizationAll', data,layout);
 }
 
-function plotVMsAll(time, vmsAll) {
+function plotVMsAll(time, vmsAll, tracesAll) {
 
     var data = [];
+    var i = 0;
     vmsAll.forEach(function (item) {
         {
             data.push(
@@ -473,11 +486,12 @@ function plotVMsAll(time, vmsAll) {
                     x: time,
                     y: item,
                     type: 'scatter',
-                    name: 'N° VMs',
+                    name: tracesAll[i],
                     line: {shape: 'hv'}
 
                 }
             )
+            i=i+1
         }
     })
 
@@ -494,8 +508,9 @@ function plotVMsAll(time, vmsAll) {
     Plotly.newPlot('vmUnitsAll', data,layout);
 }
 
-function plotReplicasAll(time, replicasAll) {
+function plotReplicasAll(time, replicasAll, tracesAll) {
     var data = [];
+    var i = 0;
     replicasAll.forEach(function (item) {
         {
             data.push(
@@ -503,11 +518,12 @@ function plotReplicasAll(time, replicasAll) {
                     x: time,
                     y: item,
                     type: 'scatter',
-                    name: 'N° replias',
+                    name: tracesAll[i],
                     line: {shape: 'hv'}
 
                 }
             )
+            i=i+1
         }
     })
 
@@ -521,4 +537,20 @@ function plotReplicasAll(time, replicasAll) {
     };
 
     Plotly.newPlot('replicaUnitsAll', data,layout);
+}
+
+function showNoResultsPannel(){
+    var x = document.getElementById("searchOutputDiv");
+    x.style.display = "none";
+
+    var m = document.getElementById("noResultsDiv");
+    m.style.display = "block";
+}
+
+function showResultsPannel(){
+    var x = document.getElementById("searchOutputDiv");
+    x.style.display = "block";
+
+    var m = document.getElementById("noResultsDiv");
+    m.style.display = "none";
 }
