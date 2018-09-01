@@ -171,27 +171,19 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 	@VMScale with the suggested number of VMs for that type
 */
 func (p TreePolicy) FindSuitableVMs(numberReplicas int, limits types.Limit) types.VMScale {
-	tree := &Tree{}
-	node := new(Node)
-	node.NReplicas = numberReplicas
-	node.vmScale = make(map[string]int)
-	tree.Root = node
-	mapVMScaleList := []types.VMScale {}
-	computeVMsCapacity(limits,&p.mapVMProfiles)
-	buildTree(tree.Root, numberReplicas,&mapVMScaleList, p.mapVMProfiles)
 
-	//Drucken (node, 1)
-	sort.Slice(mapVMScaleList, func(i, j int) bool {
-		costi := mapVMScaleList[i].Cost(p.mapVMProfiles)
-		costj := mapVMScaleList[j].Cost(p.mapVMProfiles)
+	heterogeneousAllowed := p.sysConfiguration.PolicySettings.HetereogeneousAllowed
+	vmSet, _ := buildHomogeneousVMSet(numberReplicas,limits, p.mapVMProfiles)
+
+	if heterogeneousAllowed {
+		hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, limits, p.mapVMProfiles)
+		costi := hetVMSet.Cost(p.mapVMProfiles)
+		costj := vmSet.Cost(p.mapVMProfiles)
 		if costi < costj {
-			return true
-		} else if costi ==  costj {
-			return mapVMScaleList[i].TotalVMs() >= mapVMScaleList[j].TotalVMs()
+			vmSet = hetVMSet
 		}
-		return false
-	})
-	return mapVMScaleList[0]
+	}
+	return vmSet
 }
 
 //TODO: Delete after debugging
