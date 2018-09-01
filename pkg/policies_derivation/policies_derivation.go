@@ -142,26 +142,7 @@ func maxReplicasCapacityInVM(vmProfile types.VmProfile, resourceLimit types.Limi
 		return int(numReplicas)
 }
 
-func selectProfileWithLimits(requests float64, limits types.Limit, underProvision bool) types.PerformanceProfile {
-	var profile types.PerformanceProfile
-	var err error
-	serviceProfileDAO := storage.GetPerformanceProfileDAO()
-	if underProvision {
-		profile,err = serviceProfileDAO.FindByLimitsUnder(limits.NumberCores, limits.MemoryGB, requests)
-		if err != nil {
-			profile,err = serviceProfileDAO.FindByLimitsOver(limits.NumberCores, limits.MemoryGB, requests)
-		}
-	} else {
-		profile,err = serviceProfileDAO.FindByLimitsOver(limits.NumberCores, limits.MemoryGB, requests)
-		if len(profile.TRNConfiguration)==0 || err != nil {
-			//TODO: Fix - Temporal solution to ensure that always there is a result
-			profile,err = serviceProfileDAO.FindByLimitsUnder(limits.NumberCores, limits.MemoryGB, requests)
-		}
-	}
-	return profile
-}
-
-func selectProfileWithLimits2(requests float64, limits types.Limit, underProvision bool) types.ContainersConfig {
+func selectProfileWithLimits(requests float64, limits types.Limit, underProvision bool) types.ContainersConfig {
 	var containerConfig types.ContainersConfig
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
 	overProvisionConfig, err1 := serviceProfileDAO.MatchByLimitsOver(limits.NumberCores, limits.MemoryGB, requests)

@@ -48,7 +48,7 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 		ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
 		ProfileNewLimits := selectProfile(it.Requests, false)
 
-		containersConfig,_ := p.selectContainersConfig(ProfileCurrentLimits.Limit, ProfileCurrentLimits.TRNConfiguration[0],
+		containersConfig,_ := p.selectContainersConfig(ProfileCurrentLimits.Limits, ProfileCurrentLimits.PerformanceProfile,
 			ProfileNewLimits.Limit, ProfileNewLimits.TRNConfiguration[0], containerResizeEnabled)
 
 		newNumServiceReplicas := containersConfig.PerformanceProfile.NumberReplicas
@@ -60,8 +60,8 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 		if underProvisionAllowed {
 			ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
 			ProfileNewLimits := selectProfile(it.Requests, underProvisionAllowed)
-			underContainersConfig,_ := p.selectContainersConfig(ProfileCurrentLimits.Limit,
-				ProfileCurrentLimits.TRNConfiguration[0], ProfileNewLimits.Limit,
+			underContainersConfig,_ := p.selectContainersConfig(ProfileCurrentLimits.Limits,
+				ProfileCurrentLimits.PerformanceProfile, ProfileNewLimits.Limit,
 				ProfileNewLimits.TRNConfiguration[0], containerResizeEnabled)
 
 				if underContainersConfig.Cost > containersConfig.Cost {

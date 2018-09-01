@@ -54,10 +54,10 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 
 		//Candidate option to handle total load
 		profileCurrentLimits := selectProfileWithLimits(totalLoad, currentContainerLimits, false)
-		vmSetTLoadCurrentLimits := p.findOptimalVMSet(profileCurrentLimits.TRNConfiguration[0].NumberReplicas, profileCurrentLimits.Limit)
+		vmSetTLoadCurrentLimits := p.findOptimalVMSet(profileCurrentLimits.PerformanceProfile.NumberReplicas, profileCurrentLimits.Limits)
 		rConfigTLoadCurrentLimits := ContainersConfig {
-			ResourceLimits:profileCurrentLimits.Limit,
-			PerformanceProfile:profileCurrentLimits.TRNConfiguration[0],
+			ResourceLimits:profileCurrentLimits.Limits,
+			PerformanceProfile:profileCurrentLimits.PerformanceProfile,
 			VMSet:vmSetTLoadCurrentLimits,
 		}
 
@@ -71,16 +71,16 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 
 		} else 	if deltaLoad > 0 {
 			//Need to increase resources
-			computeVMsCapacity(profileCurrentLimits.Limit, &p.mapVMProfiles)
+			computeVMsCapacity(profileCurrentLimits.Limits, &p.mapVMProfiles)
 			replicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
 
 			//Validate if the current configuration is able to handle the new replicas
 			//Using the current Resource Limits configuration for the containers
-			if replicasCapacity > profileCurrentLimits.TRNConfiguration[0].NumberReplicas {
+			if replicasCapacity > profileCurrentLimits.PerformanceProfile.NumberReplicas {
 				//case 1: Increases number of replicas but VMS remain the same
 				resourcesConfiguration.VMSet = p.currentState.VMs
-				resourcesConfiguration.ResourceLimits = profileCurrentLimits.Limit
-				resourcesConfiguration.PerformanceProfile = profileCurrentLimits.TRNConfiguration[0]
+				resourcesConfiguration.ResourceLimits = profileCurrentLimits.Limits
+				resourcesConfiguration.PerformanceProfile = profileCurrentLimits.PerformanceProfile
 
 			} else if underProvisionAllowed && containerResizeEnabled{
 				//case 2: search a new service profile with underprovisioning that possible fit into the
@@ -97,14 +97,14 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 				}
 			} else {
 				//case 3: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.
-				deltaNumberReplicas := profileCurrentLimits.TRNConfiguration[0].NumberReplicas - currentNumberReplicas
+				deltaNumberReplicas := profileCurrentLimits.PerformanceProfile.NumberReplicas - currentNumberReplicas
 
 				//Find VM set for totalLoad and validate if a complete migration is better
-				vmSetDeltaLoad := p.findOptimalVMSet(deltaNumberReplicas,profileCurrentLimits.Limit)
+				vmSetDeltaLoad := p.findOptimalVMSet(deltaNumberReplicas,profileCurrentLimits.Limits)
 				vmSetDeltaLoad.Merge(p.currentState.VMs)
 				rConfigDeltaLoad := ContainersConfig {
-					ResourceLimits:profileCurrentLimits.Limit,
-					PerformanceProfile:profileCurrentLimits.TRNConfiguration[0],
+					ResourceLimits:profileCurrentLimits.Limits,
+					PerformanceProfile:profileCurrentLimits.PerformanceProfile,
 					VMSet:vmSetDeltaLoad,
 				}
 
@@ -118,13 +118,13 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		} else if deltaLoad < 0 {
 			//Need to decrease resources
 			deltaLoad *= -1
-			deltaReplicas := currentNumberReplicas - profileCurrentLimits.TRNConfiguration[0].NumberReplicas
+			deltaReplicas := currentNumberReplicas - profileCurrentLimits.PerformanceProfile.NumberReplicas
 
 				 //Build new VM set releasing resources used by extra container replicas
 				 vmSetDeltaLoad := p.releaseResources(deltaReplicas,p.currentState.VMs)
 				 rConfigDLoad := ContainersConfig {
-					 ResourceLimits:profileCurrentLimits.Limit,
-					 PerformanceProfile:profileCurrentLimits.TRNConfiguration[0],
+					 ResourceLimits:profileCurrentLimits.Limits,
+					 PerformanceProfile:profileCurrentLimits.PerformanceProfile,
 					 VMSet:vmSetDeltaLoad,
 				 }
 				 // Test if reconfigure the complete VM set for the totalLoad is better
@@ -388,4 +388,8 @@ func(p DeltaRepackedPolicy) shouldRepackVMSet(currentOption ContainersConfig, ca
 		}
 	}
 	return ContainersConfig{}, false
+}
+
+func findHeterogeneousCluster(){
+
 }

@@ -47,7 +47,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 		var resourceLimits types.Limit
 
 		//Select the performance profile that fits better
-		perfProfileOver := selectProfileWithLimits2(it.Requests, currentContainerLimits, false)
+		perfProfileOver := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
 
 		//Compute the max capacity in terms of number of  service replicas for each VM type
 		//computeVMsCapacity(perfProfileOver,&p.mapVMProfiles)
@@ -60,7 +60,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 		totalServicesBootingTime := confOverProvision.BootTimeSec
 		resourceLimits = perfProfileOver.Limits
 		if underProvisionAllowed {
-			perfProfileUnder := selectProfileWithLimits2(it.Requests, currentContainerLimits, underProvisionAllowed)
+			perfProfileUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
 			confUnderProvision := perfProfileUnder.PerformanceProfile
 			vmSetUnder := p.FindSuitableVMs(confUnderProvision.NumberReplicas, perfProfileUnder.Limits)
 			costUnder := vmSetUnder.Cost(p.mapVMProfiles)

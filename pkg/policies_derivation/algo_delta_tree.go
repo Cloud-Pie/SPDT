@@ -84,15 +84,15 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 		} else {
 			//Alternative configuration
 			ProfileCurrentLimits := selectProfileWithLimits(totalLoad, currentContainerLimits, false)
-			newNumServiceReplicas = ProfileCurrentLimits.TRNConfiguration[0].NumberReplicas
-			resourceLimits  = ProfileCurrentLimits.Limit
-			stateLoadCapacity = ProfileCurrentLimits.TRNConfiguration[0].TRN
-			totalServicesBootingTime = ProfileCurrentLimits.TRNConfiguration[0].BootTimeSec
+			newNumServiceReplicas = ProfileCurrentLimits.PerformanceProfile.NumberReplicas
+			resourceLimits  = ProfileCurrentLimits.Limits
+			stateLoadCapacity = ProfileCurrentLimits.PerformanceProfile.TRN
+			totalServicesBootingTime = ProfileCurrentLimits.PerformanceProfile.BootTimeSec
 
 			if deltaLoad > 0 {
-				computeCapacity(&p.sortedVMProfiles, ProfileCurrentLimits.Limit, &p.mapVMProfiles)
+				computeCapacity(&p.sortedVMProfiles, ProfileCurrentLimits.Limits, &p.mapVMProfiles)
 				currentReplicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
-				if currentReplicasCapacity >= ProfileCurrentLimits.TRNConfiguration[0].NumberReplicas {
+				if currentReplicasCapacity >= ProfileCurrentLimits.PerformanceProfile.NumberReplicas {
 					//case 1: Increases number of replicas but VMS remain the same
 					vmSet = p.currentState.VMs
 				} else {
@@ -112,13 +112,13 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 					} else {
 						//case 3: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.
 						deltaNumberReplicas := newNumServiceReplicas - currentNumberReplicas
-						vmSet = p.FindSuitableVMs(deltaNumberReplicas, ProfileCurrentLimits.Limit)
+						vmSet = p.FindSuitableVMs(deltaNumberReplicas, ProfileCurrentLimits.Limits)
 						//Merge the current configuration with configuration for the new replicas
 						vmSet.Merge(p.currentState.VMs)
 					}
 				}
 			} else {
-				deltaReplicas := currentNumberReplicas - ProfileCurrentLimits.TRNConfiguration[0].NumberReplicas
+				deltaReplicas := currentNumberReplicas - ProfileCurrentLimits.PerformanceProfile.NumberReplicas
 				vmSet = p.removeVMs(p.currentState.VMs, deltaReplicas, currentContainerLimits)
 			}
 		}

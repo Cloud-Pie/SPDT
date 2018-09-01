@@ -51,7 +51,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 			ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
 			ProfileNewLimits := selectProfile(it.Requests, false)
 
-			containersConfig,err := p.selectContainersConfig(ProfileCurrentLimits.Limit, ProfileCurrentLimits.TRNConfiguration[0],
+			containersConfig,err := p.selectContainersConfig(ProfileCurrentLimits.Limits, ProfileCurrentLimits.PerformanceProfile,
 																	ProfileNewLimits.Limit, ProfileNewLimits.TRNConfiguration[0], containerResizeEnabled, vmType)
 			if err !=  nil {
 				vmTypeSuitable = false
@@ -65,7 +65,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 			if underProvisionAllowed {
 				ProfileSameLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
 				ProfileNewLimits := selectProfile(it.Requests, underProvisionAllowed)
-				underContainersConfig,err := p.selectContainersConfig(ProfileSameLimits.Limit,ProfileSameLimits.TRNConfiguration[0],
+				underContainersConfig,err := p.selectContainersConfig(ProfileSameLimits.Limits,ProfileSameLimits.PerformanceProfile,
 					ProfileNewLimits.Limit, ProfileNewLimits.TRNConfiguration[0], containerResizeEnabled, vmType)
 				if err !=  nil {
 					vmTypeSuitable = false
