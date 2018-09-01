@@ -3,11 +3,9 @@ package policies_derivation
 import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"time"
-	"math"
 	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/config"
 	"strconv"
-	"sort"
 	"errors"
 	"github.com/Cloud-Pie/SPDT/util"
 )
@@ -113,27 +111,23 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 /*Calculate VM set able to host the required number of replicas
  in:
 	@numberReplicas = Amount of replicas that should be hosted
-	@resourcesLimit = Resources (CPU, Memory) constraints to configure the containers.
+	@limits = Resources (CPU, Memory) constraints to configure the containers.
  out:
 	@VMScale with the suggested number of VMs for that type
 */
-func (p StepRepackPolicy) FindSuitableVMs(numberReplicas int, resourcesLimit types.Limit) types.VMScale {
-	vmScaleList := []types.VMScale{}
-		for vmType,v := range p.mapVMProfiles {
-			maxReplicas := maxReplicasCapacityInVM(v, resourcesLimit)
-			vmScale :=  make(map[string]int)
-			if maxReplicas > 0 {
-				numVMs := math.Ceil(float64(numberReplicas) / float64(maxReplicas))
-				vmScale[vmType] = int(numVMs)
-				vmScaleList = append(vmScaleList, copyMap(vmScale))
-			}
+func (p StepRepackPolicy) FindSuitableVMs(numberReplicas int, limits types.Limit) types.VMScale {
+	heterogeneousAllowed := p.sysConfiguration.PolicySettings.HetereogeneousAllowed
+	vmSet, _ := buildHomogeneousVMSet(numberReplicas,limits, p.mapVMProfiles)
+
+	if heterogeneousAllowed {
+		hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, limits, p.mapVMProfiles)
+		costi := hetVMSet.Cost(p.mapVMProfiles)
+		costj := vmSet.Cost(p.mapVMProfiles)
+		if costi < costj {
+			vmSet = hetVMSet
 		}
-
-	sort.Slice(vmScaleList, func(i, j int) bool {
-		return vmScaleList[i].Cost(p.mapVMProfiles) < vmScaleList[j].Cost(p.mapVMProfiles)
-	})
-
-	return vmScaleList[0]
+	}
+	return vmSet
 }
 
 
