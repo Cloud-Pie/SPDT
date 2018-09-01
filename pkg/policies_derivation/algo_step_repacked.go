@@ -55,7 +55,7 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 		stateLoadCapacity := containersConfig.PerformanceProfile.TRN
 		totalServicesBootingTime := containersConfig.PerformanceProfile.BootTimeSec
 		vmSet := containersConfig.VMSet
-		limits := containersConfig.ResourceLimits
+		limits := containersConfig.Limits
 
 		if underProvisionAllowed {
 			ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
@@ -69,7 +69,7 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 					stateLoadCapacity = underContainersConfig.PerformanceProfile.TRN
 					totalServicesBootingTime = underContainersConfig.PerformanceProfile.BootTimeSec
 					vmSet = underContainersConfig.VMSet
-					limits = underContainersConfig.ResourceLimits
+					limits = underContainersConfig.Limits
 				}
 		}
 
@@ -150,7 +150,7 @@ func (p StepRepackPolicy) FindSuitableVMs(numberReplicas int, resourcesLimit typ
 		@error
 */
 func (p StepRepackPolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.TRNConfiguration,
-	newLimits types.Limit, profileNewLimits types.TRNConfiguration, containerResize bool) (ContainersConfig, error) {
+	newLimits types.Limit, profileNewLimits types.TRNConfiguration, containerResize bool) (types.ContainersConfig, error) {
 
 	vmSet1 := p.FindSuitableVMs(profileCurrentLimits.NumberReplicas, currentLimits)
 	costCurrent := vmSet1.Cost(p.mapVMProfiles)
@@ -158,17 +158,17 @@ func (p StepRepackPolicy) selectContainersConfig(currentLimits types.Limit, prof
 	costNew := vmSet2.Cost(p.mapVMProfiles)
 
 	if len(vmSet1) == 0 && len(vmSet2)== 0 {
-		return ContainersConfig{}, errors.New("Containers ")
+		return types.ContainersConfig{}, errors.New("Containers ")
 	}
 	//TODO:Review logic
 	if containerResize {
-		return ContainersConfig{ResourceLimits:newLimits,
+		return types.ContainersConfig{Limits:newLimits,
 			PerformanceProfile:	profileNewLimits,
 			VMSet:vmSet2,
 			Cost:costNew,
 		}, nil
 	} else {
-		return ContainersConfig{ResourceLimits:currentLimits,
+		return types.ContainersConfig{Limits:currentLimits,
 			PerformanceProfile:	profileCurrentLimits,
 			VMSet:vmSet1,
 			Cost:costCurrent,

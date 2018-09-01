@@ -112,9 +112,13 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 					} else {
 						//case 3: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.
 						deltaNumberReplicas := newNumServiceReplicas - currentNumberReplicas
-						vmSet = p.FindSuitableVMs(deltaNumberReplicas, ProfileCurrentLimits.Limits)
-						//Merge the current configuration with configuration for the new replicas
-						vmSet.Merge(p.currentState.VMs)
+						if deltaNumberReplicas > 0 {
+							vmSet = p.FindSuitableVMs(deltaNumberReplicas, ProfileCurrentLimits.Limits)
+							//Merge the current configuration with configuration for the new replicas
+							vmSet.Merge(p.currentState.VMs)
+						}else {
+							vmSet = p.currentState.VMs
+						}
 					}
 				}
 			} else {

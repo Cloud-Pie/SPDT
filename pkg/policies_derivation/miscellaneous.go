@@ -1,19 +1,6 @@
 package policies_derivation
 
 import "github.com/Cloud-Pie/SPDT/types"
-
-/*
-Structure to keep the configuration associated to a set of containers
-It includes the resource limits per replica, number of replicas, bootTime of the set,
-a VMSet suitable to deploy the containers set and the cost of the solution
-*/
-type ContainersConfig struct {
-	ResourceLimits		types.Limit
-	PerformanceProfile	types.TRNConfiguration
-	VMSet				types.VMScale
-	Cost				float64
-}
-
 type TRNProfile struct {
 	ResourceLimits	types.Limit
 	NumberReplicas	int

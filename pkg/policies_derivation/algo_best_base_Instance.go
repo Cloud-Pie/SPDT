@@ -60,7 +60,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 			stateLoadCapacity := containersConfig.PerformanceProfile.TRN
 			totalServicesBootingTime := containersConfig.PerformanceProfile.BootTimeSec
 			vmSet := containersConfig.VMSet
-			limits := containersConfig.ResourceLimits
+			limits := containersConfig.Limits
 
 			if underProvisionAllowed {
 				ProfileSameLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
@@ -76,7 +76,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 						stateLoadCapacity = underContainersConfig.PerformanceProfile.TRN
 						totalServicesBootingTime = underContainersConfig.PerformanceProfile.BootTimeSec
 						vmSet = underContainersConfig.VMSet
-						limits = underContainersConfig.ResourceLimits
+						limits = underContainersConfig.Limits
 						vmTypeSuitable = true
 					}
 				}
@@ -157,7 +157,7 @@ func (p BestBaseInstancePolicy) FindSuitableVMs(numberReplicas int, resourcesLim
 
 */
 func (p BestBaseInstancePolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.TRNConfiguration,
-	newLimits types.Limit, profileNewLimits types.TRNConfiguration, containerResize bool, vmType string) (ContainersConfig, error) {
+	newLimits types.Limit, profileNewLimits types.TRNConfiguration, containerResize bool, vmType string) (types.ContainersConfig, error) {
 
 	vmSet1 := p.FindSuitableVMs(profileCurrentLimits.NumberReplicas, currentLimits, vmType)
 	costCurrent := vmSet1.Cost(p.mapVMProfiles)
@@ -166,31 +166,31 @@ func (p BestBaseInstancePolicy) selectContainersConfig(currentLimits types.Limit
 	//TODO:Review logic.
 	if len(vmSet1) != 0 && len(vmSet2) != 0 {
 		if  containerResize {
-			return ContainersConfig{ResourceLimits: newLimits,
+			return types.ContainersConfig{Limits: newLimits,
 				PerformanceProfile: profileNewLimits,
 				VMSet: vmSet2,
 				Cost: costNew,
 			}, nil
 		} else {
-			return ContainersConfig{ResourceLimits: currentLimits,
+			return types.ContainersConfig{Limits: currentLimits,
 				PerformanceProfile: profileCurrentLimits,
 				VMSet: vmSet1,
 				Cost: costCurrent,
 			}, nil
 		}
 	} else if len(vmSet1) != 0 {
-		return ContainersConfig{ResourceLimits: currentLimits,
+		return types.ContainersConfig{Limits: currentLimits,
 			PerformanceProfile: profileCurrentLimits,
 			VMSet: vmSet1,
 			Cost: costCurrent,
 		}, nil
 	} else if len(vmSet2) != 0 {
-		return ContainersConfig{ResourceLimits: newLimits,
+		return types.ContainersConfig{Limits: newLimits,
 			PerformanceProfile: profileNewLimits,
 			VMSet: vmSet2,
 			Cost: costNew,
 		}, nil
 	} else {
-		return ContainersConfig{}, errors.New("Container limits don't fit in this type of VM")
+		return types.ContainersConfig{}, errors.New("Container limits don't fit in this type of VM")
 	}
 }
