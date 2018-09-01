@@ -143,3 +143,15 @@ type StructMap struct {
 	Key   string
 	Value int
 }
+
+/*
+Structure to keep the configuration associated to a set of containers
+It includes the resource limits per replica, number of replicas, bootTime of the set,
+a VMSet suitable to deploy the containers set and the cost of the solution
+*/
+type ContainersConfig struct {
+	Limits             Limit            `json:"limits" bson:"limits"`
+	PerformanceProfile TRNConfiguration `json:"trns" bson:"trns"`
+	VMSet              VMScale
+	Cost               float64
+}
