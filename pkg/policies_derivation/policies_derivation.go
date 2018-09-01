@@ -299,6 +299,14 @@ func setConfiguration(configurations *[]types.ScalingConfiguration, state types.
 	}
 }
 
+/* Build Heterogeneous cluster to deploy a number of replicas, each one with the defined constraint limits
+	in:
+		@numberReplicas	int - number of replicas
+		@limits bool types.Limit - limits constraints(cpu cores and memory gb) per replica
+		@mapVMProfiles - map with the profiles of VMs available
+	out:
+		@VMScale	- Map with the type of VM as key and the number of vms as value
+*/
 func buildHeterogeneousVMSet(numberReplicas int, limits types.Limit, mapVMProfiles map[string]types.VmProfile) (types.VMScale,error) {
 	var err error
 	tree := &Tree{}
@@ -372,6 +380,14 @@ func buildTree(node *Node, numberReplicas int, vmScaleList *[]types.VMScale, map
 	return node
 }
 
+/* Build Homogeneous cluster to deploy a number of replicas, each one with the defined constraint limits
+	in:
+		@numberReplicas	int - number of replicas
+		@limits bool types.Limit - limits constraints(cpu cores and memory gb) per replica
+		@mapVMProfiles - map with the profiles of VMs available
+	out:
+		@VMScale	- Map with the type of VM as key and the number of vms as value
+*/
 func buildHomogeneousVMSet(numberReplicas int, limits types.Limit, mapVMProfiles map[string]types.VmProfile) (types.VMScale,error) {
 	var err error
 	candidateVMSets := []types.VMScale{}
