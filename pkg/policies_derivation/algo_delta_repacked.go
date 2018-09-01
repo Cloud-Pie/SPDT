@@ -54,7 +54,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 
 		//Candidate option to handle total load
 		profileCurrentLimits := selectProfileWithLimits(totalLoad, currentContainerLimits, false)
-		vmSetTLoadCurrentLimits := p.findOptimalVMSet(profileCurrentLimits.PerformanceProfile.NumberReplicas, profileCurrentLimits.Limits)
+		vmSetTLoadCurrentLimits := p.FindSuitableVMs(profileCurrentLimits.PerformanceProfile.NumberReplicas, profileCurrentLimits.Limits)
 		rConfigTLoadCurrentLimits := types.ContainersConfig {
 			Limits:profileCurrentLimits.Limits,
 			PerformanceProfile:profileCurrentLimits.PerformanceProfile,
@@ -101,7 +101,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 
 				//Find VM set for totalLoad and validate if a complete migration is better
 				if deltaNumberReplicas > 0 {
-					vmSetDeltaLoad := p.findOptimalVMSet(deltaNumberReplicas,profileCurrentLimits.Limits)
+					vmSetDeltaLoad := p.FindSuitableVMs(deltaNumberReplicas,profileCurrentLimits.Limits)
 					vmSetDeltaLoad.Merge(p.currentState.VMs)
 					rConfigDeltaLoad := types.ContainersConfig {
 						Limits:profileCurrentLimits.Limits,
@@ -193,7 +193,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
  out:
 	@VMScale with the suggested number of VMs
 */
-func (p DeltaRepackedPolicy) findOptimalVMSet(numberReplicas int, resourceLimits types.Limit) types.VMScale {
+func (p DeltaRepackedPolicy) FindSuitableVMs(numberReplicas int, resourceLimits types.Limit) types.VMScale {
 	//currentVMType, isHomogeneous := p.isCurrentlyHomogeneous()
 	heterogeneousAllowed := p.sysConfiguration.PolicySettings.HetereogeneousAllowed
 	vmSet, _ := buildHomogeneousVMSet(numberReplicas,resourceLimits, p.mapVMProfiles)
