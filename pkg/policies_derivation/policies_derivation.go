@@ -148,6 +148,9 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
 	if underProvision {
 		profile,err = serviceProfileDAO.FindByLimitsUnder(limits.NumberCores, limits.MemoryGB, requests)
+		if err != nil {
+			profile,err = serviceProfileDAO.FindByLimitsOver(limits.NumberCores, limits.MemoryGB, requests)
+		}
 	} else {
 		profile,err = serviceProfileDAO.FindByLimitsOver(limits.NumberCores, limits.MemoryGB, requests)
 		if len(profile.TRNConfiguration)==0 || err != nil {
@@ -156,6 +159,23 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 		}
 	}
 	return profile
+}
+
+func selectProfileWithLimits2(requests float64, limits types.Limit, underProvision bool) types.ContainersConfig {
+	var containerConfig types.ContainersConfig
+	serviceProfileDAO := storage.GetPerformanceProfileDAO()
+	overProvisionConfig, err1 := serviceProfileDAO.MatchByLimitsOver(limits.NumberCores, limits.MemoryGB, requests)
+	underProvisionConfig, err2 := serviceProfileDAO.MatchByLimitsUnder(limits.NumberCores, limits.MemoryGB, requests)
+
+	if underProvision && err2 == nil {
+		containerConfig = underProvisionConfig
+	} else if err1 == nil{
+		containerConfig = overProvisionConfig
+	} else if err2 == nil {
+		containerConfig = underProvisionConfig
+	}
+
+	return containerConfig
 }
 
 func selectProfile(requests float64, underProvision bool) types.PerformanceProfile {

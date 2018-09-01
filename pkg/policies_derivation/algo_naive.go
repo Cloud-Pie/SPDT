@@ -47,22 +47,22 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 		var resourceLimits types.Limit
 
 		//Select the performance profile that fits better
-		perfProfileOver := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
+		perfProfileOver := selectProfileWithLimits2(it.Requests, currentContainerLimits, false)
 
 		//Compute the max capacity in terms of number of  service replicas for each VM type
 		//computeVMsCapacity(perfProfileOver,&p.mapVMProfiles)
 
-		confOverProvision := perfProfileOver.TRNConfiguration[0]
+		confOverProvision := perfProfileOver.PerformanceProfile
 		newNumServiceReplicas := confOverProvision.NumberReplicas
-		vmSet := p.FindSuitableVMs(newNumServiceReplicas, perfProfileOver.Limit)
+		vmSet := p.FindSuitableVMs(newNumServiceReplicas, perfProfileOver.Limits)
 		costOver := vmSet.Cost(p.mapVMProfiles)
 		stateLoadCapacity := confOverProvision.TRN
 		totalServicesBootingTime := confOverProvision.BootTimeSec
-		resourceLimits = perfProfileOver.Limit
+		resourceLimits = perfProfileOver.Limits
 		if underProvisionAllowed {
-			perfProfileUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-			confUnderProvision := perfProfileUnder.TRNConfiguration[0]
-			vmSetUnder := p.FindSuitableVMs(confUnderProvision.NumberReplicas, perfProfileUnder.Limit)
+			perfProfileUnder := selectProfileWithLimits2(it.Requests, currentContainerLimits, underProvisionAllowed)
+			confUnderProvision := perfProfileUnder.PerformanceProfile
+			vmSetUnder := p.FindSuitableVMs(confUnderProvision.NumberReplicas, perfProfileUnder.Limits)
 			costUnder := vmSetUnder.Cost(p.mapVMProfiles)
 			//Update values if the configuration that leads to under provisioning is cheaper
 			if costUnder < costOver {
@@ -70,7 +70,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 				newNumServiceReplicas = confUnderProvision.NumberReplicas
 				stateLoadCapacity = confUnderProvision.TRN
 				totalServicesBootingTime = confUnderProvision.BootTimeSec
-				resourceLimits = perfProfileUnder.Limit
+				resourceLimits = perfProfileUnder.Limits
 			}
 		}
 
