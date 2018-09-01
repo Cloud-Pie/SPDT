@@ -74,11 +74,11 @@ func computeMetricsCapacity(configurations *[]types.Configuration, forecast []ty
 			fi++
 		}
 		if numSamplesUnder > 0 {
-			(*configurations)[i].Metrics.UnderProvision = confUnder /numSamplesUnder
+			(*configurations)[i].Metrics.UnderProvision = math.Ceil(confUnder /numSamplesUnder*100)/100
 			totalUnder += confUnder /numSamplesUnder
 		}
 		if numSamplesOver > 0 {
-			(*configurations)[i].Metrics.OverProvision = confOver /numSamplesOver
+			(*configurations)[i].Metrics.OverProvision = math.Ceil(confOver /numSamplesOver*100)/100
 			totalOver += confOver /numSamplesOver
 		}
 	}

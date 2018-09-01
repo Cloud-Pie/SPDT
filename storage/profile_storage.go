@@ -76,7 +76,30 @@ func (p *PerformanceProfileDAO) FindByLimitsUnder(cores float64, memory float64,
 		"limits.mem_gb" : memory,
 		"trns": bson.M{"$elemMatch": bson.M{"maximum_service_capacity_per_sec":bson.M{"$lt": requests}}}}).
 		Select(bson.M{"_id": 0, "limits":1, "trns.$":1}).One(&performanceProfile)
+
 	return performanceProfile,err
+}
+
+func (p *PerformanceProfileDAO) MatchByLimitsOver(cores float64, memory float64, requests float64) (types.ContainersConfig, error){
+	var result types.ContainersConfig
+	query := []bson.M{
+		bson.M{"$match" : bson.M{"limits.cpu_cores" : cores,"limits.mem_gb" : memory} },
+		bson.M{"$unwind": "$trns" },
+		bson.M{"$match": bson.M{"trns.maximum_service_capacity_per_sec":bson.M{"$gte": requests}}},
+		bson.M{"$sort": bson.M{"trns.maximum_service_capacity_per_sec": 1}}}
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Pipe(query).One(&result)
+	return result, err
+}
+
+func (p *PerformanceProfileDAO) MatchByLimitsUnder(cores float64, memory float64, requests float64) (types.ContainersConfig, error){
+	var result types.ContainersConfig
+	query := []bson.M{
+		bson.M{"$match" : bson.M{"limits.cpu_cores" : cores,"limits.mem_gb" : memory} },
+		bson.M{"$unwind": "$trns" },
+		bson.M{"$match": bson.M{"trns.maximum_service_capacity_per_sec":bson.M{"$lt": requests}}},
+		bson.M{"$sort": bson.M{"trns.maximum_service_capacity_per_sec": -1}}}
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Pipe(query).One(&result)
+	return result, err
 }
 
 func (p *PerformanceProfileDAO) FindNewLimitsOver(requests float64) ([]types.PerformanceProfile, error) {
