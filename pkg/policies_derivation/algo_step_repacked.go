@@ -38,7 +38,7 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 	newPolicy.Metrics = types.PolicyMetrics {
 		StartTimeDerivation:time.Now(),
 	}
-	configurations := []types.Configuration{}
+	configurations := []types.ScalingConfiguration{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 

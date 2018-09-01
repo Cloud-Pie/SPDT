@@ -39,7 +39,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 	newPolicy.Metrics = types.PolicyMetrics {
 		StartTimeDerivation:time.Now(),
 	}
-	configurations := []types.Configuration{}
+	configurations := []types.ScalingConfiguration{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 
@@ -62,7 +62,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		}
 
 		//Compute deltaLoad
-		currentLoadCapacity := configurationCapacity(currentNumberReplicas,currentContainerLimits)
+		currentLoadCapacity := configurationLoadCapacity(currentNumberReplicas,currentContainerLimits)
 		deltaLoad := totalLoad - currentLoadCapacity
 		if deltaLoad == 0 {
 			resourcesConfiguration.VMSet = p.currentState.VMs
@@ -100,18 +100,23 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 				deltaNumberReplicas := profileCurrentLimits.PerformanceProfile.NumberReplicas - currentNumberReplicas
 
 				//Find VM set for totalLoad and validate if a complete migration is better
-				vmSetDeltaLoad := p.findOptimalVMSet(deltaNumberReplicas,profileCurrentLimits.Limits)
-				vmSetDeltaLoad.Merge(p.currentState.VMs)
-				rConfigDeltaLoad := types.ContainersConfig {
-					Limits:profileCurrentLimits.Limits,
-					PerformanceProfile:profileCurrentLimits.PerformanceProfile,
-					VMSet:vmSetDeltaLoad,
-				}
+				if deltaNumberReplicas > 0 {
+					vmSetDeltaLoad := p.findOptimalVMSet(deltaNumberReplicas,profileCurrentLimits.Limits)
+					vmSetDeltaLoad.Merge(p.currentState.VMs)
+					rConfigDeltaLoad := types.ContainersConfig {
+						Limits:profileCurrentLimits.Limits,
+						PerformanceProfile:profileCurrentLimits.PerformanceProfile,
+						VMSet:vmSetDeltaLoad,
+					}
 
-				if newConfig,ok := p.shouldRepackVMSet(rConfigDeltaLoad, rConfigTLoadCurrentLimits,i,processedForecast.CriticalIntervals); ok {
-					resourcesConfiguration = newConfig
-				} else {
-					resourcesConfiguration = rConfigDeltaLoad
+					if newConfig,ok := p.shouldRepackVMSet(rConfigDeltaLoad, rConfigTLoadCurrentLimits,i,processedForecast.CriticalIntervals); ok {
+						resourcesConfiguration = newConfig
+					} else {
+						resourcesConfiguration = rConfigDeltaLoad
+					}
+				}else {
+					//TODO: Fix
+					resourcesConfiguration = rConfigTLoadCurrentLimits
 				}
 			}
 
@@ -189,48 +194,19 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 	@VMScale with the suggested number of VMs
 */
 func (p DeltaRepackedPolicy) findOptimalVMSet(numberReplicas int, resourceLimits types.Limit) types.VMScale {
-	//nVMProfiles := len(p.sortedVMProfiles)
-	candidateSolutions := []types.VMScale{}
 	//currentVMType, isHomogeneous := p.isCurrentlyHomogeneous()
-	//heterogeneousAllowed := p.sysConfiguration.PolicySettings.HetereogeneousAllowed
+	heterogeneousAllowed := p.sysConfiguration.PolicySettings.HetereogeneousAllowed
+	vmSet, _ := buildHomogeneousVMSet(numberReplicas,resourceLimits, p.mapVMProfiles)
 
-	for _,v := range p.sortedVMProfiles {
-		vmScale :=  make(map[string]int)
-		replicasCapacity :=  maxReplicasCapacityInVM(v, resourceLimits)
-		if replicasCapacity > 0 {
-			numVMs := math.Ceil(float64(numberReplicas) / float64(replicasCapacity))
-			vmScale[v.Type] = int(numVMs)
-			candidateSolutions = append(candidateSolutions, vmScale)
+	if heterogeneousAllowed {
+		hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, resourceLimits, p.mapVMProfiles)
+		costi := hetVMSet.Cost(p.mapVMProfiles)
+		costj := vmSet.Cost(p.mapVMProfiles)
+		if costi < costj {
+			vmSet = hetVMSet
 		}
 	}
-
-
-	/*TODO
-	if heterogeneousAllowed {
-		//heterogeneous candidate set of two types
-		//The current type and the next type in size order
-		if i < nVMProfiles-1 {
-			vmScale := buildHeterogeneousSet(numberReplicas, v.Type, capacity,  p.sortedVMProfiles[i+1].Type,  p.sortedVMProfiles[i+1].ReplicasCapacity)
-			set := VMSet{VMSet:vmScale}
-			set.setValues(p.mapVMProfiles)
-			candidateSolutions = append(candidateSolutions, set)
-		}
-	}else if isHomogeneous && v.Type == currentVMType {
-		return set.VMSet
-	}*/
-
-	sort.Slice(candidateSolutions, func(i, j int) bool {
-		costi := candidateSolutions[i].Cost(p.mapVMProfiles)
-		costj := candidateSolutions[j].Cost(p.mapVMProfiles)
-		if costi < costj {
-			return true
-		} else if costi ==  costj {
-			return candidateSolutions[i].TotalVMs() >= candidateSolutions[j].TotalVMs()
-		}
-		return false
-	})
-
-	return candidateSolutions[0]
+	return vmSet
 }
 
 //Use a greedy approach to build a VM cluster of two types  to support the
@@ -388,8 +364,4 @@ func(p DeltaRepackedPolicy) shouldRepackVMSet(currentOption types.ContainersConf
 		}
 	}
 	return types.ContainersConfig{}, false
-}
-
-func findHeterogeneousCluster(){
-
 }

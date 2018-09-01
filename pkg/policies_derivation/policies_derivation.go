@@ -12,6 +12,7 @@ import (
 	"github.com/op/go-logging"
 	"github.com/Cloud-Pie/SPDT/storage"
 	"github.com/Cloud-Pie/SPDT/config"
+	"errors"
 )
 
 var log = logging.MustGetLogger("spdt")
@@ -28,6 +29,16 @@ type TimeWindowDerivation interface {
 	WindowDerivation(values []float64, times [] time.Time)	types.ProcessedForecast
 }
 
+/* Derive scaling policies
+	in:
+		@poiList []types.PoI
+		@values []float64
+		@times [] time.Time
+		@sortedVMProfiles []VmProfile
+		@sysConfiguration SystemConfiguration
+	out:
+		@[]types.Policy
+*/
 func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedVMProfiles []types.VmProfile, sysConfiguration config.SystemConfiguration) []types.Policy {
 	var policies []types.Policy
 
@@ -97,6 +108,13 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 	return policies
 }
 
+/* Compute the booting time that will take a set of VMS
+	in:
+		@vmsScale types.VMScale
+		@sysConfiguration SystemConfiguration
+	out:
+		@int	Time in seconds that the booting wil take
+*/
 func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.SystemConfiguration) int {
 	bootTime := 0
 	// If Heterogeneous cluster, take the bigger cluster
@@ -118,8 +136,14 @@ func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.System
 	return bootTime
 }
 
-//Compute the termination time of a set of VMs
-//Result must be in seconds
+
+/* Compute the termination time of a set of VMs
+	in:
+		@vmsScale types.VMScale
+		@sysConfiguration SystemConfiguration
+	out:
+		@int	Time in seconds that the termination wil take
+*/
 func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.SystemConfiguration) int {
 	terminationTime := 0
 	list := mapToList(vmsScale)
@@ -140,6 +164,13 @@ func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.Sy
 	return terminationTime
 }
 
+/* Compute the max number of service replicas (Replicas capacity) that a VM can host
+	in:
+		@vmProfile types.VmProfile
+		@resourceLimit types.Limit
+	out:
+		@int	Number of replicas
+*/
 func maxReplicasCapacityInVM(vmProfile types.VmProfile, resourceLimit types.Limit) int {
 		m := float64(vmProfile.NumCores) / float64(resourceLimit.NumberCores)
 		n := float64(vmProfile.Memory) / float64(resourceLimit.MemoryGB)
@@ -147,6 +178,14 @@ func maxReplicasCapacityInVM(vmProfile types.VmProfile, resourceLimit types.Limi
 		return int(numReplicas)
 }
 
+/* Select the service profile for a given container limit resources
+	in:
+		@requests	float64 - number of requests that the service should serve
+		@limits types.Limit	- resource limits (cpu cores and memory gb) configured in the container
+		@underProvision bool	- flag that indicate if when searching for a service profile, the underprovision is allowed
+	out:
+		@ContainersConfig	- configuration with number of replicas and limits that best fit for the number of requests
+*/
 func selectProfileWithLimits(requests float64, limits types.Limit, underProvision bool) types.ContainersConfig {
 	var containerConfig types.ContainersConfig
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
@@ -164,6 +203,13 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 	return containerConfig
 }
 
+/* Select the service profile for any limit resources that satisfies the number of requests
+	in:
+		@requests	float64 - number of requests that the service should serve
+		@underProvision bool	- flag that indicate if when searching for a service profile, the underprovision is allowed
+	out:
+		@ContainersConfig	- configuration with number of replicas and limits that best fit for the number of requests
+*/
 func selectProfile(requests float64, underProvision bool) types.PerformanceProfile {
 
 	var profiles []types.PerformanceProfile
@@ -200,7 +246,14 @@ func selectProfile(requests float64, underProvision bool) types.PerformanceProfi
 	return profiles[0]
 }
 
-func configurationCapacity(numberReplicas int, limits types.Limit) float64 {
+/* Select the service profile for any limit resources that satisfies the number of requests
+	in:
+		@numberReplicas	int - number of replicas
+		@limits bool types.Limit - limits constraints(cpu cores and memory gb) per replica
+	out:
+		@float64	- Max number of request for this containers configuration
+*/
+func configurationLoadCapacity(numberReplicas int, limits types.Limit) float64 {
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
 	profile,_ := serviceProfileDAO.FindProfileTRN(limits.NumberCores, limits.MemoryGB, numberReplicas)
 	currentLoadCapacity := profile.TRNConfiguration[0].TRN
@@ -208,7 +261,9 @@ func configurationCapacity(numberReplicas int, limits types.Limit) float64 {
 	return currentLoadCapacity
 }
 
-func setConfiguration(configurations *[]types.Configuration, state types.State, timeStart time.Time, timeEnd time.Time, name string, totalServicesBootingTime int, sysConfiguration config.SystemConfiguration, stateLoadCapacity float64) {
+/* Utility method to set up each scaling configuration
+*/
+func setConfiguration(configurations *[]types.ScalingConfiguration, state types.State, timeStart time.Time, timeEnd time.Time, name string, totalServicesBootingTime int, sysConfiguration config.SystemConfiguration, stateLoadCapacity float64) {
 	nConfigurations := len(*configurations)
 	if nConfigurations >= 1 && state.Equal((*configurations)[nConfigurations-1].State) {
 		(*configurations)[nConfigurations-1].TimeEnd = timeEnd
@@ -235,11 +290,113 @@ func setConfiguration(configurations *[]types.Configuration, state types.State, 
 		state.LaunchTime = startTime
 		state.Name = strconv.Itoa(nConfigurations) + "__" + name + "__" + startTime.Format(util.TIME_LAYOUT)
 		*configurations = append(*configurations,
-			types.Configuration {
+			types.ScalingConfiguration{
 				State:          state,
 				TimeStart:      timeStart,
 				TimeEnd:        timeEnd,
 				Metrics:types.ConfigMetrics{CapacityTRN:stateLoadCapacity,},
 			})
+	}
+}
+
+func buildHeterogeneousVMSet(numberReplicas int, limits types.Limit, mapVMProfiles map[string]types.VmProfile) (types.VMScale,error) {
+	var err error
+	tree := &Tree{}
+	node := new(Node)
+	node.NReplicas = numberReplicas
+	node.vmScale = make(map[string]int)
+	tree.Root = node
+	candidateVMSets := []types.VMScale {}
+	computeVMsCapacity(limits, &mapVMProfiles)
+
+	buildTree(tree.Root, numberReplicas,&candidateVMSets,mapVMProfiles)
+
+	if len(candidateVMSets)> 0{
+		sort.Slice(candidateVMSets, func(i, j int) bool {
+			costi := candidateVMSets[i].Cost(mapVMProfiles)
+			costj := candidateVMSets[j].Cost(mapVMProfiles)
+			if costi < costj {
+				return true
+			} else if costi ==  costj {
+				return candidateVMSets[i].TotalVMs() >= candidateVMSets[j].TotalVMs()
+			}
+			return false
+		})
+		return candidateVMSets[0],err
+	}else {
+		return types.VMScale{},errors.New("No VM Candidate")
+	}
+}
+
+/*
+	Form scaling options using clusters of heterogeneous VMs
+	Builds a tree to form the different combinations
+	in:
+		@node			- Node of the tree
+		@numberReplicas	- Number of replicas that the VM set should host
+		@vmScaleList	- List filled with the candidates VM sets
+*/
+func buildTree(node *Node, numberReplicas int, vmScaleList *[]types.VMScale, mapVMProfiles map[string]types.VmProfile) *Node {
+	if node.NReplicas == 0 {
+		return node
+	}
+	for k,v := range mapVMProfiles {
+		maxReplicas := v.ReplicasCapacity
+		if maxReplicas >= numberReplicas {
+			newNode := new(Node)
+			newNode.vmType = k
+			newNode.NReplicas = 0
+			newNode.vmScale = copyMap(node.vmScale)
+			if _, ok := newNode.vmScale[newNode.vmType]; ok {
+				newNode.vmScale[newNode.vmType] = newNode.vmScale[newNode.vmType]+1
+			} else {
+				newNode.vmScale[newNode.vmType] = 1
+			}
+			node.children = append(node.children, newNode)
+			*vmScaleList = append(*vmScaleList, newNode.vmScale)
+			//return node
+		} else if maxReplicas > 0 {
+			newNode := new(Node)
+			newNode.vmType = k
+			newNode.NReplicas = numberReplicas -maxReplicas
+			newNode.vmScale = copyMap(node.vmScale)
+			if _, ok := newNode.vmScale[newNode.vmType]; ok {
+				newNode.vmScale[newNode.vmType] = newNode.vmScale[newNode.vmType] + 1
+			} else {
+				newNode.vmScale[newNode.vmType] = 1
+			}
+			newNode = buildTree(newNode, numberReplicas-maxReplicas, vmScaleList, mapVMProfiles)
+			node.children = append(node.children, newNode)
+		}
+	}
+	return node
+}
+
+func buildHomogeneousVMSet(numberReplicas int, limits types.Limit, mapVMProfiles map[string]types.VmProfile) (types.VMScale,error) {
+	var err error
+	candidateVMSets := []types.VMScale{}
+	for _,v := range mapVMProfiles {
+		vmScale :=  make(map[string]int)
+		replicasCapacity :=  maxReplicasCapacityInVM(v, limits)
+		if replicasCapacity > 0 {
+			numVMs := math.Ceil(float64(numberReplicas) / float64(replicasCapacity))
+			vmScale[v.Type] = int(numVMs)
+			candidateVMSets = append(candidateVMSets, vmScale)
+		}
+	}
+	if len(candidateVMSets) > 0 {
+		sort.Slice(candidateVMSets, func(i, j int) bool {
+			costi := candidateVMSets[i].Cost(mapVMProfiles)
+			costj := candidateVMSets[j].Cost(mapVMProfiles)
+			if costi < costj {
+				return true
+			} else if costi ==  costj {
+				return candidateVMSets[i].TotalVMs() >= candidateVMSets[j].TotalVMs()
+			}
+			return false
+		})
+		return candidateVMSets[0],err
+	}else {
+		return types.VMScale{},errors.New("No VM Candidate")
 	}
 }

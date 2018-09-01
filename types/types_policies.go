@@ -101,7 +101,7 @@ type PolicyMetrics struct {
 }
 
 /*Resource configuration*/
-type Configuration struct {
+type ScalingConfiguration struct {
 	State					State
 	TimeStart 				time.Time
 	TimeEnd					time.Time
@@ -128,14 +128,14 @@ const (
 
 //Policy states the scaling transitions
 type Policy struct {
-	ID     					bson.ObjectId 	  `bson:"_id" json:"id"`
-	Algorithm 				string		  	  `json:"algorithm" bson:"algorithm"`
-	Metrics					PolicyMetrics	  `json:"metrics" bson:"metrics"`
+	ID     					bson.ObjectId          `bson:"_id" json:"id"`
+	Algorithm 				string                  `json:"algorithm" bson:"algorithm"`
+	Metrics					PolicyMetrics         `json:"metrics" bson:"metrics"`
 	Status					string
 	Parameters				map[string]string
-	Configurations    		[]Configuration	  `json:"configuration" bson:"configuration"`
-	TimeWindowStart   		time.Time		  `json:"window_time_start"  bson:"window_time_start"`
-	TimeWindowEnd   		time.Time		  `json:"window_time_end"  bson:"window_time_end"`
+	Configurations    		[]ScalingConfiguration `json:"configuration" bson:"configuration"`
+	TimeWindowStart   		time.Time                 `json:"window_time_start"  bson:"window_time_start"`
+	TimeWindowEnd   		time.Time                   `json:"window_time_end"  bson:"window_time_end"`
 
 }
 

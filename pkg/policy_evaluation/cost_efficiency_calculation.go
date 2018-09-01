@@ -24,7 +24,7 @@ func computePolicyCost(policy types.Policy, billingUnit string, mapVMProfiles ma
 }
 
 //Compute cost for a configuration of resources
-func computeConfigurationCost(cf types.Configuration, unit string, mapVMProfiles map[string] types.VmProfile) float64 {
+func computeConfigurationCost(cf types.ScalingConfiguration, unit string, mapVMProfiles map[string] types.VmProfile) float64 {
 	configurationCost := 0.0
 	deltaTime := setDeltaTime(cf.TimeStart,cf.TimeEnd,unit)
 	for k,v := range cf.State.VMs {
@@ -50,7 +50,7 @@ func setDeltaTime (timeStart time.Time, timeEnd time.Time, unit string) float64 
 }
 
 //Calculate overprovisioning and underprovisioning of a state
-func computeMetricsCapacity(configurations *[]types.Configuration, forecast []types.ForecastedValue) (float64, float64){
+func computeMetricsCapacity(configurations *[]types.ScalingConfiguration, forecast []types.ForecastedValue) (float64, float64){
 	var avgOver float64
 	var avgUnder float64
 	fi := 0

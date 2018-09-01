@@ -52,7 +52,7 @@ type Tree struct {
 func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []types.Policy {
 
 	policies := []types.Policy {}
-	configurations := []types.Configuration {}
+	configurations := []types.ScalingConfiguration{}
 	newPolicy := types.Policy{}
 	newPolicy.Metrics = types.PolicyMetrics {
 		StartTimeDerivation:time.Now(),
@@ -73,7 +73,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 		serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
 		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, NumberCores:serviceToScale.CPU }
 		currentNumberReplicas := serviceToScale.Scale
-		currentLoadCapacity := configurationCapacity(currentNumberReplicas, currentContainerLimits)
+		currentLoadCapacity := configurationLoadCapacity(currentNumberReplicas, currentContainerLimits)
 		deltaLoad := totalLoad - currentLoadCapacity
 
 		if deltaLoad == 0 {
@@ -177,7 +177,8 @@ func (p TreePolicy) FindSuitableVMs(numberReplicas int, limits types.Limit) type
 	node.vmScale = make(map[string]int)
 	tree.Root = node
 	mapVMScaleList := []types.VMScale {}
-	p.buildTree(tree.Root, numberReplicas,&mapVMScaleList)
+	computeVMsCapacity(limits,&p.mapVMProfiles)
+	buildTree(tree.Root, numberReplicas,&mapVMScaleList, p.mapVMProfiles)
 
 	//Drucken (node, 1)
 	sort.Slice(mapVMScaleList, func(i, j int) bool {
@@ -205,49 +206,6 @@ func Drucken (n *Node, level int) {
 	}
 }
 
-/*
-	Form scaling options using clusters of heterogeneous VMs
-	Builds a tree to form the different combinations
-	in:
-		@node			- Node of the tree
-		@numberReplicas	- Number of replicas that the VM set should host
-		@vmScaleList	- List filled with the candidates VM sets
-*/
-func (p TreePolicy) buildTree(node *Node, numberReplicas int, vmScaleList *[]types.VMScale) *Node {
-	if node.NReplicas == 0 {
-		return node
-	}
-	for k,v := range p.mapVMProfiles {
-		maxReplicas := v.ReplicasCapacity
-		if maxReplicas >= numberReplicas {
-			newNode := new(Node)
-			newNode.vmType = k
-			newNode.NReplicas = 0
-			newNode.vmScale = copyMap(node.vmScale)
-			if _, ok := newNode.vmScale[newNode.vmType]; ok {
-				newNode.vmScale[newNode.vmType] = newNode.vmScale[newNode.vmType]+1
-			} else {
-				newNode.vmScale[newNode.vmType] = 1
-			}
-			node.children = append(node.children, newNode)
-			*vmScaleList = append(*vmScaleList, newNode.vmScale)
-			//return node
-		} else if maxReplicas > 0 {
-			newNode := new(Node)
-			newNode.vmType = k
-			newNode.NReplicas = numberReplicas -maxReplicas
-			newNode.vmScale = copyMap(node.vmScale)
-			if _, ok := newNode.vmScale[newNode.vmType]; ok {
-				newNode.vmScale[newNode.vmType] = newNode.vmScale[newNode.vmType] + 1
-			} else {
-				newNode.vmScale[newNode.vmType] = 1
-			}
-			newNode = p.buildTree(newNode, numberReplicas-maxReplicas, vmScaleList)
-			node.children = append(node.children, newNode)
-		}
-	}
-	return node
-}
 
 /*
 	Remove VMs from the current set of VMs, the resources that hosts the defined number of container replicas
@@ -259,7 +217,7 @@ func (p TreePolicy) buildTree(node *Node, numberReplicas int, vmScaleList *[]typ
 	out:
 		@VMScale
 */
-func (p TreePolicy)removeVMs(currentVMSet types.VMScale, numberReplicas int, limits types.Limit) types.VMScale{
+func (p TreePolicy)removeVMs(currentVMSet types.VMScale, numberReplicas int, limits types.Limit) types.VMScale {
 	var newVMSet types.VMScale
 	newVMSet = copyMap(currentVMSet)
 

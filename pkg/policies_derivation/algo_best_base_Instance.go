@@ -41,7 +41,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 		newPolicy.Metrics = types.PolicyMetrics {
 			StartTimeDerivation:time.Now(),
 		}
-		configurations := []types.Configuration{}
+		configurations := []types.ScalingConfiguration{}
 		underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 		containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 		serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]

@@ -37,7 +37,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 		StartTimeDerivation:time.Now(),
 	}
 
-	configurations := []types.Configuration {}
+	configurations := []types.ScalingConfiguration{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 	serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
