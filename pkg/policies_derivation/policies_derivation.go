@@ -88,6 +88,11 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 		policies4 := algorithm.CreatePolicies(processedForecast)
 		policies = append(policies, policies4...)
 
+		//tree
+		tree := TreePolicy {algorithm:util.SEARCH_TREE_ALGORITHM, timeWindow:timeWindows, currentState:currentState,
+			sortedVMProfiles:sortedVMProfiles,mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration}
+		policies5 := tree.CreatePolicies(processedForecast)
+		policies = append(policies, policies5...)
 	}
 	return policies
 }
