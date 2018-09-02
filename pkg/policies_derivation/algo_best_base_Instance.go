@@ -52,7 +52,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 			ProfileNewLimits := selectProfile(it.Requests, false)
 
 			containersConfig,err := p.selectContainersConfig(ProfileCurrentLimits.Limits, ProfileCurrentLimits.PerformanceProfile,
-																	ProfileNewLimits.Limit, ProfileNewLimits.TRNConfiguration[0], containerResizeEnabled, vmType)
+																	ProfileNewLimits.Limits, ProfileNewLimits.PerformanceProfile, containerResizeEnabled, vmType)
 			if err !=  nil {
 				vmTypeSuitable = false
 			}
@@ -66,12 +66,12 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 				ProfileSameLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
 				ProfileNewLimits := selectProfile(it.Requests, underProvisionAllowed)
 				underContainersConfig,err := p.selectContainersConfig(ProfileSameLimits.Limits,ProfileSameLimits.PerformanceProfile,
-					ProfileNewLimits.Limit, ProfileNewLimits.TRNConfiguration[0], containerResizeEnabled, vmType)
+					ProfileNewLimits.Limits, ProfileNewLimits.PerformanceProfile, containerResizeEnabled, vmType)
 				if err !=  nil {
 					vmTypeSuitable = false
 					break // No VMset fits for the containers set
 				} else {
-					if underContainersConfig.Cost > containersConfig.Cost {
+					if underContainersConfig.Cost < containersConfig.Cost {
 						newNumServiceReplicas = underContainersConfig.PerformanceProfile.NumberReplicas
 						stateLoadCapacity = underContainersConfig.PerformanceProfile.TRN
 						totalServicesBootingTime = underContainersConfig.PerformanceProfile.BootTimeSec

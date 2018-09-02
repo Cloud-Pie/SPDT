@@ -48,10 +48,6 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 
 		//Select the performance profile that fits better
 		perfProfileOver := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
-
-		//Compute the max capacity in terms of number of  service replicas for each VM type
-		//computeVMsCapacity(perfProfileOver,&p.mapVMProfiles)
-
 		confOverProvision := perfProfileOver.PerformanceProfile
 		newNumServiceReplicas := confOverProvision.NumberReplicas
 		vmSet := p.FindSuitableVMs(newNumServiceReplicas, perfProfileOver.Limits)

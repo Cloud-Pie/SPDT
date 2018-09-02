@@ -100,14 +100,14 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 						//case 2: search a new service profile with underprovisioning that possible fit into the
 						//current VM set
 						ProfileNewLimits := selectProfile(totalLoad, underProvisionAllowed)
-						computeCapacity(&p.sortedVMProfiles, ProfileNewLimits.Limit, &p.mapVMProfiles)
+						computeCapacity(&p.sortedVMProfiles, ProfileNewLimits.Limits, &p.mapVMProfiles)
 						currentReplicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
-						if currentReplicasCapacity >= ProfileNewLimits.TRNConfiguration[0].NumberReplicas {
+						if currentReplicasCapacity >= ProfileNewLimits.PerformanceProfile.NumberReplicas {
 							vmSet = p.currentState.VMs
-							newNumServiceReplicas = ProfileNewLimits.TRNConfiguration[0].NumberReplicas
-							resourceLimits  = ProfileNewLimits.Limit
-							stateLoadCapacity = ProfileNewLimits.TRNConfiguration[0].TRN
-							totalServicesBootingTime = ProfileNewLimits.TRNConfiguration[0].BootTimeSec
+							newNumServiceReplicas = ProfileNewLimits.PerformanceProfile.NumberReplicas
+							resourceLimits  = ProfileNewLimits.Limits
+							stateLoadCapacity = ProfileNewLimits.PerformanceProfile.TRN
+							totalServicesBootingTime = ProfileNewLimits.PerformanceProfile.BootTimeSec
 						}
 					} else {
 						//case 3: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.

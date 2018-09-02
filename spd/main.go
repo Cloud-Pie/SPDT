@@ -32,16 +32,15 @@ var (
 )
 
 // Main function to start the scaling policy derivation
-func Start () {
 	StyleEntry()
 	setLogger()
 
 	if FlagsVar.ConfigFile == "" {
-		log.Info("Configuration file not specified. Default config.yml is expected.")
+		log.Info("ScalingConfiguration file not specified. Default config.yml is expected.")
 		FlagsVar.ConfigFile = util.CONFIG_FILE
 	}
 
-	//Read Configuration File
+	//Read ScalingConfiguration File
 	ReadSysConfiguration()
 	timeStart = sysConfiguration.ScalingHorizon.StartTime
 	timeEnd = sysConfiguration.ScalingHorizon.EndTime

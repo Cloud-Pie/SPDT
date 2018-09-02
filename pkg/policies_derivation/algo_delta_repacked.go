@@ -86,14 +86,14 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 				//case 2: search a new service profile with underprovisioning that possible fit into the
 				//current VM set
 				profileNewLimits := selectProfile(totalLoad, underProvisionAllowed)
-				computeVMsCapacity(profileNewLimits.Limit, &p.mapVMProfiles)
+				computeVMsCapacity(profileNewLimits.Limits, &p.mapVMProfiles)
 				replicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
 				//Validate if the current configuration is able to handle the new replicas
 				//Using a new Resource Limits configuration for the containers
-				if replicasCapacity > profileNewLimits.TRNConfiguration[0].NumberReplicas {
+				if replicasCapacity > profileNewLimits.PerformanceProfile.NumberReplicas {
 					resourcesConfiguration.VMSet = p.currentState.VMs
-					resourcesConfiguration.Limits = profileNewLimits.Limit
-					resourcesConfiguration.PerformanceProfile = profileNewLimits.TRNConfiguration[0]
+					resourcesConfiguration.Limits = profileNewLimits.Limits
+					resourcesConfiguration.PerformanceProfile = profileNewLimits.PerformanceProfile
 				}
 			} else {
 				//case 3: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.

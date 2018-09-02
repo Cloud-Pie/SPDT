@@ -210,36 +210,24 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 	out:
 		@ContainersConfig	- configuration with number of replicas and limits that best fit for the number of requests
 */
-func selectProfile(requests float64, underProvision bool) types.PerformanceProfile {
+func selectProfile(requests float64, underProvision bool) types.ContainersConfig {
 
-	var profiles []types.PerformanceProfile
-	//var err error
+	var profiles []types.ContainersConfig
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
-	/*if underProvision {
-		profiles,err = serviceProfileDAO.FindNewLimitsUnder(requests)
-	} else {
-		profiles,err = serviceProfileDAO.FindNewLimitsOver(requests)
-		if err != nil || len(profiles)==0{
-			//TODO: Fix - Temporal solution to ensure that always there is a result
-			profiles,err = serviceProfileDAO.FindNewLimitsUnder(requests)
-		}
-	}*/
+	profilesUnder,err1:= serviceProfileDAO.MatchUnder(requests)
+	profilesOver,err2 := serviceProfileDAO.MatchOver(requests)
 
-	profilesUnder,_:= serviceProfileDAO.FindNewLimitsUnder(requests)
-	profilesOver,_ := serviceProfileDAO.FindNewLimitsOver(requests)
-
-	if underProvision && len(profilesUnder)>0{
+	if underProvision && err2 == nil && len(profilesUnder)>0 {
 		profiles = profilesUnder
-	}else if len(profilesOver) > 0{
+	} else if err1 == nil{
 		profiles = profilesOver
-	} else {
+	} else if err2 == nil {
 		profiles = profilesUnder
 	}
 
-
 	sort.Slice(profiles, func(i, j int) bool {
-		utilizationFactori := float64(profiles[i].TRNConfiguration[0].NumberReplicas) * profiles[i].Limit.NumberCores
-		utilizationFactorj := float64(profiles[j].TRNConfiguration[0].NumberReplicas) * profiles[j].Limit.NumberCores
+		utilizationFactori := float64(profiles[i].PerformanceProfile.NumberReplicas) * profiles[i].Limits.NumberCores +  float64(profiles[i].PerformanceProfile.NumberReplicas) * profiles[i].Limits.MemoryGB
+		utilizationFactorj := float64(profiles[j].PerformanceProfile.NumberReplicas) * profiles[j].Limits.NumberCores + float64(profiles[j].PerformanceProfile.NumberReplicas) * profiles[i].Limits.MemoryGB
 		return utilizationFactori < utilizationFactorj
 	})
 
