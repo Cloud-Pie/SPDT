@@ -7,7 +7,6 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/config"
 	"strconv"
-	"errors"
 	"github.com/Cloud-Pie/SPDT/util"
 )
 
@@ -19,6 +18,7 @@ type BestBaseInstancePolicy struct {
 	algorithm  string               //Algorithm's name
 	timeWindow TimeWindowDerivation //Algorithm used to process the forecasted time serie
 	currentState	types.State			 //Current State
+	sortedVMProfiles []types.VmProfile    			//List of VM profiles sorted by price
 	mapVMProfiles   map[string]types.VmProfile
 	sysConfiguration	config.SystemConfiguration
 }
@@ -32,9 +32,11 @@ type BestBaseInstancePolicy struct {
 */
 func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [] types.Policy {
 	policies := []types.Policy{}
+	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
+	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 
 	//Loops all the VM types and derive a policy using a single VMType
-	for vmType, _ := range p.mapVMProfiles {
+	for vmType, vm := range p.mapVMProfiles {
 		vmTypeSuitable := true
 
 		newPolicy := types.Policy{}
@@ -42,14 +44,13 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 			StartTimeDerivation:time.Now(),
 		}
 		configurations := []types.ScalingConfiguration{}
-		underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
-		containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 		serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
 		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, NumberCores:serviceToScale.CPU }
 
 		for _, it := range processedForecast.CriticalIntervals {
 			ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
-			ProfileNewLimits := selectProfile(it.Requests, false)
+			vmLimits := types.Limit{ MemoryGB:vm.Memory, NumberCores:vm.NumCores }
+			ProfileNewLimits := selectProfile(it.Requests, vmLimits, false)
 
 			containersConfig,err := p.selectContainersConfig(ProfileCurrentLimits.Limits, ProfileCurrentLimits.PerformanceProfile,
 																	ProfileNewLimits.Limits, ProfileNewLimits.PerformanceProfile, containerResizeEnabled, vmType)
@@ -64,7 +65,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 
 			if underProvisionAllowed {
 				ProfileSameLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-				ProfileNewLimits := selectProfile(it.Requests, underProvisionAllowed)
+				ProfileNewLimits := selectProfile(it.Requests, vmLimits, underProvisionAllowed)
 				underContainersConfig,err := p.selectContainersConfig(ProfileSameLimits.Limits,ProfileSameLimits.PerformanceProfile,
 					ProfileNewLimits.Limits, ProfileNewLimits.PerformanceProfile, containerResizeEnabled, vmType)
 				if err !=  nil {
@@ -163,34 +164,22 @@ func (p BestBaseInstancePolicy) selectContainersConfig(currentLimits types.Limit
 	costCurrent := vmSet1.Cost(p.mapVMProfiles)
 	vmSet2 := p.FindSuitableVMs(profileNewLimits.NumberReplicas, newLimits, vmType)
 	costNew := vmSet2.Cost(p.mapVMProfiles)
-	//TODO:Review logic.
-	if len(vmSet1) != 0 && len(vmSet2) != 0 {
-		if  containerResize {
-			return types.ContainersConfig{Limits: newLimits,
-				PerformanceProfile: profileNewLimits,
-				VMSet: vmSet2,
-				Cost: costNew,
-			}, nil
-		} else {
-			return types.ContainersConfig{Limits: currentLimits,
-				PerformanceProfile: profileCurrentLimits,
-				VMSet: vmSet1,
-				Cost: costCurrent,
-			}, nil
-		}
-	} else if len(vmSet1) != 0 {
-		return types.ContainersConfig{Limits: currentLimits,
-			PerformanceProfile: profileCurrentLimits,
-			VMSet: vmSet1,
-			Cost: costCurrent,
-		}, nil
-	} else if len(vmSet2) != 0 {
+
+	//performanceFactorCurrent := profileCurrentLimits.TRN / (currentLimits.MemoryGB * float64(profileCurrentLimits.NumberReplicas) + currentLimits.NumberCores * float64(profileCurrentLimits.NumberReplicas))
+	//performanceFactorNew := profileNewLimits.TRN / (newLimits.MemoryGB * float64(profileNewLimits.NumberReplicas) + newLimits.NumberCores * float64(profileNewLimits.NumberReplicas))
+
+	if  profileNewLimits.TRN != profileCurrentLimits.TRN && containerResize && len(vmSet2) != 0{
 		return types.ContainersConfig{Limits: newLimits,
 			PerformanceProfile: profileNewLimits,
 			VMSet: vmSet2,
 			Cost: costNew,
 		}, nil
+
 	} else {
-		return types.ContainersConfig{}, errors.New("Container limits don't fit in this type of VM")
+		return types.ContainersConfig{Limits: currentLimits,
+			PerformanceProfile: profileCurrentLimits,
+			VMSet: vmSet1,
+			Cost: costCurrent,
+		}, nil
 	}
 }

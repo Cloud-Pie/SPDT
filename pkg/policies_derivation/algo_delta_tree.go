@@ -59,6 +59,8 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 	}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
+	biggestVM := p.sortedVMProfiles[len(p.sortedVMProfiles)-1]
+	vmLimits := types.Limit{ MemoryGB:biggestVM.Memory, NumberCores:biggestVM.NumCores }
 
 	for _, it := range processedForecast.CriticalIntervals {
 
@@ -99,7 +101,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 					if underProvisionAllowed {
 						//case 2: search a new service profile with underprovisioning that possible fit into the
 						//current VM set
-						ProfileNewLimits := selectProfile(totalLoad, underProvisionAllowed)
+						ProfileNewLimits := selectProfile(totalLoad, vmLimits,underProvisionAllowed)
 						computeCapacity(&p.sortedVMProfiles, ProfileNewLimits.Limits, &p.mapVMProfiles)
 						currentReplicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
 						if currentReplicasCapacity >= ProfileNewLimits.PerformanceProfile.NumberReplicas {

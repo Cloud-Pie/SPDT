@@ -5,6 +5,7 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/util"
+	"errors"
 )
 
 var PerformanceProfileDB *PerformanceProfileDAO
@@ -80,6 +81,17 @@ func (p *PerformanceProfileDAO) FindByLimitsUnder(cores float64, memory float64,
 	return performanceProfile,err
 }
 
+/*
+	Matches the profiles that have exactly the resource limits specified as input and that provide a TRN greater or equal
+	than the number of requests needed
+	in:
+		@cores float64
+		@memory float64
+		@requests float64
+	out:
+		@ContainersConfig
+		@error
+*/
 func (p *PerformanceProfileDAO) MatchByLimitsOver(cores float64, memory float64, requests float64) (types.ContainersConfig, error){
 	var result types.ContainersConfig
 	query := []bson.M{
@@ -91,6 +103,17 @@ func (p *PerformanceProfileDAO) MatchByLimitsOver(cores float64, memory float64,
 	return result, err
 }
 
+/*
+	Matches the profiles that have exactly the resource limits specified as input and that provide a TRN less
+	than the number of requests needed
+	in:
+		@cores float64
+		@memory float64
+		@requests float64
+	out:
+		@ContainersConfig
+		@error
+*/
 func (p *PerformanceProfileDAO) MatchByLimitsUnder(cores float64, memory float64, requests float64) (types.ContainersConfig, error){
 	var result types.ContainersConfig
 	query := []bson.M{
@@ -99,6 +122,91 @@ func (p *PerformanceProfileDAO) MatchByLimitsUnder(cores float64, memory float64
 		bson.M{"$match": bson.M{"trns.maximum_service_capacity_per_sec":bson.M{"$lt": requests}}},
 		bson.M{"$sort": bson.M{"trns.maximum_service_capacity_per_sec": -1}}}
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Pipe(query).One(&result)
+	return result, err
+}
+
+/*
+	Matches the profiles without consider restriction of limits that provide a TRN greater or equal
+	than the number of requests needed
+	in:
+		@requests float64
+	out:
+		@ContainersConfig []types.ContainersConfig
+		@error
+
+*/
+func (p *PerformanceProfileDAO) MatchOver(requests float64) ([]types.ContainersConfig, error) {
+	var result []types.ContainersConfig
+	query := []bson.M{
+		bson.M{"$unwind": "$trns" },
+		bson.M{"$match": bson.M{"trns.maximum_service_capacity_per_sec":bson.M{"$gte": requests}}},
+		bson.M{"$sort": bson.M{"limits.cpu_cores":1, "limits.mem_gb":1, "trns.replicas":1, "trns.maximum_service_capacity_per_sec": 1}}}
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Pipe(query).All(&result)
+	return result, err
+}
+
+/*
+	Matches the profiles without consider restriction of limits that provide a TRN less than
+	than the number of requests needed
+	in:
+		@requests float64
+	out:
+		@ContainersConfig []types.ContainersConfig
+		@error
+*/
+func (p *PerformanceProfileDAO) MatchUnder(requests float64) ([]types.ContainersConfig, error) {
+	var result []types.ContainersConfig
+	query := []bson.M{
+		bson.M{"$unwind": "$trns" },
+		bson.M{"$match": bson.M{"trns.maximum_service_capacity_per_sec":bson.M{"$lt": requests}}},
+		bson.M{"$sort": bson.M{"limits.cpu_cores":1, "limits.mem_gb":1, "trns.replicas":1, "trns.maximum_service_capacity_per_sec":-1}}}
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Pipe(query).All(&result)
+	return result, err
+}
+
+/*
+	Matches the profiles  which fit into the specified limits and that provide a TRN greater or equal than
+	than the number of requests needed
+	in:
+		@requests float64
+	out:
+		@ContainersConfig []types.ContainersConfig
+		@error
+*/
+func (p *PerformanceProfileDAO) MatchProfileFitLimitsOver(cores float64, memory float64, requests float64) ([]types.ContainersConfig, error) {
+	var result []types.ContainersConfig
+	query := []bson.M{
+		bson.M{ "$match" : bson.M{"limits.cpu_cores" : bson.M{"$lte": cores}, "limits.mem_gb" : bson.M{"$lte":memory}}},
+		bson.M{"$unwind": "$trns" },
+		bson.M{"$match": bson.M{"trns.maximum_service_capacity_per_sec":bson.M{"$gte": requests}}},
+		bson.M{"$sort": bson.M{"limits.cpu_cores":1, "limits.mem_gb":1, "trns.replicas":1, "trns.maximum_service_capacity_per_sec": 1}}}
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Pipe(query).All(&result)
+	if len(result) == 0 {
+		return result, errors.New("No result found")
+	}
+	return result, err
+}
+
+/*
+	Matches the profiles  which fit into the specified limits and that provide a TRN less than
+	than the number of requests needed
+	in:
+		@requests float64
+	out:
+		@ContainersConfig []types.ContainersConfig
+		@error
+*/
+func (p *PerformanceProfileDAO) MatchProfileFitLimitsUnder(cores float64, memory float64,requests float64) ([]types.ContainersConfig, error) {
+	var result []types.ContainersConfig
+	query := []bson.M{
+		bson.M{ "$match" : bson.M{"limits.cpu_cores" : bson.M{"$lte": cores}, "limits.mem_gb" : bson.M{"$lte":memory}}},
+		bson.M{"$unwind": "$trns" },
+		bson.M{"$match": bson.M{"trns.maximum_service_capacity_per_sec":bson.M{"$lt": requests}}},
+		bson.M{"$sort": bson.M{"limits.cpu_cores":1, "limits.mem_gb":1, "trns.replicas":1, "trns.maximum_service_capacity_per_sec":-1}}}
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Pipe(query).All(&result)
+	if len(result) == 0 {
+		return result, errors.New("No result found")
+	}
 	return result, err
 }
 

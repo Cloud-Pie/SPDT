@@ -85,12 +85,12 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 		policies = append(policies, policies1...)
 		//types
 		base := BestBaseInstancePolicy{algorithm:util.BASE_INSTANCE_ALGORITHM, timeWindow:timeWindows,
-			currentState:currentState,mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
+			currentState:currentState, sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies2 := base.CreatePolicies(processedForecast)
 		policies = append(policies, policies2...)
 		//sstep
 		sstep := StepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows,
-			mapVMProfiles:mapVMProfiles ,sysConfiguration: sysConfiguration, currentState:currentState}
+			sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration, currentState:currentState}
 		policies3 := sstep.CreatePolicies(processedForecast)
 		policies = append(policies, policies3...)
 		//delta repack
@@ -210,27 +210,28 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 	out:
 		@ContainersConfig	- configuration with number of replicas and limits that best fit for the number of requests
 */
-func selectProfile(requests float64, underProvision bool) types.ContainersConfig {
-
+func selectProfile(requests float64,  limits types.Limit, underProvision bool) types.ContainersConfig {
 	var profiles []types.ContainersConfig
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
-	profilesUnder,err1:= serviceProfileDAO.MatchUnder(requests)
-	profilesOver,err2 := serviceProfileDAO.MatchOver(requests)
+	profilesUnder,err1:= serviceProfileDAO.MatchProfileFitLimitsUnder(limits.NumberCores, limits.MemoryGB, requests)
+	profilesOver,err2 := serviceProfileDAO.MatchProfileFitLimitsOver(limits.NumberCores, limits.MemoryGB, requests)
 
-	if underProvision && err2 == nil && len(profilesUnder)>0 {
+	if underProvision && err1 == nil && len(profilesUnder) > 0 {
 		profiles = profilesUnder
-	} else if err1 == nil{
+		sort.Slice(profiles, func(i, j int) bool {
+			utilizationFactori := float64(profiles[i].PerformanceProfile.NumberReplicas) * profiles[i].Limits.NumberCores +  float64(profiles[i].PerformanceProfile.NumberReplicas) * profiles[i].Limits.MemoryGB
+			utilizationFactorj := float64(profiles[j].PerformanceProfile.NumberReplicas) * profiles[j].Limits.NumberCores + float64(profiles[j].PerformanceProfile.NumberReplicas) * profiles[i].Limits.MemoryGB
+			return utilizationFactori < utilizationFactorj
+		})
+
+	} else if err2 == nil{
 		profiles = profilesOver
-	} else if err2 == nil {
+		sort.Slice(profiles, func(i, j int) bool {
+			return profiles[i].PerformanceProfile.TRN < profiles[j].PerformanceProfile.TRN
+		})
+	} else if err1 == nil {
 		profiles = profilesUnder
 	}
-
-	sort.Slice(profiles, func(i, j int) bool {
-		utilizationFactori := float64(profiles[i].PerformanceProfile.NumberReplicas) * profiles[i].Limits.NumberCores +  float64(profiles[i].PerformanceProfile.NumberReplicas) * profiles[i].Limits.MemoryGB
-		utilizationFactorj := float64(profiles[j].PerformanceProfile.NumberReplicas) * profiles[j].Limits.NumberCores + float64(profiles[j].PerformanceProfile.NumberReplicas) * profiles[i].Limits.MemoryGB
-		return utilizationFactori < utilizationFactorj
-	})
-
 	return profiles[0]
 }
 

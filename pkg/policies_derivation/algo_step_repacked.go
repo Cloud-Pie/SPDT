@@ -16,6 +16,7 @@ After each change in the workload it calculates the number of VMs in a heterogen
 type StepRepackPolicy struct {
 	algorithm 		string				 //Algorithm's name
 	timeWindow 		TimeWindowDerivation //Algorithm used to process the forecasted time serie
+	sortedVMProfiles []types.VmProfile    			//List of VM profiles sorted by price
 	mapVMProfiles map[string]types.VmProfile
 	sysConfiguration	config.SystemConfiguration
 	currentState	types.State			 //Current State
@@ -39,12 +40,14 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 	configurations := []types.ScalingConfiguration{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
+	biggestVM := p.sortedVMProfiles[len(p.sortedVMProfiles)-1]
+	vmLimits := types.Limit{ MemoryGB:biggestVM.Memory, NumberCores:biggestVM.NumCores }
 
 	for _, it := range processedForecast.CriticalIntervals {
 		serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
 		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, NumberCores:serviceToScale.CPU }
 		ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
-		ProfileNewLimits := selectProfile(it.Requests, false)
+		ProfileNewLimits := selectProfile(it.Requests, vmLimits,false)
 
 		containersConfig,_ := p.selectContainersConfig(ProfileCurrentLimits.Limits, ProfileCurrentLimits.PerformanceProfile,
 			ProfileNewLimits.Limits, ProfileNewLimits.PerformanceProfile, containerResizeEnabled)
@@ -57,7 +60,7 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 
 		if underProvisionAllowed {
 			ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-			ProfileNewLimits := selectProfile(it.Requests, underProvisionAllowed)
+			ProfileNewLimits := selectProfile(it.Requests, vmLimits, underProvisionAllowed)
 			underContainersConfig,_ := p.selectContainersConfig(ProfileCurrentLimits.Limits,
 				ProfileCurrentLimits.PerformanceProfile, ProfileNewLimits.Limits,
 				ProfileNewLimits.PerformanceProfile, containerResizeEnabled)

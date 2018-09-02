@@ -43,6 +43,8 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 
+	biggestVM := p.sortedVMProfiles[len(p.sortedVMProfiles)-1]
+	vmLimits := types.Limit{ MemoryGB:biggestVM.Memory, NumberCores:biggestVM.NumCores }
 
 	for i, it := range processedForecast.CriticalIntervals {
 		//Load in terms of number of requests
@@ -85,7 +87,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 			} else if underProvisionAllowed && containerResizeEnabled{
 				//case 2: search a new service profile with underprovisioning that possible fit into the
 				//current VM set
-				profileNewLimits := selectProfile(totalLoad, underProvisionAllowed)
+				profileNewLimits := selectProfile(totalLoad,vmLimits, underProvisionAllowed)
 				computeVMsCapacity(profileNewLimits.Limits, &p.mapVMProfiles)
 				replicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
 				//Validate if the current configuration is able to handle the new replicas

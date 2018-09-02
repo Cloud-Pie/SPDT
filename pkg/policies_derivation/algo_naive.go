@@ -39,7 +39,6 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 
 	configurations := []types.ScalingConfiguration{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
-	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 	serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
 	currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, NumberCores:serviceToScale.CPU }
 
@@ -90,7 +89,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 	parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL
 	parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(false)
 	parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
-	parameters[types.ISRESIZEPODS] = strconv.FormatBool(containerResizeEnabled)
+	parameters[types.ISRESIZEPODS] = strconv.FormatBool(false)
 	//Add new policy
 	numConfigurations := len(configurations)
 	newPolicy.Configurations = configurations
