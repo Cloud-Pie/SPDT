@@ -32,147 +32,201 @@
 	<!-- WRAPPER -->
 	<div id="wrapper">
 		<!-- NAVBAR -->
-		<nav class="navbar navbar-default navbar-fixed-top">
-			<div class="brand">
-			</div>
-			<div class="container">
-				<form class="navbar-form navbar-right">
-					<div class="row">
-						<div class="input-group">
-							<input type="text" id="searchpolicyid" class="form-control" placeholder="Search Policy by ID ">
-							<span class="input-group-btn"><button type="button" class="btn btn-primary" onclick="searchByID()">Go</button></span>
-						</div>
-                    </div>
-				</form>
-			</div>
-		</nav>
-		<div class="container settings">
-			<form class="navbar-form navbar-right">
-            <div class="row">
-                    <div class="form-group">
-                        <label for="datetimepicker6">Start time</label>
-                        <div class='input-group date' id='datetimepicker6'>
-                            <input type='text' class="form-control" id="datetimestart"/>
-                            <span class="input-group-addon">
-										<span class="glyphicon glyphicon-calendar"></span>
-									</span>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="datetimepicker7">End time</label>
-                        <div class='input-group date' id='datetimepicker7'>
-                            <input type='text' class="form-control" id="datetimeend"/>
-                            <span class="input-group-addon">
-										<span class="glyphicon glyphicon-calendar"></span>
-									</span>
-                        </div>
-                    </div>
-                    <button class="btn btn-primary btn-md" type="button" onclick="searchByTimestamp()"> Search  </button>
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="navbar-btn">
+                <button type="button" class="btn-toggle-fullwidth"><i class="lnr lnr-arrow-left-circle"></i></button>
             </div>
-            </form>
-		</div>
-		<!-- END NAVBAR -->
-		<!-- MAIN -->
+            <div class="brand">
+                <a href="index.html"><img src="assets/img/logo-dark.png" alt="Klorofil Logo" class="img-responsive logo"></a>
+            </div>
+            <div class="container-fluid">
+                <div id="navbar-menu">
+                    <ul class="nav navbar-nav navbar-right">
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle icon-menu" data-toggle="dropdown">
+                                <i class="lnr lnr-alarm"></i>
+                                <span class="badge bg-danger">5</span>
+                            </a>
+                            <ul class="dropdown-menu notifications">
+                                <li><a href="#" class="notification-item"><span class="dot bg-warning"></span>System space is almost full</a></li>
+                                <li><a href="#" class="notification-item"><span class="dot bg-danger"></span>You have 9 unfinished tasks</a></li>
+                                <li><a href="#" class="notification-item"><span class="dot bg-success"></span>Monthly report is available</a></li>
+                                <li><a href="#" class="notification-item"><span class="dot bg-warning"></span>Weekly meeting in 1 hour</a></li>
+                                <li><a href="#" class="notification-item"><span class="dot bg-success"></span>Your request has been approved</a></li>
+                                <li><a href="#" class="more">See all notifications</a></li>
+
+                            </ul>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="lnr lnr-question-circle"></i> <span>Algorithms</span> <i class="icon-submenu lnr lnr-chevron-down"></i></a>
+                            <ul class="dropdown-menu">
+                                <li><a href="#">Naive</a></li>
+                                <li><a href="ui/algo_base_instance.html">Base Instance</a></li>
+                                <li><a href="#">Delta</a></li>
+                                <li><a href="#">Delta Repacked</a></li>
+                                <li><a href="#">Per Step</a></li>
+                            </ul>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="lnr lnr-question-circle"></i> <span>Manage Policies</span> <i class="icon-submenu lnr lnr-chevron-down"></i></a>
+                            <ul class="dropdown-menu">
+                                <li><a href="#"><i class="lnr lnr-user"></i> <span>Derive a Policy</span></a></li>
+                                <li><a href="#"><i class="lnr lnr-envelope"></i> <span>Compare</span></a></li>
+                                <li><a href="#"><i class="lnr lnr-cog"></i> <span>Download</span></a></li>
+
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        <!-- END NAVBAR -->
+        <!-- LEFT SIDEBAR -->
+        <div id="sidebar-nav" class="sidebar">
+            <div class="sidebar-scroll">
+                <nav>
+                    <ul class="nav">
+                        <li><a href="index.html" class="active"><i class="lnr lnr-home"></i> <span>Derive Policy</span></a></li>
+                        <li><a href="elements.html" class=""><i class="lnr lnr-code"></i> <span>Manage Policies</span></a></li>
+                        <li>
+                            <a href="#subPages" data-toggle="collapse" class="collapsed"><i class="lnr lnr-file-empty"></i> <span>Algorithms</span> <i class="icon-submenu lnr lnr-chevron-left"></i></a>
+                            <div id="subPages" class="collapse ">
+                                <ul class="nav">
+                                    <li><a href="/ui/algoBase" class="">Base Instance</a></li>
+                                    <li><a href="page-login.html" class="">Per Step</a></li>
+                                    <li><a href="page-lockscreen.html" class="">Delta Repacked</a></li>
+                                    <li><a href="page-lockscreen.html" class="">Delta </a></li>
+                                </ul>
+                            </div>
+                        </li>
+                        <li><a href="notifications.html" class=""><i class="lnr lnr-alarm"></i> <span>Playground</span></a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        <!-- END LEFT SIDEBAR -->
+        <!-- MAIN -->
 		<div class="main">
 			<!-- MAIN CONTENT -->
-			<div class="main-content" id="searchOutputDiv">
-                <div class="container-fluid">
-						<div class="row" id="metricsDiv">
-							<div class="col-md-3">
-								<div class="metric">
-									<span class="icon"><i class="fa fa-dollar"></i></span>
-									<p>
+			<div class="main-content">
+                <div class="container-fluid padding-5">
+					<!--SEARCH-->
+                        <div class="row">
+                            <div class="col-md-3" align="left">
+                                <br>
+                                <div class="input-group">
+                                    <input type="text" id="searchpolicyid" class="form-control" placeholder="Search Policy by ID ">
+                                    <span class="input-group-btn"><button type="button" class="btn btn-default" onclick="searchByID()">Go</button></span>
+                                </div>
+                            </div>
+                            <div class="form-group col-md-8 col-lg-offset-1" align="right">
+                                <div class="form-group col-md-5">
+                                    <label for="datetimepicker6">Start time</label>
+                                    <div class='input-group date' id='datetimepicker6'>
+                                        <input type='text' class="form-control" id="datetimestart"/>
+                                        <span class="input-group-addon">
+                                                    <span class="glyphicon glyphicon-calendar"></span>
+                                                </span>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-5">
+                                    <label for="datetimepicker7">End time</label>
+                                    <div class='input-group date  bottom-right' id='datetimepicker7'>
+                                        <input type='text' class="form-control" id="datetimeend"/>
+                                        <span class="input-group-addon">
+                                                    <span class="glyphicon glyphicon-calendar"></span>
+                                                </span>
+                                    </div>
+                                </div>
+                                <br>
+                                <div class="btn-bottom col-md-2">
+                                    <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Search  </button>
+                                </div>
+                            </div>
+                        </div>
+                    <!-- END SEARCH-->
+                    <!-- OVERVIEW -->
+                    <div class="row" id="searchOutputDiv">
+                        <div>
+                        <div class="col-md-3  padding-0">
+                            <!-- DETAILS -->
+                            <div class="container-fluid">
+                                <div class="row" id="candidatesDiv">
+                                    <div class="panel panel-headline">
+                                        <div class="panel-heading">
+                                            <h5 class="panel-title">Policy Candidates</h5>
+                                        </div>
+                                        <div class="panel-body padding-5">
+                                            <table class="table table-striped table-hover" id="tCandidates">
+                                                <thead>
+                                                <tr>
+                                                    <th>Policy ID</th>
+                                                    <th>Algorithm</th>
+                                                    <th>Cost</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                                </thead>
+                                                <tbody id="tBodyCandidates"></tbody>
+                                            </table>
+                                        </div>
+                                        <div class="panel-footer">
+                                            <div class="row">
+                                                <span class="input-group-btn"><button type="button" class="btn btn-default" onclick="clickedCompareAll()">Compare all</button></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- END DETAILS -->
+                        </div>
+                        <div class="col-md-6" id="singlePolicyDiv">
+                            <div class="container-fluid">
+                                <div class="row" id="metricsDiv">
+                                    <div class="col-md-3  padding-0">
+                                        <div class="metric">
+                                            <span class="icon"><i class="fa fa-dollar"></i></span>
+                                            <p>
 										<span class="number">
 											<label id="costid"> </label>
 										</span>
-										<span class="title">Cost</span>
-									</p>
-								</div>
-							</div>
-							<div class="col-md-3">
-								<div class="metric">
-									<span class="icon"><i class="fa fa-upload"></i></span>
-									<p>
+                                                <span class="title">Cost</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3  padding-0">
+                                        <div class="metric">
+                                            <span class="icon"><i class="fa fa-upload"></i></span>
+                                            <p>
 										<span class="number">
 											<label id="overid"> </label>
 										</span>
-											<span class="title">Overprovision</span>
-									</p>
-								</div>
-							</div>
-							<div class="col-md-3">
-								<div class="metric">
-									<span class="icon"><i class="fa fa-download"></i></span>
-									<p>
+                                                <span class="title">Overprovision</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3  padding-0">
+                                        <div class="metric">
+                                            <span class="icon"><i class="fa fa-download"></i></span>
+                                            <p>
 										<span class="number">
 											<label id="underid"> </label>
 										</span>
-										<span class="title">Underprovision</span>
-									</p>
-								</div>
-							</div>
-							<div class="col-md-3">
-								<div class="metric">
-									<span class="icon"><i class="fa fa-cogs"></i></span>
-									<p>
+                                                <span class="title">Underprovision</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3  padding-0">
+                                        <div class="metric">
+                                            <span class="icon"><i class="fa fa-cogs"></i></span>
+                                            <p>
 										<span class="number">
 											<label id="reconfid"> </label>
 										</span>
-										<span class="title">N° Configurations</span>
-									</p>
-								</div>
-							</div>
-						</div>
-
-					<!-- OVERVIEW -->
-                    <div class="row">
-                        <div class="col-md-4">
-							<!-- DETAILS -->
-                            <div class="container-fluid">
-                                <div class="row" id="detailsDiv">
-                                    <div class="panel panel-headline">
-                                        <div class="panel-heading">
-                                            <h5 class="panel-title">Policy ID: <label id="policyid"></label> </h5>
-                                            <p class="panel-subtitle">From: <label id="startperiod"></label>  To: <label id="endperiod"></label> </p>
-                                        </div>
-                                        <div class="panel-body">
-                                            <ul class="list-unstyled parameters-list list-justify" id="lParameters">
-                                            </ul>
+                                                <span class="title">N° Configurations</span>
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
-
-							<div class="row" id="candidatesDiv">
-                                <div class="panel panel-headline">
-                                    <div class="panel-heading">
-                                            <h5 class="panel-title">Policy Candidates</h5>
-                                    </div>
-                                    <div class="panel-body no-padding">
-                                        <table class="table table-hover" id="tCandidates">
-                                            <thead>
-                                            <tr>
-                                                <th>Policy ID</th>
-                                                <th>Algorithm</th>
-                                                <th>Cost</th>
-                                                <th>Status</th>
-                                            </tr>
-                                            </thead>
-                                            <tbody id="tBodyCandidates"></tbody>
-                                        </table>
-                                    </div>
-                                    <div class="panel-footer">
-                                        <div class="row">
-                                            <span class="input-group-btn"><button type="button" class="btn btn-primary" onclick="clickedCompareAll()">Compare all</button></span>
-                                        </div>
-                                    </div>
-                                </div>
-							</div>
-                        </div>
-							<!-- END DETAILS -->
-						</div>
-
-                        <div class="col-md-8" id="singlePolicyDiv">
-                            <div class="container-fluid">
                                 <div class="row" >
                                     <div class="panel">
                                         <div class="panel-body">
@@ -197,10 +251,32 @@
                             </div>
                         </div>
 
+                        <div class="col-md-3  padding-0">
+                            <!-- DETAILS -->
+                            <div class="container-fluid">
+                                <div class="row" id="detailsDiv">
+                                    <div class="panel panel-headline">
+                                        <div class="panel-heading">
+                                            <h3 class="panel-title">Details</h3>
+                                        </div>
+                                        <div class="panel-body">
+                                            <table class="table" id="tDetails">
+                                                <tbody id="tBodyDetails"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
                         <div class="col-md-8" id="multiplePolicyDiv">
                             <div class="container-fluid">
                                 <div class="row">
-                                    <div class="panel">
+                                    <div class="panel panel-headline">
+                                        <div class="panel-heading">
+                                               <h5 class="panel-title">Workload</h5>
+                                        </div>
                                         <div class="panel-body">
                                             <div id="requestsUnitsAll" class="ct-chart"></div>
                                         </div>
@@ -236,6 +312,9 @@
                                 </div>
                             </div>
                         </div>
+
+                    </div>
+
 					</div>
 					<!-- END OVERVIEW -->
 				</div>

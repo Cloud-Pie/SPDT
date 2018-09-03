@@ -116,6 +116,7 @@ const (
 	METHOD = "scaling-method"
 	ISHETEREOGENEOUS= "heterogeneous-vms-allowed"
 	ISRESIZEPODS= "pods-resize-allowed"
+	VMTYPES= "vm-types"
 
 )
 

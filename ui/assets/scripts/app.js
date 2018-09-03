@@ -73,12 +73,20 @@ function plotVirtualUnits(time, vms, replicas) {
 
     var layout = {
         title: 'Virtual Units',
+        titlefont: {
+            size: 20
+        },
         autosize:true,
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-
-        height: 200
+        height: 300,
+        legend: {
+            "orientation": "h",
+            xanchor: "center",
+            y: 1.09,
+            x: 0.9
+        },
     };
     var data = [trace1, trace2];
     Plotly.newPlot('virtualUnits', data,layout);
@@ -103,11 +111,21 @@ function plotCapacity(time, demand, supply, timeSuply){
 
     var layout = {
         title: 'Workload',
+        titlefont: {
+            size: 20
+        },
         autosize:true,
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        height: 200
+        height: 300,
+
+        legend: {
+            "orientation": "h",
+            xanchor: "center",
+            y: 1.09,
+            x: 0.9
+        },
     };
     var data = [trace1, trace2];
     Plotly.newPlot('requestsUnits', data,layout);
@@ -132,11 +150,20 @@ function plotMemCPU(time, memGB, cpuCores) {
 
     var layout = {
         title: 'Resources provisioned',
+        titlefont: {
+            size: 20
+        },
         autosize:true,
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        height: 200
+        height: 300,
+        legend: {
+            "orientation": "h",
+            xanchor: "center",
+            y: 1.09,
+            x: 0.9
+        },
     };
     var data = [trace1, trace2];
     Plotly.newPlot('resourceUtilization', data,layout);
@@ -161,7 +188,7 @@ function searchByID(policyId) {
             plotVirtualUnits(units.time, units.vms, units.replicas)
             plotMemCPU(units.time, units.memGB, units.cpuCores)
             fillData(data)
-            fillParameters(data)
+            fillDetailsTable(data)
             let params = {
                 "start": timeStart,
                 "end": timeEnd
@@ -202,7 +229,7 @@ function searchByTimestamp() {
         .join('&')
 
     requestURL = forecastRequestsEndpoint + query
-
+    console.log(requestURL)
     fetch(requestURL)
         .then((response) => response.json())
         .then(function (data){
@@ -261,19 +288,46 @@ function fillData(policy){
     document.getElementById("underid").innerText = policy.metrics.UnderProvision;
     document.getElementById("reconfid").innerText = policy.metrics.NumberConfigurations;
 
-    document.getElementById("policyid").innerText = policy.id;
-    document.getElementById("startperiod").innerText =  new Date( policy.window_time_start).toLocaleString();
-    document.getElementById("endperiod").innerText = new Date( policy.window_time_end).toLocaleString();
+}
+
+function fillDetailsTable(policy) {
+    $("#tBodyDetails").children().remove()
+    parameters = policy.Parameters
+
+    $("#tDetails > tbody").append("<tr>" +
+        "<td><b>"+"Policy ID"+"</b></td>" +
+        "<td><b>"+policy.id+"</b></td>" +
+        "</tr>");
+
+    $("#tDetails > tbody").append("<tr>" +
+        "<td><b>"+"Algorithm"+"</b></td>" +
+        "<td>"+policy.algorithm+"</td>" +
+        "</tr>");
+
+
+    let timewindow = new Date( policy.window_time_start).toLocaleString() + " - " + new Date( policy.window_time_end).toLocaleString() ;
+
+    $("#tDetails > tbody").append("<tr>" +
+        "<td><b>"+"Time Window"+"</b></td>" +
+        "<td>"+timewindow+"</td>" +
+        "</tr>");
+
+    for(var key in parameters) {
+        $("#tDetails > tbody").append("<tr>" +
+            "<td><b>"+key+"<b></td>" +
+            "<td>"+parameters[key]+"</td>" +
+            "</tr>");
+    }
 }
 
 function fillParameters(policy){
     $("#lParameters").children().remove()
     $("#lParameters").append(
-        "<li>"+"Algorithm:"+"<span>"+policy.algorithm+"</span></li>");
+        "<li><label>"+"Algorithm:"+"</label><span>"+policy.algorithm+"</span></li>");
     parameters = policy.Parameters
     for (var key in parameters) {
         $("#lParameters").append(
-            "<li>"+key+":"+"<span>"+parameters[key]+"</span></li>");
+            "<li><label>"+key+":"+"</label><span>"+parameters[key]+"</span></li>");
     }
 }
 
