@@ -13,14 +13,20 @@ function getVirtualUnits(data){
     TRN = [];
     cpuCores = [];
     memGB = [];
+    typesVmSet = [];
     arrayConfig = data.configuration
     arrayConfig.forEach(function (conf) {
         time.push(conf.TimeStart)
-
+        let text = ""
+        let totalVMS = 0
         vmSet = conf.State.VMs
         for (var key in vmSet) {
-            vms.push(vmSet[key])
+            text = text + key + ":" + vmSet[key] + ", "
+            totalVMS = totalVMS + vmSet[key]
+
         }
+        vms.push(totalVMS)
+        typesVmSet.push(text)
         services = conf.State.Services
         for (var key in services) {
             replicas.push(services[key].Scale)
@@ -50,16 +56,18 @@ function getVirtualUnits(data){
         replicas: replicas,
         trn: TRN,
         cpuCores: cpuCores,
-        memGB: memGB
+        memGB: memGB,
+        typesVmSet: typesVmSet
     }
 }
 
-function plotVirtualUnits(time, vms, replicas) {
+function plotVirtualUnits(time, vms, replicas, textHover) {
     var trace1 = {
         x: time,
         y: vms,
         type: 'scatter',
         name: 'N° VMs',
+        text: textHover,
         line: {shape: 'hv'}
     };
 
@@ -185,7 +193,7 @@ function searchByID(policyId) {
             var timeStart = new Date(data.window_time_start).toISOString();
             var timeEnd = new Date( data.window_time_end).toISOString();
             units = getVirtualUnits(data)
-            plotVirtualUnits(units.time, units.vms, units.replicas)
+            plotVirtualUnits(units.time, units.vms, units.replicas, units.typesVmSet)
             plotMemCPU(units.time, units.memGB, units.cpuCores)
             fillData(data)
             fillDetailsTable(data)
