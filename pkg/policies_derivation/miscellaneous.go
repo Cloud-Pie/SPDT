@@ -152,3 +152,12 @@ func cleanKeys(m map[string]int){
 		}
 	}
 }
+
+func vmTypesList(mapVMProfiles map[string]types.VmProfile) string{
+	var vmTypes string
+	for k,_ := range mapVMProfiles {
+		vmTypes += k + ", "
+	}
+
+	return  vmTypes
+}

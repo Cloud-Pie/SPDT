@@ -151,6 +151,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 	parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(true)
 	parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
 	parameters[types.ISRESIZEPODS] = strconv.FormatBool(containerResizeEnabled)
+	parameters[types.VMTYPES] = vmTypesList(p.mapVMProfiles)
 	numConfigurations := len(configurations)
 	newPolicy.Configurations = configurations
 	newPolicy.Algorithm = p.algorithm

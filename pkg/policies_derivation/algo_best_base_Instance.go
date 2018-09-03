@@ -111,6 +111,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 			parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(false)
 			parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
 			parameters[types.ISRESIZEPODS] = strconv.FormatBool(containerResizeEnabled)
+			parameters[types.VMTYPES] = vmType
 			newPolicy.Configurations = configurations
 			newPolicy.Algorithm = p.algorithm
 			newPolicy.ID = bson.NewObjectId()

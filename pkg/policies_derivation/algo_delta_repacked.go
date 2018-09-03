@@ -170,9 +170,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL
 		parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(p.sysConfiguration.PolicySettings.HetereogeneousAllowed)
 		parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
-		if underProvisionAllowed {
-			parameters[types.MAXUNDERPROVISION] = strconv.FormatFloat(p.sysConfiguration.PolicySettings.MaxUnderprovision, 'f', -1, 64)
-		}
+		parameters[types.VMTYPES] = vmTypesList(p.mapVMProfiles)
 		numConfigurations := len(configurations)
 		newPolicy.Configurations = configurations
 		newPolicy.Algorithm = p.algorithm

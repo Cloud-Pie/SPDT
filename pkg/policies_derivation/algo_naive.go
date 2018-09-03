@@ -90,6 +90,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 	parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(false)
 	parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
 	parameters[types.ISRESIZEPODS] = strconv.FormatBool(false)
+	parameters[types.VMTYPES] = p.currentVMType()
 	//Add new policy
 	numConfigurations := len(configurations)
 	newPolicy.Configurations = configurations

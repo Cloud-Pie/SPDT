@@ -97,6 +97,7 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 		parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(false)
 		parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
 		parameters[types.ISRESIZEPODS] = strconv.FormatBool(containerResizeEnabled)
+		parameters[types.VMTYPES] = vmTypesList(p.mapVMProfiles)
 		numConfigurations := len(configurations)
 		newPolicy.Configurations = configurations
 		newPolicy.Algorithm = p.algorithm
