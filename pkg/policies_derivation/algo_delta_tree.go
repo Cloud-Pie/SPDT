@@ -147,11 +147,11 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 
 	//Add new policy
 	parameters := make(map[string]string)
+	parameters[types.VMTYPES] = vmTypesList(p.mapVMProfiles)
 	parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL
 	parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(true)
 	parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
 	parameters[types.ISRESIZEPODS] = strconv.FormatBool(containerResizeEnabled)
-	parameters[types.VMTYPES] = vmTypesList(p.mapVMProfiles)
 	numConfigurations := len(configurations)
 	newPolicy.Configurations = configurations
 	newPolicy.Algorithm = p.algorithm
@@ -160,6 +160,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 	newPolicy.Parameters = parameters
 	newPolicy.Metrics.NumberConfigurations = numConfigurations
 	newPolicy.Metrics.FinishTimeDerivation = time.Now()
+	newPolicy.Metrics.DerivationDuration = newPolicy.Metrics.FinishTimeDerivation.Sub(newPolicy.Metrics.StartTimeDerivation).Seconds()
 	newPolicy.TimeWindowStart = configurations[0].TimeStart
 	newPolicy.TimeWindowEnd = configurations[numConfigurations -1].TimeEnd
 	policies = append(policies, newPolicy)
