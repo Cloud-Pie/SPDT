@@ -98,6 +98,9 @@ type PolicyMetrics struct {
 	NumberConfigurations	int
 	StartTimeDerivation		time.Time		  `json:"start_derivation_time" bson:"start_derivation_time"`
 	FinishTimeDerivation 	time.Time		  `json:"finish_derivation_time" bson:"finish_derivation_time"`
+	DerivationDuration		float64           `json:"derivation_duration" bson:"derivation_duration"`
+	NumberVMScalingActions			int		  `json:"num_scale_containers" bson:"num_scale_containers"`
+	NumberContainerScalingActions	int		  `json:"num_scale_vms" bson:"num_scale_vms"`
 }
 
 /*Resource configuration*/

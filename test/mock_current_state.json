@@ -2,9 +2,9 @@
   "ISODate": "2019-08-08T16:15:00Z",
   "Services": {
     "movieapp": {
-      "Scale":1,
-      "CPU":1,
-      "Memory":0.5
+      "Scale":2,
+      "CPU":0.2,
+      "Memory":0.2
     }
   }
   ,
