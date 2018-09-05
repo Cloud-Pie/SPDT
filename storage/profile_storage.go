@@ -245,7 +245,7 @@ func (p *PerformanceProfileDAO) FindProfileTRN(cores float64, memory float64, nu
 func (p *PerformanceProfileDAO) FindProfileByLimits(limit types.Limit) (types.PerformanceProfile, error) {
 	var performanceProfile types.PerformanceProfile
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Find(bson.M{
-		"limits.cpu_cores" : limit.NumberCores,
+		"limits.cpu_cores" : limit.CPUCores,
 		"limits.mem_gb" : limit.MemoryGB}).One(&performanceProfile)
 	return performanceProfile,err
 }

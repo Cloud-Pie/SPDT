@@ -36,7 +36,7 @@ type PolicySettings struct{
 	ScalingMethod            string  `yaml:"scaling-method"`
 	HetereogeneousAllowed    bool    `yaml:"heterogeneous-vms-allowed"`
 	UnderprovisioningAllowed bool    `yaml:"underprovisioning-allowed"`
-	MaxUnderprovision        float64 `yaml:"max-percentage-underprovision"`
+	MaxUnderprovisionPercentage        float64 `yaml:"percentage-max-underprovision"`
 	PodsResizeAllowed        bool    `yaml:"pods-resize-allowed"`
 }
 

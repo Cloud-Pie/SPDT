@@ -41,11 +41,11 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 	biggestVM := p.sortedVMProfiles[len(p.sortedVMProfiles)-1]
-	vmLimits := types.Limit{ MemoryGB:biggestVM.Memory, NumberCores:biggestVM.NumCores }
+	vmLimits := types.Limit{ MemoryGB:biggestVM.Memory, CPUCores:biggestVM.CPUCores}
 
 	for _, it := range processedForecast.CriticalIntervals {
 		serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
-		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, NumberCores:serviceToScale.CPU }
+		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
 		ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
 		ProfileNewLimits := selectProfile(it.Requests, vmLimits,false)
 
@@ -77,7 +77,7 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 		services := make(map[string]types.ServiceInfo)
 		services[ p.sysConfiguration.ServiceName] = types.ServiceInfo {
 			Scale:  newNumServiceReplicas,
-			CPU:    limits.NumberCores,
+			CPU:    limits.CPUCores,
 			Memory: limits.MemoryGB,
 		}
 

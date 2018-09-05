@@ -172,7 +172,7 @@ func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.Sy
 		@int	Number of replicas
 */
 func maxReplicasCapacityInVM(vmProfile types.VmProfile, resourceLimit types.Limit) int {
-		m := float64(vmProfile.NumCores) / float64(resourceLimit.NumberCores)
+		m := float64(vmProfile.CPUCores) / float64(resourceLimit.CPUCores)
 		n := float64(vmProfile.Memory) / float64(resourceLimit.MemoryGB)
 		numReplicas := math.Min(n,m)
 		return int(numReplicas)
@@ -189,8 +189,8 @@ func maxReplicasCapacityInVM(vmProfile types.VmProfile, resourceLimit types.Limi
 func selectProfileWithLimits(requests float64, limits types.Limit, underProvision bool) types.ContainersConfig {
 	var containerConfig types.ContainersConfig
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
-	overProvisionConfig, err1 := serviceProfileDAO.MatchByLimitsOver(limits.NumberCores, limits.MemoryGB, requests)
-	underProvisionConfig, err2 := serviceProfileDAO.MatchByLimitsUnder(limits.NumberCores, limits.MemoryGB, requests)
+	overProvisionConfig, err1 := serviceProfileDAO.MatchByLimitsOver(limits.CPUCores, limits.MemoryGB, requests)
+	underProvisionConfig, err2 := serviceProfileDAO.MatchByLimitsUnder(limits.CPUCores, limits.MemoryGB, requests)
 
 	if underProvision && err2 == nil {
 		containerConfig = underProvisionConfig
@@ -226,14 +226,14 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 func selectProfile(requests float64,  limits types.Limit, underProvision bool) types.ContainersConfig {
 	var profiles []types.ContainersConfig
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
-	profilesUnder,err1:= serviceProfileDAO.MatchProfileFitLimitsUnder(limits.NumberCores, limits.MemoryGB, requests)
-	profilesOver,err2 := serviceProfileDAO.MatchProfileFitLimitsOver(limits.NumberCores, limits.MemoryGB, requests)
+	profilesUnder,err1:= serviceProfileDAO.MatchProfileFitLimitsUnder(limits.CPUCores, limits.MemoryGB, requests)
+	profilesOver,err2 := serviceProfileDAO.MatchProfileFitLimitsOver(limits.CPUCores, limits.MemoryGB, requests)
 
 	if underProvision && err1 == nil && len(profilesUnder) > 0 {
 		profiles = profilesUnder
 		sort.Slice(profiles, func(i, j int) bool {
-			utilizationFactori := float64(profiles[i].TRNConfiguration.NumberReplicas) * profiles[i].Limits.NumberCores +  float64(profiles[i].TRNConfiguration.NumberReplicas) * profiles[i].Limits.MemoryGB
-			utilizationFactorj := float64(profiles[j].TRNConfiguration.NumberReplicas) * profiles[j].Limits.NumberCores + float64(profiles[j].TRNConfiguration.NumberReplicas) * profiles[i].Limits.MemoryGB
+			utilizationFactori := float64(profiles[i].TRNConfiguration.NumberReplicas) * profiles[i].Limits.CPUCores +  float64(profiles[i].TRNConfiguration.NumberReplicas) * profiles[i].Limits.MemoryGB
+			utilizationFactorj := float64(profiles[j].TRNConfiguration.NumberReplicas) * profiles[j].Limits.CPUCores + float64(profiles[j].TRNConfiguration.NumberReplicas) * profiles[i].Limits.MemoryGB
 			return utilizationFactori < utilizationFactorj
 		})
 
@@ -257,7 +257,7 @@ func selectProfile(requests float64,  limits types.Limit, underProvision bool) t
 */
 func configurationLoadCapacity(numberReplicas int, limits types.Limit) float64 {
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
-	profile,_ := serviceProfileDAO.FindProfileTRN(limits.NumberCores, limits.MemoryGB, numberReplicas)
+	profile,_ := serviceProfileDAO.FindProfileTRN(limits.CPUCores, limits.MemoryGB, numberReplicas)
 	currentLoadCapacity := profile.TRNConfiguration[0].TRN
 
 	return currentLoadCapacity
@@ -416,5 +416,23 @@ func buildHomogeneousVMSet(numberReplicas int, limits types.Limit, mapVMProfiles
 		return candidateVMSets[0],err
 	}else {
 		return types.VMScale{},errors.New("No VM Candidate")
+	}
+}
+
+/* Validate if the supplied load with under provision does not exceed the maximum percentage of under provision allowed
+	in:
+		@demandedRequests	float64 - Demanded load in terms of requests
+		@suppliedRequests float64 - Supplied under provisioned load
+		@percentageAllowed float64 - Max percentage under provision allowed
+	out:
+		@bool	- boolean flag that indicates that the supplied load even though under provision
+					is still in the allowed under provision range
+*/
+func isUnderProvisionInRange(demandedRequests float64, suppliedRequests float64, percentageAllowed float64) bool{
+	underProvisionedPercentage := (demandedRequests - suppliedRequests) * demandedRequests / suppliedRequests
+	if underProvisionedPercentage <= percentageAllowed {
+		return true
+	} else {
+		return false
 	}
 }

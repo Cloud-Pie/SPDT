@@ -39,40 +39,40 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 
 	configurations := []types.ScalingConfiguration{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
+	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
 	serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
-	currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, NumberCores:serviceToScale.CPU }
+	currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
 
 	for _, it := range processedForecast.CriticalIntervals {
 		var resourceLimits types.Limit
 
 		//Select the performance profile that fits better
-		perfProfileOver := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
-		confOverProvision := perfProfileOver.TRNConfiguration
-		newNumServiceReplicas := confOverProvision.NumberReplicas
-		vmSet := p.FindSuitableVMs(newNumServiceReplicas, perfProfileOver.Limits)
+		containerConfigOver := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
+		newNumServiceReplicas := containerConfigOver.TRNConfiguration.NumberReplicas
+		vmSet := p.FindSuitableVMs(newNumServiceReplicas, containerConfigOver.Limits)
 		costOver := vmSet.Cost(p.mapVMProfiles)
-		stateLoadCapacity := confOverProvision.TRN
-		totalServicesBootingTime := confOverProvision.BootTimeSec
-		resourceLimits = perfProfileOver.Limits
+		stateLoadCapacity := containerConfigOver.TRNConfiguration.TRN
+		totalServicesBootingTime := containerConfigOver.TRNConfiguration.BootTimeSec
+		resourceLimits = containerConfigOver.Limits
+
 		if underProvisionAllowed {
-			perfProfileUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-			confUnderProvision := perfProfileUnder.TRNConfiguration
-			vmSetUnder := p.FindSuitableVMs(confUnderProvision.NumberReplicas, perfProfileUnder.Limits)
+			containerConfigUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
+			vmSetUnder := p.FindSuitableVMs(containerConfigUnder.TRNConfiguration.NumberReplicas, containerConfigUnder.Limits)
 			costUnder := vmSetUnder.Cost(p.mapVMProfiles)
 			//Update values if the configuration that leads to under provisioning is cheaper
-			if costUnder < costOver {
+			if costUnder < costOver && isUnderProvisionInRange(it.Requests, containerConfigUnder.TRNConfiguration.TRN, percentageUnderProvision){
 				vmSet = vmSetUnder
-				newNumServiceReplicas = confUnderProvision.NumberReplicas
-				stateLoadCapacity = confUnderProvision.TRN
-				totalServicesBootingTime = confUnderProvision.BootTimeSec
-				resourceLimits = perfProfileUnder.Limits
+				newNumServiceReplicas = containerConfigUnder.TRNConfiguration.NumberReplicas
+				stateLoadCapacity = containerConfigUnder.TRNConfiguration.TRN
+				totalServicesBootingTime = containerConfigUnder.TRNConfiguration.BootTimeSec
+				resourceLimits = containerConfigUnder.Limits
 			}
 		}
 
 		services := make(map[string]types.ServiceInfo)
 		services[p.sysConfiguration.ServiceName] = types.ServiceInfo{
 			Scale:  newNumServiceReplicas,
-			CPU:    resourceLimits.NumberCores,
+			CPU:    resourceLimits.CPUCores,
 			Memory: resourceLimits.MemoryGB,
 		}
 		state := types.State{

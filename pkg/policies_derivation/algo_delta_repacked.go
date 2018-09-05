@@ -44,14 +44,14 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 
 	biggestVM := p.sortedVMProfiles[len(p.sortedVMProfiles)-1]
-	vmLimits := types.Limit{ MemoryGB:biggestVM.Memory, NumberCores:biggestVM.NumCores }
+	vmLimits := types.Limit{ MemoryGB:biggestVM.Memory, CPUCores:biggestVM.CPUCores}
 
 	for i, it := range processedForecast.CriticalIntervals {
 		//Load in terms of number of requests
 		totalLoad := it.Requests
 		resourcesConfiguration := types.ContainersConfig{}
 		serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
-		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, NumberCores:serviceToScale.CPU }
+		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
 		currentNumberReplicas := serviceToScale.Scale
 
 		//Candidate option to handle total load
@@ -146,7 +146,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		services := make(map[string]types.ServiceInfo)
 		services[p.sysConfiguration.ServiceName] = types.ServiceInfo {
 			Scale:  resourcesConfiguration.TRNConfiguration.NumberReplicas,
-			CPU:    resourcesConfiguration.Limits.NumberCores,
+			CPU:    resourcesConfiguration.Limits.CPUCores,
 			Memory: resourcesConfiguration.Limits.MemoryGB,
 		}
 
@@ -306,10 +306,10 @@ func (p DeltaRepackedPolicy) selectContainersConfig(currentLimits types.Limit, p
 	newLimits types.Limit, profileNewLimits types.TRNConfiguration, containerResize bool) (TRNProfile, error) {
 
 	currentNumberReplicas := float64(profileCurrentLimits.NumberReplicas)
-	utilizationCurrent := (currentNumberReplicas * currentLimits.NumberCores)+(currentNumberReplicas * currentLimits.MemoryGB)
+	utilizationCurrent := (currentNumberReplicas * currentLimits.CPUCores)+(currentNumberReplicas * currentLimits.MemoryGB)
 
 	newNumberReplicas := float64(profileNewLimits.NumberReplicas)
-	utilizationNew := (newNumberReplicas * newLimits.NumberCores)+(newNumberReplicas * newLimits.MemoryGB)
+	utilizationNew := (newNumberReplicas * newLimits.CPUCores)+(newNumberReplicas * newLimits.MemoryGB)
 
 	if utilizationNew < utilizationCurrent && containerResize {
 		return TRNProfile{ResourceLimits:newLimits,

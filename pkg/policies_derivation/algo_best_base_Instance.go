@@ -46,9 +46,9 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 		configurations := []types.ScalingConfiguration{}
 		for _, it := range processedForecast.CriticalIntervals {
 			serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
-			currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, NumberCores:serviceToScale.CPU }
+			currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
 			ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
-			vmLimits := types.Limit{ MemoryGB:vm.Memory, NumberCores:vm.NumCores }
+			vmLimits := types.Limit{ MemoryGB:vm.Memory, CPUCores:vm.CPUCores}
 			ProfileNewLimits := selectProfile(it.Requests, vmLimits, false)
 
 			containersConfig,err := p.selectContainersConfig(ProfileCurrentLimits.Limits, ProfileCurrentLimits.TRNConfiguration,
@@ -85,7 +85,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 			services :=  make(map[string]types.ServiceInfo)
 			services[ p.sysConfiguration.ServiceName] = types.ServiceInfo {
 				Scale:  newNumServiceReplicas,
-				CPU:    limits.NumberCores,
+				CPU:    limits.CPUCores,
 				Memory: limits.MemoryGB,
 			}
 
@@ -166,10 +166,10 @@ func (p BestBaseInstancePolicy) selectContainersConfig(currentLimits types.Limit
 	vmSet2 := p.FindSuitableVMs(profileNewLimits.NumberReplicas, newLimits, vmType)
 	costNew := vmSet2.Cost(p.mapVMProfiles)
 
-	//performanceFactorCurrent := profileCurrentLimits.TRN / (currentLimits.MemoryGB * float64(profileCurrentLimits.NumberReplicas) + currentLimits.NumberCores * float64(profileCurrentLimits.NumberReplicas))
-	//performanceFactorNew := profileNewLimits.TRN / (newLimits.MemoryGB * float64(profileNewLimits.NumberReplicas) + newLimits.NumberCores * float64(profileNewLimits.NumberReplicas))
+	performanceFactorCurrent :=  (currentLimits.MemoryGB * float64(profileCurrentLimits.NumberReplicas) + currentLimits.CPUCores* float64(profileCurrentLimits.NumberReplicas))
+	performanceFactorNew := (newLimits.MemoryGB * float64(profileNewLimits.NumberReplicas) + newLimits.CPUCores* float64(profileNewLimits.NumberReplicas))
 
-	if  profileNewLimits.TRN != profileCurrentLimits.TRN && containerResize && len(vmSet2) != 0{
+	if  performanceFactorNew < performanceFactorCurrent && containerResize && len(vmSet2) != 0 {
 		return types.ContainersConfig{Limits: newLimits,
 			TRNConfiguration: profileNewLimits,
 			VMSet: vmSet2,
