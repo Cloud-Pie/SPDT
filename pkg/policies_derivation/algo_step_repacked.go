@@ -49,12 +49,12 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 		ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
 		ProfileNewLimits := selectProfile(it.Requests, vmLimits,false)
 
-		containersConfig,_ := p.selectContainersConfig(ProfileCurrentLimits.Limits, ProfileCurrentLimits.PerformanceProfile,
-			ProfileNewLimits.Limits, ProfileNewLimits.PerformanceProfile, containerResizeEnabled)
+		containersConfig,_ := p.selectContainersConfig(ProfileCurrentLimits.Limits, ProfileCurrentLimits.TRNConfiguration,
+			ProfileNewLimits.Limits, ProfileNewLimits.TRNConfiguration, containerResizeEnabled)
 
-		newNumServiceReplicas := containersConfig.PerformanceProfile.NumberReplicas
-		stateLoadCapacity := containersConfig.PerformanceProfile.TRN
-		totalServicesBootingTime := containersConfig.PerformanceProfile.BootTimeSec
+		newNumServiceReplicas := containersConfig.TRNConfiguration.NumberReplicas
+		stateLoadCapacity := containersConfig.TRNConfiguration.TRN
+		totalServicesBootingTime := containersConfig.TRNConfiguration.BootTimeSec
 		vmSet := containersConfig.VMSet
 		limits := containersConfig.Limits
 
@@ -62,13 +62,13 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 			ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
 			ProfileNewLimits := selectProfile(it.Requests, vmLimits, underProvisionAllowed)
 			underContainersConfig,_ := p.selectContainersConfig(ProfileCurrentLimits.Limits,
-				ProfileCurrentLimits.PerformanceProfile, ProfileNewLimits.Limits,
-				ProfileNewLimits.PerformanceProfile, containerResizeEnabled)
+				ProfileCurrentLimits.TRNConfiguration, ProfileNewLimits.Limits,
+				ProfileNewLimits.TRNConfiguration, containerResizeEnabled)
 
 				if underContainersConfig.Cost > containersConfig.Cost {
-					newNumServiceReplicas = underContainersConfig.PerformanceProfile.NumberReplicas
-					stateLoadCapacity = underContainersConfig.PerformanceProfile.TRN
-					totalServicesBootingTime = underContainersConfig.PerformanceProfile.BootTimeSec
+					newNumServiceReplicas = underContainersConfig.TRNConfiguration.NumberReplicas
+					stateLoadCapacity = underContainersConfig.TRNConfiguration.TRN
+					totalServicesBootingTime = underContainersConfig.TRNConfiguration.BootTimeSec
 					vmSet = underContainersConfig.VMSet
 					limits = underContainersConfig.Limits
 				}
@@ -161,13 +161,13 @@ func (p StepRepackPolicy) selectContainersConfig(currentLimits types.Limit, prof
 	//TODO:Review logic
 	if containerResize {
 		return types.ContainersConfig{Limits:newLimits,
-			PerformanceProfile:	profileNewLimits,
+			TRNConfiguration:	profileNewLimits,
 			VMSet:vmSet2,
 			Cost:costNew,
 		}, nil
 	} else {
 		return types.ContainersConfig{Limits:currentLimits,
-			PerformanceProfile:	profileCurrentLimits,
+			TRNConfiguration:	profileCurrentLimits,
 			VMSet:vmSet1,
 			Cost:costCurrent,
 		}, nil

@@ -198,6 +198,19 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 		containerConfig = overProvisionConfig
 	} else if err2 == nil {
 		containerConfig = underProvisionConfig
+		//TODO: Should call Terminus to know the exact TRN, as temporal solution I calculated here.
+		numberReplicas := float64(containerConfig.TRNConfiguration.NumberReplicas) * requests / containerConfig.TRNConfiguration.TRN
+		containerConfig.TRNConfiguration.NumberReplicas = int(numberReplicas)
+		containerConfig.TRNConfiguration.TRN = requests
+
+		profilesDAO := storage.GetPerformanceProfileDAO()
+		profile,_:= profilesDAO.FindProfileByLimits(limits)
+		newTRNConf := types.TRNConfiguration{NumberReplicas:int(numberReplicas), TRN:requests, BootTimeSec:100}
+		profile.TRNConfiguration = append(profile.TRNConfiguration,newTRNConf)
+		err3 := profilesDAO.UpdateById(profile.ID, profile)
+		if err3 != nil{
+			log.Error("Performance profile not updated")
+		}
 	}
 
 	return containerConfig
@@ -219,15 +232,15 @@ func selectProfile(requests float64,  limits types.Limit, underProvision bool) t
 	if underProvision && err1 == nil && len(profilesUnder) > 0 {
 		profiles = profilesUnder
 		sort.Slice(profiles, func(i, j int) bool {
-			utilizationFactori := float64(profiles[i].PerformanceProfile.NumberReplicas) * profiles[i].Limits.NumberCores +  float64(profiles[i].PerformanceProfile.NumberReplicas) * profiles[i].Limits.MemoryGB
-			utilizationFactorj := float64(profiles[j].PerformanceProfile.NumberReplicas) * profiles[j].Limits.NumberCores + float64(profiles[j].PerformanceProfile.NumberReplicas) * profiles[i].Limits.MemoryGB
+			utilizationFactori := float64(profiles[i].TRNConfiguration.NumberReplicas) * profiles[i].Limits.NumberCores +  float64(profiles[i].TRNConfiguration.NumberReplicas) * profiles[i].Limits.MemoryGB
+			utilizationFactorj := float64(profiles[j].TRNConfiguration.NumberReplicas) * profiles[j].Limits.NumberCores + float64(profiles[j].TRNConfiguration.NumberReplicas) * profiles[i].Limits.MemoryGB
 			return utilizationFactori < utilizationFactorj
 		})
 
 	} else if err2 == nil{
 		profiles = profilesOver
 		sort.Slice(profiles, func(i, j int) bool {
-			return profiles[i].PerformanceProfile.TRN < profiles[j].PerformanceProfile.TRN
+			return profiles[i].TRNConfiguration.TRN < profiles[j].TRNConfiguration.TRN
 		})
 	} else if err1 == nil {
 		profiles = profilesUnder

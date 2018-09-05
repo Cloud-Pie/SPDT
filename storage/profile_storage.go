@@ -57,6 +57,12 @@ func (p *PerformanceProfileDAO) Delete(performanceProfile types.PerformanceProfi
 	return err
 }
 
+//Update by id
+func (p *PerformanceProfileDAO) UpdateById(id bson.ObjectId, performanceProfile types.PerformanceProfile) error {
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).
+		Update(bson.M{"_id":id},performanceProfile)
+	return err
+}
 
 func (p *PerformanceProfileDAO) FindByLimitsOver(cores float64, memory float64, requests float64) (types.PerformanceProfile, error) {
 	//db.getCollection('trnProfiles').find({"limits.cpu_cores" : 1000,"limits.mem_gb" : 500, "trns": {$elemMatch:{"replicas":2} } }, {_id: 0, "trns.$":1})
@@ -233,6 +239,14 @@ func (p *PerformanceProfileDAO) FindProfileTRN(cores float64, memory float64, nu
 		"limits.mem_gb" : memory,
 		"trns": bson.M{"$elemMatch": bson.M{"replicas":bson.M{"$gte": numberReplicas}}}}).
 		Select(bson.M{"_id": 0, "limits":1, "trns.$":1}).One(&performanceProfile)
+	return performanceProfile,err
+}
+
+func (p *PerformanceProfileDAO) FindProfileByLimits(limit types.Limit) (types.PerformanceProfile, error) {
+	var performanceProfile types.PerformanceProfile
+	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Find(bson.M{
+		"limits.cpu_cores" : limit.NumberCores,
+		"limits.mem_gb" : limit.MemoryGB}).One(&performanceProfile)
 	return performanceProfile,err
 }
 

@@ -47,7 +47,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 
 		//Select the performance profile that fits better
 		perfProfileOver := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
-		confOverProvision := perfProfileOver.PerformanceProfile
+		confOverProvision := perfProfileOver.TRNConfiguration
 		newNumServiceReplicas := confOverProvision.NumberReplicas
 		vmSet := p.FindSuitableVMs(newNumServiceReplicas, perfProfileOver.Limits)
 		costOver := vmSet.Cost(p.mapVMProfiles)
@@ -56,7 +56,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 		resourceLimits = perfProfileOver.Limits
 		if underProvisionAllowed {
 			perfProfileUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-			confUnderProvision := perfProfileUnder.PerformanceProfile
+			confUnderProvision := perfProfileUnder.TRNConfiguration
 			vmSetUnder := p.FindSuitableVMs(confUnderProvision.NumberReplicas, perfProfileUnder.Limits)
 			costUnder := vmSetUnder.Cost(p.mapVMProfiles)
 			//Update values if the configuration that leads to under provisioning is cheaper
@@ -86,7 +86,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 		setConfiguration(&configurations, state, timeStart, timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
 	}
 	parameters := make(map[string]string)
-	parameters[types.VMTYPES] = vmTypesList(p.mapVMProfiles)
+	parameters[types.VMTYPES] = p.currentVMType()
 	parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL
 	parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(false)
 	parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)

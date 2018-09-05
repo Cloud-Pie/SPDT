@@ -30,6 +30,7 @@ type Limit struct {
 }
 
 type PerformanceProfile struct {
+	ID                		bson.ObjectId       `bson:"_id" json:"id"`
 	TRNConfiguration    []TRNConfiguration 		`json:"trns" bson:"trns"`
 	Limit          		Limit   				`json:"limits" bson:"limits"`
 }

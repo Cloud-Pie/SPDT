@@ -86,15 +86,15 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 		} else {
 			//Alternative configuration
 			ProfileCurrentLimits := selectProfileWithLimits(totalLoad, currentContainerLimits, false)
-			newNumServiceReplicas = ProfileCurrentLimits.PerformanceProfile.NumberReplicas
+			newNumServiceReplicas = ProfileCurrentLimits.TRNConfiguration.NumberReplicas
 			resourceLimits  = ProfileCurrentLimits.Limits
-			stateLoadCapacity = ProfileCurrentLimits.PerformanceProfile.TRN
-			totalServicesBootingTime = ProfileCurrentLimits.PerformanceProfile.BootTimeSec
+			stateLoadCapacity = ProfileCurrentLimits.TRNConfiguration.TRN
+			totalServicesBootingTime = ProfileCurrentLimits.TRNConfiguration.BootTimeSec
 
 			if deltaLoad > 0 {
 				computeCapacity(&p.sortedVMProfiles, ProfileCurrentLimits.Limits, &p.mapVMProfiles)
 				currentReplicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
-				if currentReplicasCapacity >= ProfileCurrentLimits.PerformanceProfile.NumberReplicas {
+				if currentReplicasCapacity >= ProfileCurrentLimits.TRNConfiguration.NumberReplicas {
 					//case 1: Increases number of replicas but VMS remain the same
 					vmSet = p.currentState.VMs
 				} else {
@@ -104,12 +104,12 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 						ProfileNewLimits := selectProfile(totalLoad, vmLimits,underProvisionAllowed)
 						computeCapacity(&p.sortedVMProfiles, ProfileNewLimits.Limits, &p.mapVMProfiles)
 						currentReplicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
-						if currentReplicasCapacity >= ProfileNewLimits.PerformanceProfile.NumberReplicas {
+						if currentReplicasCapacity >= ProfileNewLimits.TRNConfiguration.NumberReplicas {
 							vmSet = p.currentState.VMs
-							newNumServiceReplicas = ProfileNewLimits.PerformanceProfile.NumberReplicas
+							newNumServiceReplicas = ProfileNewLimits.TRNConfiguration.NumberReplicas
 							resourceLimits  = ProfileNewLimits.Limits
-							stateLoadCapacity = ProfileNewLimits.PerformanceProfile.TRN
-							totalServicesBootingTime = ProfileNewLimits.PerformanceProfile.BootTimeSec
+							stateLoadCapacity = ProfileNewLimits.TRNConfiguration.TRN
+							totalServicesBootingTime = ProfileNewLimits.TRNConfiguration.BootTimeSec
 						}
 					} else {
 						//case 3: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.
@@ -124,7 +124,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 					}
 				}
 			} else {
-				deltaReplicas := currentNumberReplicas - ProfileCurrentLimits.PerformanceProfile.NumberReplicas
+				deltaReplicas := currentNumberReplicas - ProfileCurrentLimits.TRNConfiguration.NumberReplicas
 				vmSet = p.removeVMs(p.currentState.VMs, deltaReplicas, currentContainerLimits)
 			}
 		}
