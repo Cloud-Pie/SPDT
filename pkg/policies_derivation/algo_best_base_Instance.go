@@ -36,7 +36,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
-	serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
+
 
 	//Loops all the VM types and derive a policy using a single VMType
 	for vmType, vm := range p.mapVMProfiles {
@@ -48,7 +48,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 		}
 		configurations := []types.ScalingConfiguration{}
 		for _, it := range processedForecast.CriticalIntervals {
-
+			serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
 			currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
 			ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
 
@@ -158,27 +158,4 @@ func (p BestBaseInstancePolicy) FindSuitableVMs(numberReplicas int, resourcesLim
 		return vmScale,errors.New("No suitable VM set found")
 	}
 	return vmScale,err
-}
-
-/*
-	in:
-		@currentConfiguration types.ContainersConfig
-							- Current container configuration
-		@newCandidateConfiguration types.ContainersConfig
-							- Candidate container configuration with different limits and number of replicas
-	out:
-		@bool	- Flag to indicate if it is convenient to resize the containers
-*/
-func shouldResizeContainer(currentConfiguration types.ContainersConfig, newCandidateConfiguration types.ContainersConfig) bool{
-
-	utilizationFactorCurrent :=  currentConfiguration.Limits.MemoryGB * float64(currentConfiguration.TRNConfiguration.NumberReplicas) +
-								currentConfiguration.Limits.CPUCores* float64(currentConfiguration.TRNConfiguration.NumberReplicas)
-
-	utilizationFactorNew := newCandidateConfiguration.Limits.MemoryGB * float64(newCandidateConfiguration.TRNConfiguration.NumberReplicas) +
-								newCandidateConfiguration.Limits.CPUCores* float64(newCandidateConfiguration.TRNConfiguration.NumberReplicas)
-
-	if utilizationFactorNew < utilizationFactorCurrent {
-		return true
-	}
-	return false
 }

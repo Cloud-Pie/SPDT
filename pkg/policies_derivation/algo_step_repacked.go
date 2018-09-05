@@ -40,39 +40,47 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 	configurations := []types.ScalingConfiguration{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
+	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
 	biggestVM := p.sortedVMProfiles[len(p.sortedVMProfiles)-1]
 	vmLimits := types.Limit{ MemoryGB:biggestVM.Memory, CPUCores:biggestVM.CPUCores}
+
 
 	for _, it := range processedForecast.CriticalIntervals {
 		serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
 		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
 		ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
-		ProfileNewLimits := selectProfile(it.Requests, vmLimits,false)
 
-		containersConfig,_ := p.selectContainersConfig(ProfileCurrentLimits.Limits, ProfileCurrentLimits.TRNConfiguration,
-			ProfileNewLimits.Limits, ProfileNewLimits.TRNConfiguration, containerResizeEnabled)
+		if containerResizeEnabled {
+			ProfileNewLimits := selectProfile(it.Requests, vmLimits, false)
+			resize := shouldResizeContainer(ProfileCurrentLimits, ProfileNewLimits)
+			if resize {
+				ProfileCurrentLimits = ProfileNewLimits
+			}
+		}
 
-		newNumServiceReplicas := containersConfig.TRNConfiguration.NumberReplicas
-		stateLoadCapacity := containersConfig.TRNConfiguration.TRN
-		totalServicesBootingTime := containersConfig.TRNConfiguration.BootTimeSec
-		vmSet := containersConfig.VMSet
-		limits := containersConfig.Limits
+		vmSet,_ := p.FindSuitableVMs(ProfileCurrentLimits.TRNConfiguration.NumberReplicas, ProfileCurrentLimits.Limits)
 
 		if underProvisionAllowed {
-			ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-			ProfileNewLimits := selectProfile(it.Requests, vmLimits, underProvisionAllowed)
-			underContainersConfig,_ := p.selectContainersConfig(ProfileCurrentLimits.Limits,
-				ProfileCurrentLimits.TRNConfiguration, ProfileNewLimits.Limits,
-				ProfileNewLimits.TRNConfiguration, containerResizeEnabled)
+			ProfileCurrentLimitsUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
+			ProfileNewLimitsUnder := selectProfile(it.Requests, vmLimits, underProvisionAllowed)
+			resize := shouldResizeContainer(ProfileCurrentLimitsUnder, ProfileNewLimitsUnder)
+			if resize {
+				ProfileCurrentLimitsUnder = ProfileNewLimitsUnder
+			}
+			vmSetUnder,_ := p.FindSuitableVMs(ProfileCurrentLimits.TRNConfiguration.NumberReplicas, ProfileCurrentLimits.Limits)
 
-				if underContainersConfig.Cost > containersConfig.Cost {
-					newNumServiceReplicas = underContainersConfig.TRNConfiguration.NumberReplicas
-					stateLoadCapacity = underContainersConfig.TRNConfiguration.TRN
-					totalServicesBootingTime = underContainersConfig.TRNConfiguration.BootTimeSec
-					vmSet = underContainersConfig.VMSet
-					limits = underContainersConfig.Limits
-				}
+			if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.TRNConfiguration.TRN, percentageUnderProvision) &&
+				vmSetUnder.Cost(p.mapVMProfiles) < vmSet.Cost(p.mapVMProfiles) {
+
+				vmSet = vmSetUnder
+				ProfileCurrentLimits = ProfileCurrentLimitsUnder
+			}
 		}
+
+		newNumServiceReplicas := ProfileCurrentLimits.TRNConfiguration.NumberReplicas
+		stateLoadCapacity := ProfileCurrentLimits.TRNConfiguration.TRN
+		totalServicesBootingTime := ProfileCurrentLimits.TRNConfiguration.BootTimeSec
+		limits := ProfileCurrentLimits.Limits
 
 		services := make(map[string]types.ServiceInfo)
 		services[ p.sysConfiguration.ServiceName] = types.ServiceInfo {
@@ -119,9 +127,9 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
  out:
 	@VMScale with the suggested number of VMs for that type
 */
-func (p StepRepackPolicy) FindSuitableVMs(numberReplicas int, limits types.Limit) types.VMScale {
+func (p StepRepackPolicy) FindSuitableVMs(numberReplicas int, limits types.Limit) (types.VMScale,error) {
 	heterogeneousAllowed := p.sysConfiguration.PolicySettings.HetereogeneousAllowed
-	vmSet, _ := buildHomogeneousVMSet(numberReplicas,limits, p.mapVMProfiles)
+	vmSet,err := buildHomogeneousVMSet(numberReplicas,limits, p.mapVMProfiles)
 
 	if heterogeneousAllowed {
 		hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, limits, p.mapVMProfiles)
@@ -131,45 +139,8 @@ func (p StepRepackPolicy) FindSuitableVMs(numberReplicas int, limits types.Limit
 			vmSet = hetVMSet
 		}
 	}
-	return vmSet
-}
-
-
-/*
-	in:
-		@currentLimits
-		@profileCurrentLimits
-		@newLimits
-		@profileNewLimits
-		@vmType
-		@containerResize
-	out:
-		@ContainersConfig
-		@error
-*/
-func (p StepRepackPolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.TRNConfiguration,
-	newLimits types.Limit, profileNewLimits types.TRNConfiguration, containerResize bool) (types.ContainersConfig, error) {
-
-	vmSet1 := p.FindSuitableVMs(profileCurrentLimits.NumberReplicas, currentLimits)
-	costCurrent := vmSet1.Cost(p.mapVMProfiles)
-	vmSet2 := p.FindSuitableVMs(profileNewLimits.NumberReplicas, newLimits)
-	costNew := vmSet2.Cost(p.mapVMProfiles)
-
-	if len(vmSet1) == 0 && len(vmSet2)== 0 {
-		return types.ContainersConfig{}, errors.New("Containers ")
+	if err!= nil {
+		return vmSet,errors.New("No suitable VM set found")
 	}
-	//TODO:Review logic
-	if containerResize {
-		return types.ContainersConfig{Limits:newLimits,
-			TRNConfiguration:	profileNewLimits,
-			VMSet:vmSet2,
-			Cost:costNew,
-		}, nil
-	} else {
-		return types.ContainersConfig{Limits:currentLimits,
-			TRNConfiguration:	profileCurrentLimits,
-			VMSet:vmSet1,
-			Cost:costCurrent,
-		}, nil
-	}
+	return vmSet,err
 }

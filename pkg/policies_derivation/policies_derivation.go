@@ -436,3 +436,26 @@ func isUnderProvisionInRange(demandedRequests float64, suppliedRequests float64,
 		return false
 	}
 }
+
+/*
+	in:
+		@currentConfiguration types.ContainersConfig
+							- Current container configuration
+		@newCandidateConfiguration types.ContainersConfig
+							- Candidate container configuration with different limits and number of replicas
+	out:
+		@bool	- Flag to indicate if it is convenient to resize the containers
+*/
+func shouldResizeContainer(currentConfiguration types.ContainersConfig, newCandidateConfiguration types.ContainersConfig) bool{
+
+	utilizationFactorCurrent :=  currentConfiguration.Limits.MemoryGB * float64(currentConfiguration.TRNConfiguration.NumberReplicas) +
+		currentConfiguration.Limits.CPUCores* float64(currentConfiguration.TRNConfiguration.NumberReplicas)
+
+	utilizationFactorNew := newCandidateConfiguration.Limits.MemoryGB * float64(newCandidateConfiguration.TRNConfiguration.NumberReplicas) +
+		newCandidateConfiguration.Limits.CPUCores* float64(newCandidateConfiguration.TRNConfiguration.NumberReplicas)
+
+	if utilizationFactorNew < utilizationFactorCurrent {
+		return true
+	}
+	return false
+}
