@@ -8,6 +8,7 @@ import (
 	"github.com/Cloud-Pie/SPDT/config"
 	"strconv"
 	"github.com/Cloud-Pie/SPDT/util"
+	"errors"
 )
 
 /*
@@ -34,53 +35,63 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 	policies := []types.Policy{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
+	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
+	serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
 
 	//Loops all the VM types and derive a policy using a single VMType
 	for vmType, vm := range p.mapVMProfiles {
 		vmTypeSuitable := true
-
+		vmLimits := types.Limit{ MemoryGB:vm.Memory, CPUCores:vm.CPUCores}
 		newPolicy := types.Policy{}
 		newPolicy.Metrics = types.PolicyMetrics {
 			StartTimeDerivation:time.Now(),
 		}
 		configurations := []types.ScalingConfiguration{}
 		for _, it := range processedForecast.CriticalIntervals {
-			serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
+
 			currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
 			ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
-			vmLimits := types.Limit{ MemoryGB:vm.Memory, CPUCores:vm.CPUCores}
-			ProfileNewLimits := selectProfile(it.Requests, vmLimits, false)
 
-			containersConfig,err := p.selectContainersConfig(ProfileCurrentLimits.Limits, ProfileCurrentLimits.TRNConfiguration,
-																	ProfileNewLimits.Limits, ProfileNewLimits.TRNConfiguration, containerResizeEnabled, vmType)
+			if containerResizeEnabled {
+				ProfileNewLimits := selectProfile(it.Requests, vmLimits, false)
+				resize := shouldResizeContainer(ProfileCurrentLimits, ProfileNewLimits)
+				if resize {
+					ProfileCurrentLimits = ProfileNewLimits
+				}
+			}
+
+			vmSet,err := p.FindSuitableVMs(ProfileCurrentLimits.TRNConfiguration.NumberReplicas, ProfileCurrentLimits.Limits, vmType)
 			if err !=  nil {
 				vmTypeSuitable = false
 			}
-			newNumServiceReplicas := containersConfig.TRNConfiguration.NumberReplicas
-			stateLoadCapacity := containersConfig.TRNConfiguration.TRN
-			totalServicesBootingTime := containersConfig.TRNConfiguration.BootTimeSec
-			vmSet := containersConfig.VMSet
-			limits := containersConfig.Limits
 
 			if underProvisionAllowed {
-				ProfileSameLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-				ProfileNewLimits := selectProfile(it.Requests, vmLimits, underProvisionAllowed)
-				underContainersConfig,err := p.selectContainersConfig(ProfileSameLimits.Limits,ProfileSameLimits.TRNConfiguration,
-					ProfileNewLimits.Limits, ProfileNewLimits.TRNConfiguration, containerResizeEnabled, vmType)
-				if err !=  nil {
+				ProfileCurrentLimitsUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
+				ProfileNewLimitsUnder := selectProfile(it.Requests, vmLimits, underProvisionAllowed)
+				resize := shouldResizeContainer(ProfileCurrentLimitsUnder, ProfileNewLimitsUnder)
+				if resize {
+					ProfileCurrentLimitsUnder = ProfileNewLimitsUnder
+				}
+				vmSetUnder,err2 := p.FindSuitableVMs(ProfileCurrentLimits.TRNConfiguration.NumberReplicas, ProfileCurrentLimits.Limits, vmType)
+
+				if err2 !=  nil {
 					vmTypeSuitable = false
-					break // No VMset fits for the containers set
-				} else {
-					if underContainersConfig.Cost < containersConfig.Cost {
-						newNumServiceReplicas = underContainersConfig.TRNConfiguration.NumberReplicas
-						stateLoadCapacity = underContainersConfig.TRNConfiguration.TRN
-						totalServicesBootingTime = underContainersConfig.TRNConfiguration.BootTimeSec
-						vmSet = underContainersConfig.VMSet
-						limits = underContainersConfig.Limits
-						vmTypeSuitable = true
-					}
+					// No VMset fits for the containers set
+					break
+				}
+				vmTypeSuitable = true
+				if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.TRNConfiguration.TRN, percentageUnderProvision) &&
+					vmSetUnder.Cost(p.mapVMProfiles) < vmSet.Cost(p.mapVMProfiles) {
+
+					vmSet = vmSetUnder
+					ProfileCurrentLimits = ProfileCurrentLimitsUnder
 				}
 			}
+
+			newNumServiceReplicas := ProfileCurrentLimits.TRNConfiguration.NumberReplicas
+			stateLoadCapacity := ProfileCurrentLimits.TRNConfiguration.TRN
+			totalServicesBootingTime := ProfileCurrentLimits.TRNConfiguration.BootTimeSec
+			limits := ProfileCurrentLimits.Limits
 
 			services :=  make(map[string]types.ServiceInfo)
 			services[ p.sysConfiguration.ServiceName] = types.ServiceInfo {
@@ -99,7 +110,8 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 		}
 
 		if !vmTypeSuitable {
-			break		//Try with other VM type
+			//Try with other VM type
+			break
 		}
 
 		numConfigurations := len(configurations)
@@ -134,53 +146,39 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
  out:
 	@VMScale with the suggested number of VMs for that type
 */
-func (p BestBaseInstancePolicy) FindSuitableVMs(numberReplicas int, resourcesLimit types.Limit, vmType string) types.VMScale {
+func (p BestBaseInstancePolicy) FindSuitableVMs(numberReplicas int, resourcesLimit types.Limit, vmType string) (types.VMScale, error) {
 	vmScale := make(map[string]int)
+	var err error
 	profile := p.mapVMProfiles[vmType]
 	maxReplicas := maxReplicasCapacityInVM(profile, resourcesLimit)
 	if maxReplicas > 0 {
 		numVMs := math.Ceil(float64(numberReplicas) / float64(maxReplicas))
 		vmScale[vmType] = int(numVMs)
+	} else {
+		return vmScale,errors.New("No suitable VM set found")
 	}
-	return vmScale
+	return vmScale,err
 }
 
 /*
 	in:
-		@currentLimits
-		@profileCurrentLimits
-		@newLimits
-		@profileNewLimits
-		@vmType
-		@containerResize
+		@currentConfiguration types.ContainersConfig
+							- Current container configuration
+		@newCandidateConfiguration types.ContainersConfig
+							- Candidate container configuration with different limits and number of replicas
 	out:
-		@ContainersConfig
-		@error
-
+		@bool	- Flag to indicate if it is convenient to resize the containers
 */
-func (p BestBaseInstancePolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.TRNConfiguration,
-	newLimits types.Limit, profileNewLimits types.TRNConfiguration, containerResize bool, vmType string) (types.ContainersConfig, error) {
+func shouldResizeContainer(currentConfiguration types.ContainersConfig, newCandidateConfiguration types.ContainersConfig) bool{
 
-	vmSet1 := p.FindSuitableVMs(profileCurrentLimits.NumberReplicas, currentLimits, vmType)
-	costCurrent := vmSet1.Cost(p.mapVMProfiles)
-	vmSet2 := p.FindSuitableVMs(profileNewLimits.NumberReplicas, newLimits, vmType)
-	costNew := vmSet2.Cost(p.mapVMProfiles)
+	utilizationFactorCurrent :=  currentConfiguration.Limits.MemoryGB * float64(currentConfiguration.TRNConfiguration.NumberReplicas) +
+								currentConfiguration.Limits.CPUCores* float64(currentConfiguration.TRNConfiguration.NumberReplicas)
 
-	performanceFactorCurrent :=  (currentLimits.MemoryGB * float64(profileCurrentLimits.NumberReplicas) + currentLimits.CPUCores* float64(profileCurrentLimits.NumberReplicas))
-	performanceFactorNew := (newLimits.MemoryGB * float64(profileNewLimits.NumberReplicas) + newLimits.CPUCores* float64(profileNewLimits.NumberReplicas))
+	utilizationFactorNew := newCandidateConfiguration.Limits.MemoryGB * float64(newCandidateConfiguration.TRNConfiguration.NumberReplicas) +
+								newCandidateConfiguration.Limits.CPUCores* float64(newCandidateConfiguration.TRNConfiguration.NumberReplicas)
 
-	if  performanceFactorNew < performanceFactorCurrent && containerResize && len(vmSet2) != 0 {
-		return types.ContainersConfig{Limits: newLimits,
-			TRNConfiguration: profileNewLimits,
-			VMSet: vmSet2,
-			Cost: costNew,
-		}, nil
-
-	} else {
-		return types.ContainersConfig{Limits: currentLimits,
-			TRNConfiguration: profileCurrentLimits,
-			VMSet: vmSet1,
-			Cost: costCurrent,
-		}, nil
+	if utilizationFactorNew < utilizationFactorCurrent {
+		return true
 	}
+	return false
 }
