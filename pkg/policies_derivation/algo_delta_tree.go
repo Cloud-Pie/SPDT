@@ -98,21 +98,20 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 					//case 2: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.
 					deltaNumberReplicas := newNumServiceReplicas - currentNumberReplicas
 					vmSet = p.FindSuitableVMs(deltaNumberReplicas, ProfileCurrentLimits.Limits)
+
+					if underProvisionAllowed {
+						ProfileCurrentLimitsUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
+						vmSetUnder := p.FindSuitableVMs(ProfileCurrentLimits.TRNConfiguration.NumberReplicas, ProfileCurrentLimits.Limits)
+
+						if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.TRNConfiguration.TRN, percentageUnderProvision) &&
+							vmSetUnder.Cost(p.mapVMProfiles) < vmSet.Cost(p.mapVMProfiles) {
+							vmSet = vmSetUnder
+							ProfileCurrentLimits = ProfileCurrentLimitsUnder
+
+						}
+					}
 					//Merge the current configuration with configuration for the new replicas
 					vmSet.Merge(p.currentState.VMs)
-				}
-
-				if underProvisionAllowed {
-					ProfileCurrentLimitsUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-					vmSetUnder := p.FindSuitableVMs(ProfileCurrentLimits.TRNConfiguration.NumberReplicas, ProfileCurrentLimits.Limits)
-
-					if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.TRNConfiguration.TRN, percentageUnderProvision) &&
-						vmSetUnder.Cost(p.mapVMProfiles) < vmSet.Cost(p.mapVMProfiles) {
-						vmSet = vmSetUnder
-						ProfileCurrentLimits = ProfileCurrentLimitsUnder
-						//Merge the current configuration with configuration for the new replicas
-						vmSet.Merge(p.currentState.VMs)
-					}
 				}
 
 				newNumServiceReplicas = ProfileCurrentLimits.TRNConfiguration.NumberReplicas
