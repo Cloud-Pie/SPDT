@@ -26,7 +26,7 @@ func ConflictTimeOldPolicy(forecast types.Forecast, timeConflict time.Time) (typ
 		log.Error(err.Error())
 	}
 	var indexConflict int
-	for i,c := range storedPolicy.Configurations {
+	for i,c := range storedPolicy.ScalingActions {
 		if timeConflict.Equal(c.TimeStart) || timeConflict.After(c.TimeStart) {
 			indexConflict = i
 		}

@@ -7,7 +7,7 @@ import (
 )
 
 func TriggerScheduler(policy types.Policy, endpoint string)error{
-	for _, conf := range policy.Configurations {
+	for _, conf := range policy.ScalingActions {
 		err := scheduler.CreateState(conf.State, endpoint)
 		if err != nil {
 			return err

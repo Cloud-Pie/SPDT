@@ -37,7 +37,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 		StartTimeDerivation:time.Now(),
 	}
 
-	configurations := []types.ScalingConfiguration{}
+	configurations := []types.ScalingAction{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
 	serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
@@ -86,19 +86,18 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 		setConfiguration(&configurations, state, timeStart, timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
 	}
 	parameters := make(map[string]string)
-	parameters[types.VMTYPES] = p.currentVMType()
 	parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL
 	parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(false)
 	parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
 	parameters[types.ISRESIZEPODS] = strconv.FormatBool(false)
 	//Add new policy
 	numConfigurations := len(configurations)
-	newPolicy.Configurations = configurations
+	newPolicy.ScalingActions = configurations
 	newPolicy.Algorithm = p.algorithm
 	newPolicy.ID = bson.NewObjectId()
 	newPolicy.Status = types.DISCARTED	//State by default
 	newPolicy.Parameters = parameters
-	newPolicy.Metrics.NumberConfigurations = numConfigurations
+	newPolicy.Metrics.NumberScalingActions = numConfigurations
 	newPolicy.Metrics.FinishTimeDerivation = time.Now()
 	newPolicy.Metrics.DerivationDuration = newPolicy.Metrics.FinishTimeDerivation.Sub(newPolicy.Metrics.StartTimeDerivation).Seconds()
 	newPolicy.TimeWindowStart = configurations[0].TimeStart

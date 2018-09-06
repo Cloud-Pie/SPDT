@@ -10,6 +10,6 @@
   ,
   "Name": "test-state",
   "VMs": {
-    "m1.medium":1
+    "t2.medium":1
   }
 }

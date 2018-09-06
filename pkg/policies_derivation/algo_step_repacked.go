@@ -37,7 +37,7 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 	newPolicy.Metrics = types.PolicyMetrics {
 		StartTimeDerivation:time.Now(),
 	}
-	configurations := []types.ScalingConfiguration{}
+	configurations := []types.ScalingAction{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
@@ -105,14 +105,13 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 		parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(false)
 		parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
 		parameters[types.ISRESIZEPODS] = strconv.FormatBool(containerResizeEnabled)
-		parameters[types.VMTYPES] = vmTypesList(p.mapVMProfiles)
 		numConfigurations := len(configurations)
-		newPolicy.Configurations = configurations
+		newPolicy.ScalingActions = configurations
 		newPolicy.Algorithm = p.algorithm
 		newPolicy.ID = bson.NewObjectId()
 		newPolicy.Status = types.DISCARTED	//State by default
 		newPolicy.Parameters = parameters
-		newPolicy.Metrics.NumberConfigurations = numConfigurations
+		newPolicy.Metrics.NumberScalingActions = numConfigurations
 		newPolicy.Metrics.FinishTimeDerivation = time.Now()
 		newPolicy.TimeWindowStart = configurations[0].TimeStart
 		newPolicy.TimeWindowEnd = configurations[numConfigurations -1].TimeEnd

@@ -39,13 +39,15 @@ func SelectPolicy(policies *[]types.Policy, sysConfig config.SystemConfiguration
 
 	//Calculate Metrics of the policies
 	for i := range *policies {
-		over, under := computeMetricsCapacity(&(*policies)[i].Configurations,forecast.ForecastedValues)
+		over, under := computeMetricsCapacity(&(*policies)[i].ScalingActions,forecast.ForecastedValues)
 		(*policies)[i].Metrics.OverProvision = math.Ceil(over*100)/100
 		(*policies)[i].Metrics.UnderProvision = math.Ceil(under*100)/100
 
-		numScaledContainers, numScaledVMS := computeMetricsScalingActions(&(*policies)[i].Configurations, sysConfig)
+		numScaledContainers, numScaledVMS, vmTypes := computeMetricsScalingActions(&(*policies)[i].ScalingActions, sysConfig)
 		(*policies)[i].Metrics.NumberContainerScalingActions = numScaledContainers
 		(*policies)[i].Metrics.NumberVMScalingActions = numScaledVMS
+		(*policies)[i].Parameters[types.VMTYPES] = misc.MapKeystoString(vmTypes)
+
 	}
 
 	if len(*policies) >0 {
@@ -63,7 +65,7 @@ func SelectPolicy(policies *[]types.Policy, sysConfig config.SystemConfiguration
 
 
 //Calculate overprovisioning and underprovisioning of a state
-func computeMetricsCapacity(configurations *[]types.ScalingConfiguration, forecast []types.ForecastedValue) (float64, float64){
+func computeMetricsCapacity(configurations *[]types.ScalingAction, forecast []types.ForecastedValue) (float64, float64){
 	var avgOver float64
 	var avgUnder float64
 	fi := 0
@@ -76,7 +78,7 @@ func computeMetricsCapacity(configurations *[]types.ScalingConfiguration, foreca
 		numSamplesOver := 0.0
 		numSamplesUnder := 0.0
 		for  (*configurations)[i].TimeEnd.After(forecast[fi].TimeStamp){
-			deltaLoad := (*configurations)[i].Metrics.CapacityTRN - forecast[fi].Requests
+			deltaLoad := (*configurations)[i].Metrics.RequestsCapacity - forecast[fi].Requests
 			if deltaLoad > 0 {
 				confOver += deltaLoad*100.0/ forecast[fi].Requests
 				numSamplesOver++
@@ -102,7 +104,7 @@ func computeMetricsCapacity(configurations *[]types.ScalingConfiguration, foreca
 
 /*Compute number of scaling steps per VM and containers
  in:
-	@scalingActions *[]types.ScalingConfiguration
+	@scalingActions *[]types.ScalingAction
 				- List of scaling actions or configurations
 	@sysConfig config.SystemConfiguration
 				- Configuration specified by the user in the config file
@@ -111,16 +113,25 @@ out:
 		- Number of times where the containers where scaled
 	@int numberVMScalingActions
 		- Number of times where the vms where scaled
+	@map[string]bool vmTypes
+		- Map with the vm types used in the scaling actions
 */
 
-func computeMetricsScalingActions (scalingActions *[]types.ScalingConfiguration, sysConfiguration config.SystemConfiguration) (int,int) {
+func computeMetricsScalingActions (scalingActions *[]types.ScalingAction, sysConfiguration config.SystemConfiguration) (int,int, map[string]bool) {
 	numberVMScalingActions := 0
 	numberContainerScalingActions := 1
 	numberScalingActions := len(*scalingActions)
+	vmTypes := make(map[string] bool)
+
 	for i,_ := range *scalingActions {
 		if i< numberScalingActions - 1{
-			if !(*scalingActions)[i].State.VMs.Equal((*scalingActions)[i+1].State.VMs) {
+			vmSetToScale := (*scalingActions)[i].State.VMs
+			vmSetScaled := (*scalingActions)[i+1].State.VMs
+			if !vmSetToScale.Equal(vmSetScaled) {
 				numberVMScalingActions += 1
+			}
+			for k,_ := range vmSetToScale {
+				vmTypes[k] = true
 			}
 			serviceToScale := (*scalingActions)[i].State.Services[sysConfiguration.ServiceName]
 			serviceScaled := (*scalingActions)[i+1].State.Services[sysConfiguration.ServiceName]
@@ -130,5 +141,11 @@ func computeMetricsScalingActions (scalingActions *[]types.ScalingConfiguration,
 		}
 	}
 
-	return numberContainerScalingActions, numberVMScalingActions
+	vmSetToScale := (*scalingActions)[numberScalingActions - 1].State.VMs
+
+	for k,_ := range vmSetToScale {
+		vmTypes[k] = true
+	}
+
+	return numberContainerScalingActions, numberVMScalingActions, vmTypes
 }

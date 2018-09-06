@@ -265,7 +265,7 @@ func configurationLoadCapacity(numberReplicas int, limits types.Limit) float64 {
 
 /* Utility method to set up each scaling configuration
 */
-func setConfiguration(configurations *[]types.ScalingConfiguration, state types.State, timeStart time.Time, timeEnd time.Time, name string, totalServicesBootingTime int, sysConfiguration config.SystemConfiguration, stateLoadCapacity float64) {
+func setConfiguration(configurations *[]types.ScalingAction, state types.State, timeStart time.Time, timeEnd time.Time, name string, totalServicesBootingTime int, sysConfiguration config.SystemConfiguration, stateLoadCapacity float64) {
 	nConfigurations := len(*configurations)
 	if nConfigurations >= 1 && state.Equal((*configurations)[nConfigurations-1].State) {
 		(*configurations)[nConfigurations-1].TimeEnd = timeEnd
@@ -292,11 +292,11 @@ func setConfiguration(configurations *[]types.ScalingConfiguration, state types.
 		state.LaunchTime = startTime
 		state.Name = strconv.Itoa(nConfigurations) + "__" + name + "__" + startTime.Format(util.TIME_LAYOUT)
 		*configurations = append(*configurations,
-			types.ScalingConfiguration{
+			types.ScalingAction{
 				State:          state,
 				TimeStart:      timeStart,
 				TimeEnd:        timeEnd,
-				Metrics:types.ConfigMetrics{CapacityTRN:stateLoadCapacity,},
+				Metrics:types.ConfigMetrics{RequestsCapacity:stateLoadCapacity,},
 			})
 	}
 }

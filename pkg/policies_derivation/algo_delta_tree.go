@@ -51,7 +51,7 @@ type Tree struct {
 func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []types.Policy {
 
 	policies := []types.Policy {}
-	configurations := []types.ScalingConfiguration{}
+	configurations := []types.ScalingAction{}
 	newPolicy := types.Policy{}
 	newPolicy.Metrics = types.PolicyMetrics {
 		StartTimeDerivation:time.Now(),
@@ -143,18 +143,17 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 
 	//Add new policy
 	parameters := make(map[string]string)
-	parameters[types.VMTYPES] = vmTypesList(p.mapVMProfiles)
 	parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL
 	parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(true)
 	parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
 	parameters[types.ISRESIZEPODS] = strconv.FormatBool(containerResizeEnabled)
 	numConfigurations := len(configurations)
-	newPolicy.Configurations = configurations
+	newPolicy.ScalingActions = configurations
 	newPolicy.Algorithm = p.algorithm
 	newPolicy.ID = bson.NewObjectId()
 	newPolicy.Status = types.DISCARTED	//State by default
 	newPolicy.Parameters = parameters
-	newPolicy.Metrics.NumberConfigurations = numConfigurations
+	newPolicy.Metrics.NumberScalingActions = numConfigurations
 	newPolicy.Metrics.FinishTimeDerivation = time.Now()
 	newPolicy.Metrics.DerivationDuration = newPolicy.Metrics.FinishTimeDerivation.Sub(newPolicy.Metrics.StartTimeDerivation).Seconds()
 	newPolicy.TimeWindowStart = configurations[0].TimeStart

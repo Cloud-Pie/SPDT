@@ -161,3 +161,12 @@ func vmTypesList(mapVMProfiles map[string]types.VmProfile) string{
 
 	return  vmTypes
 }
+
+func MapKeystoString(keys map[string] bool)string {
+	var vmTypes string
+	for k,_ := range keys {
+		vmTypes += k + ","
+	}
+	vmTypes = vmTypes[:len(vmTypes)-1]
+	return  vmTypes
+}

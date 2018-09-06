@@ -15,16 +15,16 @@ const (
 //It takes into account the billing unit according to the pricing model
 func computePolicyCost(policy types.Policy, billingUnit string, mapVMProfiles map[string] types.VmProfile) float64 {
 	totalCost := 0.0
-	for cfi,cf := range policy.Configurations {
+	for cfi,cf := range policy.ScalingActions {
 		configurationCost := computeConfigurationCost(cf, billingUnit, mapVMProfiles)
-		policy.Configurations[cfi].Metrics.Cost = math.Ceil(configurationCost*100)/100
+		policy.ScalingActions[cfi].Metrics.Cost = math.Ceil(configurationCost*100)/100
 		totalCost += configurationCost
 	}
 	return totalCost
 }
 
 //Compute cost for a configuration of resources
-func computeConfigurationCost(cf types.ScalingConfiguration, unit string, mapVMProfiles map[string] types.VmProfile) float64 {
+func computeConfigurationCost(cf types.ScalingAction, unit string, mapVMProfiles map[string] types.VmProfile) float64 {
 	configurationCost := 0.0
 	deltaTime := setDeltaTime(cf.TimeStart,cf.TimeEnd,unit)
 	for k,v := range cf.State.VMs {
@@ -60,7 +60,7 @@ func isEnoughBudget(monthlyBudget float64, policy types.Policy) (bool,time.Time)
 		return true, policy.TimeWindowEnd
 	} else {
 		spentBudget := 0.0
-		for _,c := range policy.Configurations {
+		for _,c := range policy.ScalingActions {
 			spentBudget+= c.Metrics.Cost
 			if (spentBudget >= monthlyBudget) {
 				timeBudgetLimit = c.TimeStart

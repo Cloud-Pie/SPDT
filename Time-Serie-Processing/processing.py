@@ -2,6 +2,26 @@ from  scipy import signal
 import numpy as np
 import matplotlib.pyplot as plt
 
+def  poi(x):
+    vector = np.array(x)
+    response = []
+    for t in range(1, len(vector) - 2):
+        interval = {}
+        # First Interval does not include a peak
+        interval["peak"] = True
+        # Start with the first position
+        interval["index"] = t
+        valley = {}
+        valley["index"] = t - 1
+        interval["index_left_valley"] = valley
+        start = interval["index_left_valley"]["index"]
+
+        valley = {}
+        valley["index"] = t + 1
+        interval["index_right_valley"] = valley
+        response.append(interval)
+    return response
+
 def getMeassures(x, threshold):
 
     vector = np.array(x)

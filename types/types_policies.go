@@ -11,6 +11,11 @@ type Service map[string]ServiceInfo
 /*VMScale is the factor for which a type of VM is scales*/
 type VMScale map[string]int
 
+/*_________________________________________
+		VMScale Methods
+___________________________________________
+*/
+
 /*Function that merges two VM sets*/
 func (vmSetTarget VMScale) Merge(vmSource VMScale){
 	for k,v :=  range  vmSource {
@@ -22,7 +27,7 @@ func (vmSetTarget VMScale) Merge(vmSource VMScale){
 	}
 }
 
-/**/
+/**Function that calculates the cost of a VM Set*/
 func (vmSet VMScale) Cost(mapVMProfiles map[string] VmProfile) float64{
 	cost := float64(0.0)
 	for k,v := range vmSet {
@@ -31,7 +36,7 @@ func (vmSet VMScale) Cost(mapVMProfiles map[string] VmProfile) float64{
 	return cost
 }
 
-/**/
+/*Function that calculates the capacity to host service replicas for a VM Set*/
 func (vmSet VMScale) ReplicasCapacity(mapVMProfiles map[string] VmProfile) int{
 	totalCapacity :=0
 	for k,v := range vmSet {
@@ -40,7 +45,7 @@ func (vmSet VMScale) ReplicasCapacity(mapVMProfiles map[string] VmProfile) int{
 	return totalCapacity
 }
 
-/**/
+/*Function that returns the total number of VMs of a VM Set*/
 func (vmSet VMScale) TotalVMs() int{
 	totalNVMs := 0
 	for _,v := range vmSet {
@@ -50,7 +55,7 @@ func (vmSet VMScale) TotalVMs() int{
 }
 
 
-//Compare if two vmSets are equal
+/*Function that compares if two vmSets are equal*/
 func (vmSet VMScale) Equal(vmSet2 VMScale) bool {
 	if len(vmSet) != len(vmSet2) {
 		return false
@@ -69,7 +74,12 @@ type ServiceInfo struct {
 	Memory	float64		`json:MemoryGB`
 }
 
-//Compare if two container configurations for a given service are equal
+/*_________________________________________
+		ServiceInfo Methods
+___________________________________________
+*/
+
+/*Compare if two container configurations for a given service are equal*/
 func (conf1 ServiceInfo) Equal(conf2 ServiceInfo) bool {
 	if conf1.Scale != conf2.Scale {
 		return false
@@ -89,8 +99,12 @@ type State struct {
 	VMs        VMScale   `json:VMs`
 }
 
+/*_________________________________________
+		State Methods
+___________________________________________
+*/
 
-//Compare if two states are equal
+/*Compare if two states are equal*/
 func (state State) Equal(s2 State) bool {
 	if len(state.VMs) != len(s2.VMs) {
 		return false
@@ -110,31 +124,32 @@ func (state State) Equal(s2 State) bool {
 	}
 	return true
 }
+
 type ConfigMetrics struct {
-	Cost 					float64
-	OverProvision			float64
-	UnderProvision			float64
-	CapacityTRN				float64
+	Cost             float64 `json:"cost" bson:"cost"`
+	OverProvision    float64 `json:"over_provision" bson:"over_provision"`
+	UnderProvision   float64 `json:"under_provision" bson:"under_provision"`
+	RequestsCapacity float64 `json:"requests_capacity" bson:"requests_capacity"`
 }
 
 type PolicyMetrics struct {
-	Cost 					float64
-	OverProvision			float64
-	UnderProvision			float64
-	NumberConfigurations	int
-	StartTimeDerivation		time.Time		  `json:"start_derivation_time" bson:"start_derivation_time"`
-	FinishTimeDerivation 	time.Time		  `json:"finish_derivation_time" bson:"finish_derivation_time"`
-	DerivationDuration		float64           `json:"derivation_duration" bson:"derivation_duration"`
-	NumberVMScalingActions			int		  `json:"num_scale_containers" bson:"num_scale_containers"`
-	NumberContainerScalingActions	int		  `json:"num_scale_vms" bson:"num_scale_vms"`
+	Cost                          float64		`json:"cost" bson:"cost"`
+	OverProvision                 float64		`json:"over_provision" bson:"over_provision"`
+	UnderProvision                float64		`json:"under_provision" bson:"under_provision"`
+	NumberScalingActions          int			`json:"n_scaling_actions" bson:"n_scaling_actions"`
+	StartTimeDerivation           time.Time		`json:"start_derivation_time" bson:"start_derivation_time"`
+	FinishTimeDerivation          time.Time		`json:"finish_derivation_time" bson:"finish_derivation_time"`
+	DerivationDuration            float64       `json:"derivation_duration" bson:"derivation_duration"`
+	NumberVMScalingActions        int		  	`json:"num_scale_containers" bson:"num_scale_containers"`
+	NumberContainerScalingActions int		  	`json:"num_scale_vms" bson:"num_scale_vms"`
 }
 
 /*Resource configuration*/
-type ScalingConfiguration struct {
-	State					State
-	TimeStart 				time.Time
-	TimeEnd					time.Time
-	Metrics					ConfigMetrics
+type ScalingAction struct {
+	State					State			    `json:"State" bson:"State"`
+	TimeStart 				time.Time			`json:"time_start" bson:"time_start"`
+	TimeEnd					time.Time			`json:"time_end" bson:"time_end"`
+	Metrics					ConfigMetrics		`json:"metrics" bson:"metrics"`
 }
 
 
@@ -158,20 +173,21 @@ const (
 
 //Policy states the scaling transitions
 type Policy struct {
-	ID     					bson.ObjectId          `bson:"_id" json:"id"`
-	Algorithm 				string                  `json:"algorithm" bson:"algorithm"`
-	Metrics					PolicyMetrics         `json:"metrics" bson:"metrics"`
-	Status					string
-	Parameters				map[string]string
-	Configurations    		[]ScalingConfiguration `json:"configuration" bson:"configuration"`
-	TimeWindowStart   		time.Time                 `json:"window_time_start"  bson:"window_time_start"`
-	TimeWindowEnd   		time.Time                   `json:"window_time_end"  bson:"window_time_end"`
+	ID              bson.ObjectId     ` bson:"_id" json:"id"`
+	Algorithm       string            `json:"algorithm" bson:"algorithm"`
+	Metrics         PolicyMetrics     `json:"metrics" bson:"metrics"`
+	Status          string            `json:"status" bson:"status"`
+	Parameters      map[string]string `json:"parameters" bson:"parameters"`
+	ScalingActions  []ScalingAction   `json:"scaling_actions" bson:"scaling_actions"`
+	TimeWindowStart time.Time         `json:"window_time_start"  bson:"window_time_start"`
+	TimeWindowEnd   time.Time         `json:"window_time_end"  bson:"window_time_end"`
 
 }
 
+//Utility struct to represent a key value object
 type StructMap struct {
-	Key   string
-	Value int
+	Key   string		`json:"key" bson:"key"`
+	Value int			`json:"value" bson:"value"`
 }
 
 /*
@@ -180,8 +196,8 @@ It includes the resource limits per replica, number of replicas, bootTime of the
 a VMSet suitable to deploy the containers set and the cost of the solution
 */
 type ContainersConfig struct {
-	Limits           Limit            `json:"limits" bson:"limits"`
-	TRNConfiguration TRNConfiguration `json:"trns" bson:"trns"`
-	VMSet            VMScale
-	Cost             float64
+	Limits           Limit            	`json:"limits" bson:"limits"`
+	TRNConfiguration TRNConfiguration 	`json:"trns" bson:"trns"`
+	VMSet            VMScale		  	`json:"vms" bson:"vms"`
+	Cost             float64			`json:"cost" bson:"cost"`
 }

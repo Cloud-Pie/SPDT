@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 import json
-from processing import getMeassures, plotGraph
+from processing import getMeassures, plotGraph,poi
 
 app = Flask(__name__)
 
@@ -8,7 +8,7 @@ app = Flask(__name__)
 def processSignal():
     threshold = request.json['threshold']
     serie = request.json['serie']
-    response, peaks, valleys, properties, propValleys, vector, invvector = getMeassures(serie, threshold)
+    response = poi(serie)
     y ={"PoI": response}
     return jsonify(y)
 
