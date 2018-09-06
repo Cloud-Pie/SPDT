@@ -59,11 +59,9 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 	}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
-	biggestVM := p.sortedVMProfiles[len(p.sortedVMProfiles)-1]
-	vmLimits := types.Limit{ MemoryGB:biggestVM.Memory, CPUCores:biggestVM.CPUCores}
+	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
 
 	for _, it := range processedForecast.CriticalIntervals {
-
 		var vmSet types.VMScale
 		var newNumServiceReplicas int
 		var resourceLimits types.Limit
@@ -98,31 +96,31 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 					//case 1: Increases number of replicas but VMS remain the same
 					vmSet = p.currentState.VMs
 				} else {
-					if underProvisionAllowed {
-						//case 2: search a new service profile with underprovisioning that possible fit into the
-						//current VM set
-						ProfileNewLimits := selectProfile(totalLoad, vmLimits,underProvisionAllowed)
-						computeCapacity(&p.sortedVMProfiles, ProfileNewLimits.Limits, &p.mapVMProfiles)
-						currentReplicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
-						if currentReplicasCapacity >= ProfileNewLimits.TRNConfiguration.NumberReplicas {
-							vmSet = p.currentState.VMs
-							newNumServiceReplicas = ProfileNewLimits.TRNConfiguration.NumberReplicas
-							resourceLimits  = ProfileNewLimits.Limits
-							stateLoadCapacity = ProfileNewLimits.TRNConfiguration.TRN
-							totalServicesBootingTime = ProfileNewLimits.TRNConfiguration.BootTimeSec
-						}
-					} else {
-						//case 3: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.
-						deltaNumberReplicas := newNumServiceReplicas - currentNumberReplicas
-						if deltaNumberReplicas > 0 {
-							vmSet = p.FindSuitableVMs(deltaNumberReplicas, ProfileCurrentLimits.Limits)
-							//Merge the current configuration with configuration for the new replicas
-							vmSet.Merge(p.currentState.VMs)
-						}else {
-							vmSet = p.currentState.VMs
-						}
+					//case 2: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.
+					deltaNumberReplicas := newNumServiceReplicas - currentNumberReplicas
+					vmSet = p.FindSuitableVMs(deltaNumberReplicas, ProfileCurrentLimits.Limits)
+					//Merge the current configuration with configuration for the new replicas
+					vmSet.Merge(p.currentState.VMs)
+				}
+
+				if underProvisionAllowed {
+					ProfileCurrentLimitsUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
+					vmSetUnder := p.FindSuitableVMs(ProfileCurrentLimits.TRNConfiguration.NumberReplicas, ProfileCurrentLimits.Limits)
+
+					if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.TRNConfiguration.TRN, percentageUnderProvision) &&
+						vmSetUnder.Cost(p.mapVMProfiles) < vmSet.Cost(p.mapVMProfiles) {
+						vmSet = vmSetUnder
+						ProfileCurrentLimits = ProfileCurrentLimitsUnder
+						//Merge the current configuration with configuration for the new replicas
+						vmSet.Merge(p.currentState.VMs)
 					}
 				}
+
+				newNumServiceReplicas = ProfileCurrentLimits.TRNConfiguration.NumberReplicas
+				resourceLimits  = ProfileCurrentLimits.Limits
+				stateLoadCapacity = ProfileCurrentLimits.TRNConfiguration.TRN
+				totalServicesBootingTime = ProfileCurrentLimits.TRNConfiguration.BootTimeSec
+
 			} else {
 				deltaReplicas := currentNumberReplicas - ProfileCurrentLimits.TRNConfiguration.NumberReplicas
 				vmSet = p.removeVMs(p.currentState.VMs, deltaReplicas, currentContainerLimits)
