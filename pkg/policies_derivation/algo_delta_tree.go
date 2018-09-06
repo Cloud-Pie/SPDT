@@ -18,7 +18,6 @@ import (
  */
 type TreePolicy struct {
 	algorithm  		string               //Algorithm's name
-	limitNVMS  		int                  //Max number of vms of the same type in a cluster
 	timeWindow 		TimeWindowDerivation //Algorithm used to process the forecasted time serie
 	currentState	types.State			 //Current State
 	sortedVMProfiles []types.VmProfile    			//List of VM profiles sorted by price
