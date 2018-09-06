@@ -675,18 +675,18 @@ fieldset[disabled] .btn {
   .panel .panel-body,
   .panel .panel-footer {
     background-color: #ffffff;
-    padding-left: 25px;
-    padding-right: 25px; }
+    padding-left: 5px;
+    padding-right: 5px; }
   .panel .panel-heading {
-    padding-top: 20px;
-    padding-bottom: 20px;
+    padding-top: 15px;
+    padding-bottom: 15px;
     position: relative; }
     .panel .panel-heading .panel-title {
       margin: 0;
       font-size: 15px;
       font-weight: 300; }
     .panel .panel-heading button {
-      padding: 10;
+      padding: 10px;
       margin-left: 5px;
       background-color: transparent;
       border: none;
@@ -744,6 +744,11 @@ fieldset[disabled] .btn {
 .padding-0{
   padding-right:5px;
   padding-left:5px;
+}
+
+.padding-2{
+  padding-right:2px;
+  padding-left:2px;
 }
 
 /********************
@@ -1200,6 +1205,12 @@ ul.activity-list > li {
   margin-right: auto;
   margin-left: auto;
 }
+
+.padding-sides-5 {
+  padding-right: 5px;
+  padding-left: 5px;
+}
+
 /********************
  * PAGE: PROFILE
  ********************/

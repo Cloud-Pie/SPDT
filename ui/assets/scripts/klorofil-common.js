@@ -114,21 +114,24 @@ $(document).ready(function() {
 
 	if( $('.panel-scrolling').length > 0) {
 		$('.panel-scrolling .panel-body').slimScroll({
-			height: '430px',
+			height: '630px',
 			wheelStep: 2,
 		});
 	}
 
 	if( $('#panel-scrolling-demo').length > 0) {
 		$('#panel-scrolling-demo .panel-body').slimScroll({
-			height: '175px',
+			height: '430px',
 			wheelStep: 2,
 		});
 	}
 
-	/*-----------------------------------/
-	/*	TODO LIST
-	/*----------------------------------*/
+
+
+
+    /*-----------------------------------/
+    /*	TODO LIST
+    /*----------------------------------*/
 
 	$('.todo-list input').change( function() {
 		if( $(this).prop('checked') ) {

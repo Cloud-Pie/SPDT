@@ -14,9 +14,18 @@ function getVirtualUnits(data){
     cpuCores = [];
     memGB = [];
     typesVmSet = [];
-    arrayConfig = data.configuration
+    arrayConfig = data.scaling_actions
+
+    usedTypesString = data.parameters["vm-types"]
+    vmTypesList = usedTypesString.split(",");
+
+    vmScalesInTime = {}
+    vmTypesList.forEach(function (vmType) {
+        vmScalesInTime[vmType] = []
+    })
+
     arrayConfig.forEach(function (conf) {
-        time.push(conf.TimeStart)
+        time.push(conf.time_start)
         let text = ""
         let totalVMS = 0
         vmSet = conf.State.VMs
@@ -24,6 +33,13 @@ function getVirtualUnits(data){
             text = text + key + ":" + vmSet[key] + ", "
             totalVMS = totalVMS + vmSet[key]
 
+            for (var key2 in vmScalesInTime){
+                if (key == key2) {
+                    vmScalesInTime[key2].push(vmSet[key])
+                } else {
+                    vmScalesInTime[key2].push(0)
+                }
+            }
         }
         vms.push(totalVMS)
         typesVmSet.push(text)
@@ -33,14 +49,22 @@ function getVirtualUnits(data){
             cpuCores.push(services[key].CPU * services[key].Scale)
             memGB.push(services[key].Memory * services[key].Scale)
         }
-        TRN.push(conf.Metrics.CapacityTRN)
+        TRN.push(conf.metrics.requests_capacity)
     })
     //Needed to include the last time t into the plot
     lastConf = arrayConfig[arrayConfig.length - 1]
-    time.push(lastConf.TimeEnd)
+    time.push(lastConf.time_end)
     vmSet = lastConf.State.VMs
+
     for (var key in vmSet) {
         vms.push(vmSet[key])
+        for (var key2 in vmScalesInTime){
+            if (key == key2) {
+                vmScalesInTime[key2].push(vmSet[key])
+            } else {
+                vmScalesInTime[key2].push(0)
+            }
+        }
     }
     services = lastConf.State.Services
     for (var key in services) {
@@ -48,7 +72,8 @@ function getVirtualUnits(data){
         cpuCores.push(services[key].CPU * services[key].Scale)
         memGB.push(services[key].Memory * services[key].Scale)
     }
-    TRN.push(lastConf.Metrics.CapacityTRN)
+    TRN.push(lastConf.metrics.requests_capacity)
+
 
    return {
         time: time,
@@ -57,30 +82,31 @@ function getVirtualUnits(data){
         trn: TRN,
         cpuCores: cpuCores,
         memGB: memGB,
-        typesVmSet: typesVmSet
+        typesVmSet: typesVmSet,
+        vmScalesInTime: vmScalesInTime
     }
 }
 
-function plotVirtualUnits(time, vms, replicas, textHover) {
-    var trace1 = {
-        x: time,
-        y: vms,
-        type: 'scatter',
-        name: 'N° VMs',
-        text: textHover,
-        line: {shape: 'hv'}
-    };
+function plotVMUnitsPerType(time, vms, textHover) {
+    var data = [];
 
-    var trace2 = {
-        x: time,
-        y: replicas,
-        type: 'scatter',
-        name: 'N° Replicas',
-        line: {shape: 'hv'}
-    };
+   for (var key in vms) {
+       data.push(
+           {
+               x: time,
+               y: vms[key],
+               name: key,
+               type: 'scatter',
+               text: textHover,
+               line: {shape: 'hv'}
 
-    var layout = {
-        title: 'Virtual Units',
+           }
+
+       )
+   }
+
+   var layout = {
+        title: 'N° Virtual Machines',
         titlefont: {
             size: 20
         },
@@ -96,8 +122,86 @@ function plotVirtualUnits(time, vms, replicas, textHover) {
             x: 0.9
         },
     };
-    var data = [trace1, trace2];
-    Plotly.newPlot('virtualUnits', data,layout);
+
+   /* Plotly.newPlot('vmUnits', data,layout);*/
+
+
+
+    //var layout = {barmode: 'stack'};
+
+    Plotly.newPlot('vmUnits', stackedArea(data), layout);
+}
+
+
+function stackedArea(traces) {
+    for(var i=1; i<traces.length; i++) {
+        for(var j=0; j<(Math.min(traces[i]['y'].length, traces[i-1]['y'].length)); j++) {
+            traces[i]['y'][j] += traces[i-1]['y'][j];
+        }
+    }
+    return traces;
+}
+
+function plotVMUnits(time, vms, textHover) {
+    var trace1 = {
+        x: time,
+        y: vms,
+        type: 'scatter',
+        name: 'N° VMs',
+        text: textHover,
+        line: {shape: 'hv'}
+    };
+
+    var layout = {
+        title: 'N° Virtual Machines',
+        titlefont: {
+            size: 20
+        },
+        autosize:true,
+        margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
+        paper_bgcolor:'rgba(0,0,0,0)',
+        plot_bgcolor:'rgba(0,0,0,0)',
+        height: 300,
+        legend: {
+            "orientation": "h",
+            xanchor: "center",
+            y: 1.09,
+            x: 0.9
+        },
+    };
+    var data = [trace1];
+    Plotly.newPlot('vmUnits', data,layout);
+}
+
+function plotContainerUnits(time, replicas, textHover) {
+    var trace1 = {
+        x: time,
+        y: replicas,
+        type: 'scatter',
+        name: 'N° Replicas',
+        text: textHover,
+        line: {shape: 'hv'}
+    };
+
+    var layout = {
+        title: 'N° Containers',
+        titlefont: {
+            size: 20
+        },
+        autosize:true,
+        margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
+        paper_bgcolor:'rgba(0,0,0,0)',
+        plot_bgcolor:'rgba(0,0,0,0)',
+        height: 300,
+        legend: {
+            "orientation": "h",
+            xanchor: "center",
+            y: 1.09,
+            x: 0.9
+        },
+    };
+    var data = [trace1];
+    Plotly.newPlot('containerUnits', data,layout);
 }
 
 function plotCapacity(time, demand, supply, timeSuply){
@@ -139,8 +243,8 @@ function plotCapacity(time, demand, supply, timeSuply){
     Plotly.newPlot('requestsUnits', data,layout);
 }
 
-function plotMemCPU(time, memGB, cpuCores) {
-    var trace1 = {
+function plotMem(time, memGB) {
+    var trace = {
         x: time,
         y: memGB,
         type: 'scatter',
@@ -148,16 +252,8 @@ function plotMemCPU(time, memGB, cpuCores) {
         line: {shape: 'hv'}
     };
 
-    var trace2 = {
-        x: time,
-        y: cpuCores,
-        type: 'scatter',
-        name: 'CPU Cores',
-        line: {shape: 'hv'}
-    };
-
     var layout = {
-        title: 'Resources provisioned',
+        title: 'Memory GB',
         titlefont: {
             size: 20
         },
@@ -173,8 +269,39 @@ function plotMemCPU(time, memGB, cpuCores) {
             x: 0.9
         },
     };
-    var data = [trace1, trace2];
-    Plotly.newPlot('resourceUtilization', data,layout);
+    var data = [trace];
+    Plotly.newPlot('resourceMem', data,layout);
+}
+
+function plotCPU(time, cpuCores) {
+
+    var trace = {
+        x: time,
+        y: cpuCores,
+        type: 'scatter',
+        name: 'CPU Cores',
+        line: {shape: 'hv'}
+    };
+
+    var layout = {
+        title: 'CPU Cores',
+        titlefont: {
+            size: 20
+        },
+        autosize:true,
+        margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
+        paper_bgcolor:'rgba(0,0,0,0)',
+        plot_bgcolor:'rgba(0,0,0,0)',
+        height: 300,
+        legend: {
+            "orientation": "h",
+            xanchor: "center",
+            y: 1.09,
+            x: 0.9
+        },
+    };
+    var data = [trace];
+    Plotly.newPlot('resourceCPU', data,layout);
 }
 
 function searchByID(policyId) {
@@ -193,9 +320,13 @@ function searchByID(policyId) {
             var timeStart = new Date(data.window_time_start).toISOString();
             var timeEnd = new Date( data.window_time_end).toISOString();
             units = getVirtualUnits(data)
-            plotVirtualUnits(units.time, units.vms, units.replicas, units.typesVmSet)
-            plotMemCPU(units.time, units.memGB, units.cpuCores)
-            fillData(data)
+            //plotVMUnits(units.time, units.vms, units.typesVmSet)
+            plotVMUnitsPerType(units.time, units.vmScalesInTime, units.typesVmSet)
+            plotContainerUnits(units.time, units.replicas, units.typesVmSet)
+
+            plotMem(units.time, units.memGB)
+            plotCPU(units.time, units.cpuCores)
+            fillMetrics(data)
             fillDetailsTable(data)
             let params = {
                 "start": timeStart,
@@ -272,15 +403,15 @@ function fillCandidateTable(policyCandidates) {
     for(var i = 0; i < policyCandidates.length; i++) {
 
         label = "label-warning"
-        if (policyCandidates[i].Status == "selected") {
+        if (policyCandidates[i].status == "selected") {
             label = "label-success"
         }
 
         $("#tCandidates > tbody").append("<tr>" +
             "<td>"+policyCandidates[i].id+"</td>" +
             "<td>"+policyCandidates[i].algorithm+"</td>" +
-            "<td>"+policyCandidates[i].metrics.Cost+"</td>" +
-            "<td> <span class='label "+ label+" '>" +policyCandidates[i].Status+ "</span> </td>" +
+            "<td>"+policyCandidates[i].metrics.cost+"</td>" +
+            "<td> <span class='label "+ label+" '>" +policyCandidates[i].status+ "</span> </td>" +
             "</tr>");
     }
 
@@ -290,17 +421,18 @@ function fillCandidateTable(policyCandidates) {
     });
 }
 
-function fillData(policy){
-    document.getElementById("costid").innerText = policy.metrics.Cost;
-    document.getElementById("overid").innerText = policy.metrics.OverProvision;
-    document.getElementById("underid").innerText = policy.metrics.UnderProvision;
-    document.getElementById("reconfid").innerText = policy.metrics.NumberConfigurations;
-
+function fillMetrics(policy){
+    document.getElementById("costid").innerText = policy.metrics.cost;
+    document.getElementById("overid").innerText = policy.metrics.over_provision;
+    document.getElementById("underid").innerText = policy.metrics.under_provision;
+    document.getElementById("reconfid").innerText = policy.metrics.n_scaling_actions;
+    document.getElementById("reconfVMsid").innerText = policy.metrics.num_scale_vms;
+    document.getElementById("reconfContid").innerText = policy.metrics.num_scale_containers;
 }
 
 function fillDetailsTable(policy) {
     $("#tBodyDetails").children().remove()
-    parameters = policy.Parameters
+    parameters = policy.parameters
 
     $("#tDetails > tbody").append("<tr>" +
         "<td><b>"+"Policy ID"+"</b></td>" +
@@ -310,6 +442,11 @@ function fillDetailsTable(policy) {
     $("#tDetails > tbody").append("<tr>" +
         "<td><b>"+"Algorithm"+"</b></td>" +
         "<td>"+policy.algorithm+"</td>" +
+        "</tr>");
+
+    $("#tDetails > tbody").append("<tr>" +
+        "<td><b>"+"Duration of derivation"+"</b></td>" +
+        "<td>"+policy.metrics.derivation_duration+"</td>" +
         "</tr>");
 
 
@@ -332,7 +469,7 @@ function fillParameters(policy){
     $("#lParameters").children().remove()
     $("#lParameters").append(
         "<li><label>"+"Algorithm:"+"</label><span>"+policy.algorithm+"</span></li>");
-    parameters = policy.Parameters
+    parameters = policy.parameters
     for (var key in parameters) {
         $("#lParameters").append(
             "<li><label>"+key+":"+"</label><span>"+parameters[key]+"</span></li>");
@@ -360,16 +497,16 @@ function hideSinglePolicyPannels() {
     var d = document.getElementById("detailsDiv");
     d.style.display = "none";
 
-    var y = document.getElementById("multiplePolicyDiv");
+    /*var y = document.getElementById("multiplePolicyDiv");
     if (y.style.display === "none") {
         y.style.display = "block";
-    }
+    }*/
 
 }
 
 function showSinglePolicyPannels() {
-    var x = document.getElementById("multiplePolicyDiv");
-    x.style.display = "none";
+    /*var x = document.getElementById("multiplePolicyDiv");
+    x.style.display = "none";*/
 
     var y = document.getElementById("singlePolicyDiv");
     if (y.style.display === "none") {
@@ -397,9 +534,9 @@ function getVirtualUnitsAll(policies) {
         cpuCores = [];
         memGB = [];
         tracesAll.push(policy.id)
-        arrayConfig = policy.configuration
+        arrayConfig = policy.scaling_actions
         arrayConfig.forEach(function (conf) {
-            time.push(conf.TimeStart)
+            time.push(conf.time_start)
 
             vmSet = conf.State.VMs
             for (var key in vmSet) {
@@ -411,7 +548,7 @@ function getVirtualUnitsAll(policies) {
                 cpuCores.push(services[key].CPU * services[key].Scale)
                 memGB.push(services[key].Memory * services[key].Scale)
             }
-            TRN.push(conf.Metrics.CapacityTRN)
+            TRN.push(conf.metrics.requests_capacity)
         })
         vmsAll.push(vms)
         replicasAll.push(replicas)

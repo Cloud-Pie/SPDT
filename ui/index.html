@@ -33,9 +33,6 @@
 	<div id="wrapper">
 		<!-- NAVBAR -->
         <nav class="navbar navbar-default navbar-fixed-top">
-            <div class="navbar-btn">
-                <button type="button" class="btn-toggle-fullwidth"><i class="lnr lnr-arrow-left-circle"></i></button>
-            </div>
             <div class="brand">
                 <a href="index.html"><img src="assets/img/logo-dark.png" alt="Klorofil Logo" class="img-responsive logo"></a>
             </div>
@@ -81,30 +78,7 @@
             </div>
         </nav>
         <!-- END NAVBAR -->
-        <!-- LEFT SIDEBAR -->
-        <div id="sidebar-nav" class="sidebar">
-            <div class="sidebar-scroll">
-                <nav>
-                    <ul class="nav">
-                        <li><a href="index.html" class="active"><i class="lnr lnr-home"></i> <span>Derive Policy</span></a></li>
-                        <li><a href="elements.html" class=""><i class="lnr lnr-code"></i> <span>Manage Policies</span></a></li>
-                        <li>
-                            <a href="#subPages" data-toggle="collapse" class="collapsed"><i class="lnr lnr-file-empty"></i> <span>Algorithms</span> <i class="icon-submenu lnr lnr-chevron-left"></i></a>
-                            <div id="subPages" class="collapse ">
-                                <ul class="nav">
-                                    <li><a href="/ui/algoBase" class="">Base Instance</a></li>
-                                    <li><a href="page-login.html" class="">Per Step</a></li>
-                                    <li><a href="page-lockscreen.html" class="">Delta Repacked</a></li>
-                                    <li><a href="page-lockscreen.html" class="">Delta </a></li>
-                                </ul>
-                            </div>
-                        </li>
-                        <li><a href="notifications.html" class=""><i class="lnr lnr-alarm"></i> <span>Playground</span></a></li>
-                    </ul>
-                </nav>
-            </div>
-        </div>
-        <!-- END LEFT SIDEBAR -->
+
         <!-- MAIN -->
 		<div class="main">
 			<!-- MAIN CONTENT -->
@@ -147,16 +121,14 @@
                     <!-- END SEARCH-->
                     <!-- OVERVIEW -->
                     <div class="row" id="searchOutputDiv">
-                        <div>
-                        <div class="col-md-3  padding-0">
-                            <!-- DETAILS -->
-                            <div class="container-fluid">
-                                <div class="row" id="candidatesDiv">
-                                    <div class="panel panel-headline">
+                        <div class="row">
+                        <!-- CANDIDATES -->
+                        <div class="col-md-3 padding-sides-5" id="candidatesDiv">
+                                    <div class="panel panel-headline padding-sides-5" id="panel-scrolling-demo">
                                         <div class="panel-heading">
                                             <h5 class="panel-title">Policy Candidates</h5>
                                         </div>
-                                        <div class="panel-body padding-5">
+                                        <div class="panel-body">
                                             <table class="table table-striped table-hover" id="tCandidates">
                                                 <thead>
                                                 <tr>
@@ -175,14 +147,12 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                            <!-- END DETAILS -->
                         </div>
-                        <div class="col-md-6" id="singlePolicyDiv">
+                            <!-- END CANDIDATES -->
+                        <div class="col-md-9 padding-sides-5" id="singlePolicyDiv">
                             <div class="container-fluid">
                                 <div class="row" id="metricsDiv">
-                                    <div class="col-md-3  padding-0">
+                                    <div class="col-md-2  padding-0">
                                         <div class="metric">
                                             <span class="icon"><i class="fa fa-dollar"></i></span>
                                             <p>
@@ -193,7 +163,7 @@
                                             </p>
                                         </div>
                                     </div>
-                                    <div class="col-md-3  padding-0">
+                                    <div class="col-md-2  padding-0">
                                         <div class="metric">
                                             <span class="icon"><i class="fa fa-upload"></i></span>
                                             <p>
@@ -204,7 +174,7 @@
                                             </p>
                                         </div>
                                     </div>
-                                    <div class="col-md-3  padding-0">
+                                    <div class="col-md-2  padding-0">
                                         <div class="metric">
                                             <span class="icon"><i class="fa fa-download"></i></span>
                                             <p>
@@ -215,108 +185,103 @@
                                             </p>
                                         </div>
                                     </div>
-                                    <div class="col-md-3  padding-0">
+                                    <div class="col-md-2 padding-0">
+                                        <div class="metric">
+                                            <span class="icon"><i class="fa fa-cogs"></i></span>
+                                            <p>
+										<span class="number">
+											<label id="reconfVMsid"> </label>
+										</span>
+                                                <span class="title">N° Scaling VMs</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2 padding-0">
+                                        <div class="metric">
+                                            <span class="icon"><i class="fa fa-cogs"></i></span>
+                                            <p>
+										<span class="number">
+											<label id="reconfContid"> </label>
+										</span>
+                                                <span class="title">N° Scaling Replicas</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2 padding-0">
                                         <div class="metric">
                                             <span class="icon"><i class="fa fa-cogs"></i></span>
                                             <p>
 										<span class="number">
 											<label id="reconfid"> </label>
 										</span>
-                                                <span class="title">N° Configurations</span>
+                                                <span class="title">N° Scaling Actions</span>
                                             </p>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="row" >
-                                    <div class="panel">
-                                        <div class="panel-body">
-                                                <div id="requestsUnits" class="ct-chart"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="panel">
-                                        <div class="panel-body">
-                                                <div id="virtualUnits" class="ct-chart"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="panel">
-                                        <div class="panel-body">
-                                            <div id="resourceUtilization" class="ct-chart"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                                <!-- END METRICS--->
 
-                        <div class="col-md-3  padding-0">
-                            <!-- DETAILS -->
-                            <div class="container-fluid">
-                                <div class="row" id="detailsDiv">
-                                    <div class="panel panel-headline">
+                                <div class="row">
+                                    <div class="col-md-8 panel padding-sides-5">
+                                        <div class="panel-body">
+                                            <div id="vmUnits" class="ct-chart"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- DETAILS-->
+                                    <div class="col-md-4 panel panel-headline padding-sides-5" id="detailsDiv">
                                         <div class="panel-heading">
-                                            <h3 class="panel-title">Details</h3>
-                                        </div>
-                                        <div class="panel-body">
-                                            <table class="table" id="tDetails">
-                                                <tbody id="tBodyDetails"></tbody>
-                                            </table>
-                                        </div>
+                                                  <h3 class="panel-title">Details</h3>
+                                         </div>
+                                         <div class="panel-body">
+                                              <table class="table" id="tDetails">
+                                                     <tbody id="tBodyDetails"></tbody>
+                                              </table>
+                                         </div>
                                     </div>
+                                    <!-- END DETAILS-->
                                 </div>
                             </div>
                         </div>
-
-
-                        <div class="col-md-8" id="multiplePolicyDiv">
-                            <div class="container-fluid">
-                                <div class="row">
-                                    <div class="panel panel-headline">
-                                        <div class="panel-heading">
-                                               <h5 class="panel-title">Workload</h5>
-                                        </div>
-                                        <div class="panel-body">
-                                            <div id="requestsUnitsAll" class="ct-chart"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="panel">
-                                        <div class="panel-body">
-                                            <div id="vmUnitsAll" class="ct-chart"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="panel">
-                                        <div class="panel-body">
-                                            <div id="replicaUnitsAll" class="ct-chart"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="panel">
-                                        <div class="panel-body">
-                                            <div id="cpuUtilizationAll" class="ct-chart"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="panel">
-                                        <div class="panel-body">
-                                            <div id="memoryUtilizationAll" class="ct-chart"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-
 					</div>
 					<!-- END OVERVIEW -->
+
+                     <!-- ROW 2-->
+                        <div>
+                            <div class="col-md-6" >
+                                <div class="panel">
+                                    <div class="panel-body">
+                                        <div id="requestsUnits" class="ct-chart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="panel">
+                                    <div class="panel-body">
+                                        <div id="containerUnits" class="ct-chart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                        <div class="col-md-6">
+                            <div class="panel">
+                                <div class="panel-body">
+                                    <div id="resourceCPU" class="ct-chart"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="panel">
+                                <div class="panel-body">
+                                    <div id="resourceMem" class="ct-chart"></div>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+
+                     <!-- END ROW 2-->
+
 				</div>
 			</div>
             <div class="main-content" id="noResultsDiv">
@@ -354,12 +319,13 @@
             });
         });
     </script>
-
+<!--
 	<script>
         var x = document.getElementById("multiplePolicyDiv");
         x.style.display = "none"
         showNoResultsPannel()
 	</script>
+	-->
 </body>
 
 </html>
