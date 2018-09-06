@@ -13,7 +13,7 @@ function getVirtualUnits(data){
     TRN = [];
     cpuCores = [];
     memGB = [];
-    typesVmSet = [];
+    labelsTypesVmSet = [];
     arrayConfig = data.scaling_actions
 
     usedTypesString = data.parameters["vm-types"]
@@ -26,11 +26,11 @@ function getVirtualUnits(data){
 
     arrayConfig.forEach(function (conf) {
         time.push(conf.time_start)
-        let text = ""
+        let vmLabels = ""
         let totalVMS = 0
         vmSet = conf.State.VMs
         for (var key in vmSet) {
-            text = text + key + ":" + vmSet[key] + ", "
+            vmLabels = vmLabels + key + ":" + vmSet[key] + ", "
             totalVMS = totalVMS + vmSet[key]
 
             for (var key2 in vmScalesInTime){
@@ -42,12 +42,12 @@ function getVirtualUnits(data){
             }
         }
         vms.push(totalVMS)
-        typesVmSet.push(text)
+        labelsTypesVmSet.push(vmLabels)
         services = conf.State.Services
         for (var key in services) {
             replicas.push(services[key].Scale)
-            cpuCores.push(services[key].CPU * services[key].Scale)
-            memGB.push(services[key].Memory * services[key].Scale)
+            cpuCores.push(services[key].CPU)
+            memGB.push(services[key].Memory)
         }
         TRN.push(conf.metrics.requests_capacity)
     })
@@ -82,7 +82,7 @@ function getVirtualUnits(data){
         trn: TRN,
         cpuCores: cpuCores,
         memGB: memGB,
-        typesVmSet: typesVmSet,
+        labelsTypesVmSet: labelsTypesVmSet,
         vmScalesInTime: vmScalesInTime
     }
 }
@@ -105,16 +105,35 @@ function plotVMUnitsPerType(time, vms, textHover) {
        )
    }
 
+    data.push(
+        {
+            x: time,
+            y: requestDemand,
+            name: 'Demand',
+            type: 'scatter',
+            line: {shape: 'spline'},
+            yaxis: 'y2'
+        }
+    )
+
    var layout = {
         title: 'N° Virtual Machines',
         titlefont: {
-            size: 20
+           size:18
         },
         autosize:true,
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 300,
+        yaxis: {title: 'N° VMs'},
+        yaxis2: {
+           title: 'Requests/Sec',
+           titlefont: {color: 'rgb(148, 103, 189)'},
+           tickfont: {color: 'rgb(148, 103, 189)'},
+           overlaying: 'y',
+           side: 'right'
+        },
         legend: {
             "orientation": "h",
             xanchor: "center",
@@ -129,7 +148,7 @@ function plotVMUnitsPerType(time, vms, textHover) {
 
     //var layout = {barmode: 'stack'};
 
-    Plotly.newPlot('vmUnits', stackedArea(data), layout);
+    Plotly.newPlot('vmUnits', data, layout);
 }
 
 
@@ -155,7 +174,7 @@ function plotVMUnits(time, vms, textHover) {
     var layout = {
         title: 'N° Virtual Machines',
         titlefont: {
-            size: 20
+           size:18
         },
         autosize:true,
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
@@ -173,20 +192,43 @@ function plotVMUnits(time, vms, textHover) {
     Plotly.newPlot('vmUnits', data,layout);
 }
 
-function plotContainerUnits(time, replicas, textHover) {
+function plotContainerUnits(time, replicas, cpuCores, memGB) {
     var trace1 = {
         x: time,
         y: replicas,
         type: 'scatter',
         name: 'N° Replicas',
-        text: textHover,
         line: {shape: 'hv'}
+    };
+
+    var trace2 = {
+        x: time,
+        y: cpuCores,
+        type: 'scatter',
+        name: 'CPU cores',
+        yaxis: 'y2',
+    };
+
+    var trace3 = {
+        x: time,
+        y: memGB,
+        type: 'scatter',
+        name: 'Mem GB',
+        yaxis: 'y2',
     };
 
     var layout = {
         title: 'N° Containers',
         titlefont: {
-            size: 20
+           size:18
+        },
+        yaxis: {title: 'N° Containers'},
+        yaxis2: {
+            title: 'Resources',
+            titlefont: {color: 'rgb(148, 103, 189)'},
+            tickfont: {color: 'rgb(148, 103, 189)'},
+            overlaying: 'y',
+            side: 'right'
         },
         autosize:true,
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
@@ -200,7 +242,7 @@ function plotContainerUnits(time, replicas, textHover) {
             x: 0.9
         },
     };
-    var data = [trace1];
+    var data = [trace1, trace2, trace3];
     Plotly.newPlot('containerUnits', data,layout);
 }
 
@@ -224,14 +266,14 @@ function plotCapacity(time, demand, supply, timeSuply){
     var layout = {
         title: 'Workload',
         titlefont: {
-            size: 20
+           size:18
         },
         autosize:true,
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 300,
-
+        yaxis: {title: 'Requests/Sec'},
         legend: {
             "orientation": "h",
             xanchor: "center",
@@ -255,7 +297,7 @@ function plotMem(time, memGB) {
     var layout = {
         title: 'Memory GB',
         titlefont: {
-            size: 20
+           size:18
         },
         autosize:true,
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
@@ -286,7 +328,7 @@ function plotCPU(time, cpuCores) {
     var layout = {
         title: 'CPU Cores',
         titlefont: {
-            size: 20
+           size:18
         },
         autosize:true,
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
@@ -313,21 +355,14 @@ function searchByID(policyId) {
     var units
     fetch(requestURL)
         .then((response) => response.json())
-        .then(function (data){
+        .then(function (policy){
 
             showResultsPannel()
             showSinglePolicyPannels()
-            var timeStart = new Date(data.window_time_start).toISOString();
-            var timeEnd = new Date( data.window_time_end).toISOString();
-            units = getVirtualUnits(data)
-            //plotVMUnits(units.time, units.vms, units.typesVmSet)
-            plotVMUnitsPerType(units.time, units.vmScalesInTime, units.typesVmSet)
-            plotContainerUnits(units.time, units.replicas, units.typesVmSet)
+            var timeStart = new Date(policy.window_time_start).toISOString();
+            var timeEnd = new Date( policy.window_time_end).toISOString();
+            units = getVirtualUnits(policy)
 
-            plotMem(units.time, units.memGB)
-            plotCPU(units.time, units.cpuCores)
-            fillMetrics(data)
-            fillDetailsTable(data)
             let params = {
                 "start": timeStart,
                 "end": timeEnd
@@ -340,8 +375,19 @@ function searchByID(policyId) {
             url_forecast = forecastRequestsEndpoint + query
             fetch(url_forecast)
                 .then((response) => response.json())
-                .then(function (data){
-                    plotCapacity(data.Timestamp, data.Requests, units.trn, units.time)
+                .then(function (forecast){
+                    requestDemand = forecast.Requests
+                    plotCapacity(forecast.Timestamp, forecast.Requests, units.trn, units.time)
+
+
+                    //plotVMUnits(units.time, units.vms, units.labelsTypesVmSet)
+                    plotVMUnitsPerType(units.time, units.vmScalesInTime, units.labelsTypesVmSet)
+                    plotContainerUnits(units.time, units.replicas, units.cpuCores, units.memGB)
+                    plotMem(units.time, units.memGB)
+                    plotCPU(units.time, units.cpuCores)
+                    fillMetrics(policy)
+                    fillDetailsTable(policy)
+
                 })
                 .catch(function(err) {
                     console.log('Fetch Error :-S', err);

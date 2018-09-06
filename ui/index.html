@@ -124,7 +124,8 @@
                         <div class="row">
                         <!-- CANDIDATES -->
                         <div class="col-md-3 padding-sides-5" id="candidatesDiv">
-                                    <div class="panel panel-headline padding-sides-5" id="panel-scrolling-demo">
+                            <div class="row">
+                            <div class="panel panel-headline padding-sides-5" id="panel-scrolling-demo">
                                         <div class="panel-heading">
                                             <h5 class="panel-title">Policy Candidates</h5>
                                         </div>
@@ -147,6 +148,25 @@
                                             </div>
                                         </div>
                                     </div>
+
+                            </div>
+
+                            <div class="row">
+                            <!-- DETAILS-->
+                            <div class="panel panel-headline" id="detailsDiv">
+                                <div class="panel-heading">
+                                    <h3 class="panel-title">Details</h3>
+                                </div>
+                                <div class="panel-body">
+                                    <table class="table" id="tDetails">
+                                        <tbody id="tBodyDetails"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <!-- END DETAILS-->
+                            </div>
+
+
                         </div>
                             <!-- END CANDIDATES -->
                         <div class="col-md-9 padding-sides-5" id="singlePolicyDiv">
@@ -220,26 +240,27 @@
                                     </div>
                                 </div>
                                 <!-- END METRICS--->
+                                           <div class="row">
+                                            <div class="panel">
+                                                <div class="panel-body">
+                                                    <div id="vmUnits" class="ct-chart"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="panel">
+                                                <div class="panel-body">
+                                                    <div id="containerUnits" class="ct-chart"></div>
+                                                </div>
+                                            </div>
+                                        </div>
 
                                 <div class="row">
-                                    <div class="col-md-8 panel padding-sides-5">
+                                    <div class="panel">
                                         <div class="panel-body">
-                                            <div id="vmUnits" class="ct-chart"></div>
+                                            <div id="requestsUnits" class="ct-chart"></div>
                                         </div>
                                     </div>
-
-                                    <!-- DETAILS-->
-                                    <div class="col-md-4 panel panel-headline padding-sides-5" id="detailsDiv">
-                                        <div class="panel-heading">
-                                                  <h3 class="panel-title">Details</h3>
-                                         </div>
-                                         <div class="panel-body">
-                                              <table class="table" id="tDetails">
-                                                     <tbody id="tBodyDetails"></tbody>
-                                              </table>
-                                         </div>
-                                    </div>
-                                    <!-- END DETAILS-->
                                 </div>
                             </div>
                         </div>
@@ -247,22 +268,7 @@
 					<!-- END OVERVIEW -->
 
                      <!-- ROW 2-->
-                        <div>
-                            <div class="col-md-6" >
-                                <div class="panel">
-                                    <div class="panel-body">
-                                        <div id="requestsUnits" class="ct-chart"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="panel">
-                                    <div class="panel-body">
-                                        <div id="containerUnits" class="ct-chart"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+
                         <div>
                         <div class="col-md-6">
                             <div class="panel">
