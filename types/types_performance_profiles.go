@@ -8,12 +8,12 @@ type Pricing struct {
 }
 
 type VmProfile struct {
-	Type               string  `json:"type" bson:"type"`
-	NumCores           float64 `json:"num_cores" bson:"num_cores"`
-	Memory             float64 `json:"mem_gb" bson:"mem_gb"`
-	OS                 string  `json:"os" bson:"os"`
-	Pricing            Pricing `json:"pricing" bson:"pricing"`
-	ReplicasCapacity   int
+	Type             string  `json:"type" bson:"type"`
+	CPUCores         float64 `json:"num_cores" bson:"num_cores"`
+	Memory           float64 `json:"mem_gb" bson:"mem_gb"`
+	OS               string  `json:"os" bson:"os"`
+	Pricing          Pricing `json:"pricing" bson:"pricing"`
+	ReplicasCapacity int
 }
 
 //Times in seconds
@@ -24,7 +24,7 @@ type BootShutDownTime struct {
 }
 
 type Limit struct {
-	NumberCores      float64 `json:"cpu_cores" bson:"cpu_cores"`
+	CPUCores         float64 `json:"cpu_cores" bson:"cpu_cores"`
 	MemoryGB         float64 `json:"mem_gb" bson:"mem_gb"`
 	RequestPerSecond int     `json:"request_per_second" bson:"request_per_second"`
 }

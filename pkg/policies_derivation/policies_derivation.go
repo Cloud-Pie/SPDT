@@ -276,7 +276,7 @@ func setConfiguration(configurations *[]types.ScalingConfiguration, state types.
 
 		//Adjust booting times for resources configuration
 		if nConfigurations >= 1 {
-			vmAdded, vmRemoved := deltaVMSet((*configurations)[nConfigurations-1].State.VMs ,state.VMs)
+			vmAdded, vmRemoved := DeltaVMSet((*configurations)[nConfigurations-1].State.VMs ,state.VMs)
 			//Adjust previous configuration
 			if len(vmRemoved) > 0 {
 				finishTimeVMRemoved = computeVMTerminationTime(vmRemoved, sysConfiguration)

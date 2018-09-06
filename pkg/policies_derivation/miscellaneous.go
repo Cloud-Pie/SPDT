@@ -112,7 +112,7 @@ func copyMap(m map[string]int) map[string]int {
 		@VMScale	- Map with VM cluster of the VMs that were added into the candidate VM set
 		@VMScale	- Map with VM cluster of the VMs that were removed from the candidate VM set
 */
-func deltaVMSet(current types.VMScale, candidate types.VMScale) (types.VMScale, types.VMScale){
+func DeltaVMSet(current types.VMScale, candidate types.VMScale) (types.VMScale, types.VMScale){
 	delta := types.VMScale{}
 	startSet := types.VMScale{}
 	shutdownSet := types.VMScale{}

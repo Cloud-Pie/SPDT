@@ -49,43 +49,7 @@ func setDeltaTime (timeStart time.Time, timeEnd time.Time, unit string) float64 
 	return delta
 }
 
-//Calculate overprovisioning and underprovisioning of a state
-func computeMetricsCapacity(configurations *[]types.ScalingConfiguration, forecast []types.ForecastedValue) (float64, float64){
-	var avgOver float64
-	var avgUnder float64
-	fi := 0
-	totalOver := 0.0
-	totalUnder := 0.0
-	numConfigurations := float64(len(*configurations))
-	for i,_ := range *configurations {
-		confOver := 0.0
-		confUnder := 0.0
-		numSamplesOver := 0.0
-		numSamplesUnder := 0.0
-		for  (*configurations)[i].TimeEnd.After(forecast[fi].TimeStamp){
-			deltaLoad := (*configurations)[i].Metrics.CapacityTRN - forecast[fi].Requests
-			if deltaLoad > 0 {
-				confOver += deltaLoad*100.0/ forecast[fi].Requests
-				numSamplesOver++
-			} else if deltaLoad < 0 {
-				confUnder += -1*deltaLoad*100.0/ forecast[fi].Requests
-				numSamplesUnder++
-			}
-			fi++
-		}
-		if numSamplesUnder > 0 {
-			(*configurations)[i].Metrics.UnderProvision = math.Ceil(confUnder /numSamplesUnder*100)/100
-			totalUnder += confUnder /numSamplesUnder
-		}
-		if numSamplesOver > 0 {
-			(*configurations)[i].Metrics.OverProvision = math.Ceil(confOver /numSamplesOver*100)/100
-			totalOver += confOver /numSamplesOver
-		}
-	}
-	avgOver = totalOver/numConfigurations
-	avgUnder = totalUnder /numConfigurations
-	return avgOver,avgUnder
-}
+
 
 func isEnoughBudget(monthlyBudget float64, policy types.Policy) (bool,time.Time) {
 	avgHoursPerMonth := 720.0

@@ -282,7 +282,7 @@ func (p DeltaRepackedPolicy) releaseResources(nReplicas int, currentVMSet types.
 //Calculate the cost of a reconfiguration
 func(p DeltaRepackedPolicy) calculateReconfigurationCost(newSet types.VMScale) float64 {
 	//Compute reconfiguration cost
-	_, deletedVMS := deltaVMSet(p.currentState.VMs, newSet)
+	_, deletedVMS := DeltaVMSet(p.currentState.VMs, newSet)
 	reconfigTime := computeVMTerminationTime(deletedVMS, p.sysConfiguration)
 
 	return deletedVMS.Cost(p.mapVMProfiles) * float64(reconfigTime)

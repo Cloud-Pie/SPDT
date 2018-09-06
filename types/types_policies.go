@@ -49,10 +49,36 @@ func (vmSet VMScale) TotalVMs() int{
 	return totalNVMs
 }
 
+
+//Compare if two vmSets are equal
+func (vmSet VMScale) Equal(vmSet2 VMScale) bool {
+	if len(vmSet) != len(vmSet2) {
+		return false
+	}
+	for i, v := range vmSet {
+		if v != vmSet2[i] {
+			return false
+		}
+	}
+	return true
+}
+
 type ServiceInfo struct {
 	Scale 	int			`json:Scale`
 	CPU 	float64		`json:CPU`
 	Memory	float64		`json:MemoryGB`
+}
+
+//Compare if two container configurations for a given service are equal
+func (conf1 ServiceInfo) Equal(conf2 ServiceInfo) bool {
+	if conf1.Scale != conf2.Scale {
+		return false
+	}else if conf1.CPU != conf2.CPU {
+		return false
+	}else if conf1.Memory != conf2.Memory {
+		return false
+	}
+	return true
 }
 
 /*State is the metadata of the state expected to scale to*/
@@ -154,8 +180,8 @@ It includes the resource limits per replica, number of replicas, bootTime of the
 a VMSet suitable to deploy the containers set and the cost of the solution
 */
 type ContainersConfig struct {
-	Limits             Limit            `json:"limits" bson:"limits"`
-	PerformanceProfile TRNConfiguration `json:"trns" bson:"trns"`
-	VMSet              VMScale
-	Cost               float64
+	Limits           Limit            `json:"limits" bson:"limits"`
+	TRNConfiguration TRNConfiguration `json:"trns" bson:"trns"`
+	VMSet            VMScale
+	Cost             float64
 }
