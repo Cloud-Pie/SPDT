@@ -130,6 +130,8 @@ type ConfigMetrics struct {
 	OverProvision    float64 `json:"over_provision" bson:"over_provision"`
 	UnderProvision   float64 `json:"under_provision" bson:"under_provision"`
 	RequestsCapacity float64 `json:"requests_capacity" bson:"requests_capacity"`
+	CPUUtilization   float64 `json:"cpu_utilization" bson:"cpu_utilization"`
+	MemoryUtilization float64 `json:"mem_utilization" bson:"mem_utilization"`
 }
 
 type PolicyMetrics struct {

@@ -11,6 +11,8 @@ function getVirtualUnits(data){
     vms = [];
     replicas = [];
     TRN = [];
+    utilizationCpuCores = [];
+    utilizationMemGB = [];
     cpuCores = [];
     memGB = [];
     labelsTypesVmSet = [];
@@ -50,6 +52,9 @@ function getVirtualUnits(data){
             memGB.push(services[key].Memory)
         }
         TRN.push(conf.metrics.requests_capacity)
+        utilizationCpuCores.push(conf.metrics.cpu_utilization)
+        utilizationMemGB.push(conf.metrics.mem_utilization)
+
     })
     //Needed to include the last time t into the plot
     lastConf = arrayConfig[arrayConfig.length - 1]
@@ -69,21 +74,24 @@ function getVirtualUnits(data){
     services = lastConf.State.Services
     for (var key in services) {
         replicas.push(services[key].Scale)
-        cpuCores.push(services[key].CPU * services[key].Scale)
-        memGB.push(services[key].Memory * services[key].Scale)
+        cpuCores.push(services[key].CPU)
+        memGB.push(services[key].Memory)
     }
     TRN.push(lastConf.metrics.requests_capacity)
-
+    utilizationCpuCores.push(lastConf.metrics.cpu_utilization)
+    utilizationMemGB.push(lastConf.metrics.mem_utilization)
 
    return {
         time: time,
         vms: vms,
         replicas: replicas,
         trn: TRN,
-        cpuCores: cpuCores,
-        memGB: memGB,
+        utilizationCpuCores: utilizationCpuCores,
+        utilizationMemGB: utilizationMemGB,
         labelsTypesVmSet: labelsTypesVmSet,
-        vmScalesInTime: vmScalesInTime
+        vmScalesInTime: vmScalesInTime,
+        cpuCores: cpuCores,
+        memGB:memGB
     }
 }
 
@@ -288,10 +296,9 @@ function plotCapacity(time, demand, supply, timeSuply){
 function plotMem(time, memGB) {
     var trace = {
         x: time,
-        y: memGB,
+        y: utilizationMemGB,
         type: 'scatter',
-        name: 'Mem GB',
-        line: {shape: 'hv'}
+        name: 'Mem GB'
     };
 
     var layout = {
@@ -319,10 +326,9 @@ function plotCPU(time, cpuCores) {
 
     var trace = {
         x: time,
-        y: cpuCores,
+        y: utilizationCpuCores,
         type: 'scatter',
-        name: 'CPU Cores',
-        line: {shape: 'hv'}
+        name: 'CPU Cores'
     };
 
     var layout = {
@@ -383,8 +389,8 @@ function searchByID(policyId) {
                     //plotVMUnits(units.time, units.vms, units.labelsTypesVmSet)
                     plotVMUnitsPerType(units.time, units.vmScalesInTime, units.labelsTypesVmSet)
                     plotContainerUnits(units.time, units.replicas, units.cpuCores, units.memGB)
-                    plotMem(units.time, units.memGB)
-                    plotCPU(units.time, units.cpuCores)
+                    plotMem(units.time, units.utilizationMemGB)
+                    plotCPU(units.time, units.utilizationCpuCores)
                     fillMetrics(policy)
                     fillDetailsTable(policy)
 
@@ -577,8 +583,8 @@ function getVirtualUnitsAll(policies) {
         vms = [];
         replicas = [];
         TRN = [];
-        cpuCores = [];
-        memGB = [];
+        utilizationCpuCores = [];
+        utilizationMemGB = [];
         tracesAll.push(policy.id)
         arrayConfig = policy.scaling_actions
         arrayConfig.forEach(function (conf) {
@@ -591,16 +597,16 @@ function getVirtualUnitsAll(policies) {
             services = conf.State.Services
             for (var key in services) {
                 replicas.push(services[key].Scale)
-                cpuCores.push(services[key].CPU * services[key].Scale)
-                memGB.push(services[key].Memory * services[key].Scale)
+                utilizationCpuCores.push(services[key].CPU * services[key].Scale)
+                utilizationMemGB.push(services[key].Memory * services[key].Scale)
             }
             TRN.push(conf.metrics.requests_capacity)
         })
         vmsAll.push(vms)
         replicasAll.push(replicas)
         TRNAll.push(TRN)
-        cpuCoresAll.push(cpuCores)
-        memGBAll.push(memGB)
+        cpuCoresAll.push(utilizationCpuCores)
+        memGBAll.push(utilizationMemGB)
     })
 
     return {
