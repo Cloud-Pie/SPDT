@@ -43,7 +43,7 @@ func SelectPolicy(policies *[]types.Policy, sysConfig config.SystemConfiguration
 		(*policies)[i].Metrics.OverProvision = math.Ceil(over*100)/100
 		(*policies)[i].Metrics.UnderProvision = math.Ceil(under*100)/100
 
-		numScaledContainers, numScaledVMS, vmTypes := computeMetricsScalingActions(&(*policies)[i].ScalingActions, sysConfig)
+		numScaledContainers, numScaledVMS, vmTypes := computeMetricsScalingActions(&(*policies)[i].ScalingActions, mapVMProfiles, sysConfig)
 		(*policies)[i].Metrics.NumberContainerScalingActions = numScaledContainers
 		(*policies)[i].Metrics.NumberVMScalingActions = numScaledVMS
 		(*policies)[i].Parameters[types.VMTYPES] = misc.MapKeystoString(vmTypes)
@@ -117,35 +117,38 @@ out:
 		- Map with the vm types used in the scaling actions
 */
 
-func computeMetricsScalingActions (scalingActions *[]types.ScalingAction, sysConfiguration config.SystemConfiguration) (int,int, map[string]bool) {
+func computeMetricsScalingActions (scalingActions *[]types.ScalingAction, mapVMProfiles map[string] types.VmProfile,  sysConfiguration config.SystemConfiguration) (int,int, map[string]bool) {
 	numberVMScalingActions := 0
 	numberContainerScalingActions := 1
 	numberScalingActions := len(*scalingActions)
 	vmTypes := make(map[string] bool)
 
 	for i,_ := range *scalingActions {
-		if i< numberScalingActions - 1{
-			vmSetToScale := (*scalingActions)[i].State.VMs
+		vmSetToScale := (*scalingActions)[i].State.VMs
+		serviceToScale := (*scalingActions)[i].State.Services[sysConfiguration.ServiceName]
+
+		if i< numberScalingActions - 1 {
 			vmSetScaled := (*scalingActions)[i+1].State.VMs
 			if !vmSetToScale.Equal(vmSetScaled) {
 				numberVMScalingActions += 1
 			}
-			for k,_ := range vmSetToScale {
-				vmTypes[k] = true
-			}
-			serviceToScale := (*scalingActions)[i].State.Services[sysConfiguration.ServiceName]
 			serviceScaled := (*scalingActions)[i+1].State.Services[sysConfiguration.ServiceName]
 			if !serviceToScale.Equal(serviceScaled) {
 				numberContainerScalingActions += 1
 			}
 		}
+		totalCPUCores := 0.0
+		totalMemGB := 0.0
+		for k,v := range vmSetToScale {
+			vmTypes[k] = true
+			totalCPUCores += mapVMProfiles[k].CPUCores * float64(v)
+			totalMemGB += mapVMProfiles[k].Memory * float64(v)
+		}
+		percentageMemUtilization := serviceToScale.Memory * float64(serviceToScale.Scale) * 100.0 / totalMemGB
+		(*scalingActions)[i].Metrics.MemoryUtilization = percentageMemUtilization
+		percentageCPUUtilization := serviceToScale.CPU * float64(serviceToScale.Scale)  * 100.0 / totalCPUCores
+		(*scalingActions)[i].Metrics.CPUUtilization = percentageCPUUtilization
 	}
-
-	vmSetToScale := (*scalingActions)[numberScalingActions - 1].State.VMs
-
-	for k,_ := range vmSetToScale {
-		vmTypes[k] = true
-	}
-
 	return numberContainerScalingActions, numberVMScalingActions, vmTypes
 }
+
