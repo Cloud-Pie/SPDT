@@ -76,7 +76,6 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 			CPU:    resourceLimits.CPUCores,
 			Memory: resourceLimits.MemoryGB,
 		}
-		state := types.State{
 		state = types.State{
 			Services: services,
 			VMs:      vmSet,
