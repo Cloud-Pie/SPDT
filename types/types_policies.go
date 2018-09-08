@@ -93,10 +93,6 @@ func (conf1 ServiceInfo) Equal(conf2 ServiceInfo) bool {
 
 /*State is the metadata of the state expected to scale to*/
 type State struct {
-	LaunchTime time.Time `json:ISODate`
-	Services   Service   `json:Services`
-	Name       string    `json:Name`
-	VMs        VMScale   `json:VMs`
 	LaunchTime time.Time `json:"ISODate"`
 	Services   Service   `json:"Services"`
 	Name       string    `json:"Name"`
@@ -109,20 +105,20 @@ ___________________________________________
 */
 
 /*Compare if two states are equal*/
-func (state State) Equal(s2 State) bool {
-	if len(state.VMs) != len(s2.VMs) {
+func (currentState State) Equal(candidateState State) bool {
+	if len(currentState.VMs) != len(candidateState.VMs) {
 		return false
 	}
-	for i, v := range state.VMs {
-		if v != s2.VMs[i] {
+	for i, v := range currentState.VMs {
+		if v != candidateState.VMs[i] {
 			return false
 		}
 	}
-	if len(state.Services) != len(s2.Services) {
+	if len(currentState.Services) != len(candidateState.Services) {
 		return false
 	}
-	for i, v := range state.Services {
-		if v != s2.Services[i] {
+	for i, v := range currentState.Services {
+		if v != candidateState.Services[i] {
 			return false
 		}
 	}
