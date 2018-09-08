@@ -22,4 +22,5 @@ COPY --from=builder /go/src/spdt/ui ./ui/
 # Document that the service listens on port 8080.
 EXPOSE 8080
 # Run the  command by default when the container starts.
-CMD ["./spdt"]
+
+CMD ["./spdt", "start"]
