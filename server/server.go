@@ -1,4 +1,4 @@
-package spd
+package server
 
 import (
 	"github.com/gin-gonic/gin"
@@ -18,7 +18,9 @@ func SetUpServer( fc chan types.Forecast ) *gin.Engine {
 	router.Static("/assets", "./ui/assets")
 	router.LoadHTMLGlob("ui/*.html")
 	router.POST("/api/policies", serverCall)
-	router.GET("/ui", userInterface)
+	router.GET("/ui", homeUI)
+	router.GET("/ui/algoBase", algoBaseInstanceUI)
+	router.GET("/ui/derivePolicy", derivePolicyUI)
 	router.PUT("/api/policies", updateForecast)
 	router.GET("/api/policies/:id", policyByID)
 	router.GET("/api/policies", getPolicies)
@@ -172,11 +174,17 @@ func updateForecast(c *gin.Context) {
 }
 
 //This handler return the home page of the user interface
-func userInterface(c *gin.Context) {
+func homeUI(c *gin.Context) {
 	c.HTML(http.StatusOK, "index.html", nil)
 }
 
+func algoBaseInstanceUI(c *gin.Context) {
+	c.HTML(http.StatusOK, "algo_base_instance.html", nil)
+}
 
+func derivePolicyUI(c *gin.Context) {
+	c.HTML(http.StatusOK, "derive_policy.html", nil)
+}
 
 func getRequests(c *gin.Context) {
 	windowTimeStart := c.DefaultQuery("start", "")

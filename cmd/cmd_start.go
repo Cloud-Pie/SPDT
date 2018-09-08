@@ -3,7 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"fmt"
-	"github.com/Cloud-Pie/SPDT/spd"
+	"github.com/Cloud-Pie/SPDT/server"
 )
 
 // startCmd represents the start service command
@@ -13,6 +13,6 @@ var startCmd = &cobra.Command{
 	Long: "Start the scaling policy derivator",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Print("called start")
-		spd.Start()
+		server.Start()
 	},
 }

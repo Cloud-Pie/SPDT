@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	Fservice "github.com/Cloud-Pie/SPDT/rest_clients/forecast"

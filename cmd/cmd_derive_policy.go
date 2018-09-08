@@ -3,7 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"fmt"
-	"github.com/Cloud-Pie/SPDT/spd"
+	"github.com/Cloud-Pie/SPDT/server"
 )
 
 // deriveCmd represents the derive policy command
@@ -17,8 +17,8 @@ var deriveCmd = &cobra.Command{
 
 func derive (cmd *cobra.Command, args []string) {
 	fmt.Print("called derive")
-	sysConfiguration := spd.ReadSysConfiguration()
+	sysConfiguration := server.ReadSysConfiguration()
 	timeStart := sysConfiguration.ScalingHorizon.StartTime
 	timeEnd := sysConfiguration.ScalingHorizon.EndTime
-	spd.StartPolicyDerivation(timeStart,timeEnd)
+	server.StartPolicyDerivation(timeStart,timeEnd)
 }

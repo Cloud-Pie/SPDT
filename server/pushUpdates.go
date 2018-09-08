@@ -1,4 +1,4 @@
-package spd
+package server
 
 import (
 	"github.com/Cloud-Pie/SPDT/types"
@@ -46,10 +46,10 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 			if time.Now().After(forecast.TimeWindowStart) {
 				setNewPolicy(newForecast,poiList,values,times)
 				oldPolicy, indexConflict = policy_management.ConflictTimeOldPolicy(forecast,timeConflict)
-				timeInvalidation = oldPolicy.Configurations[indexConflict].TimeEnd
-				selectedPolicy.Configurations[0].TimeStart = timeInvalidation
+				timeInvalidation = oldPolicy.ScalingActions[indexConflict].TimeEnd
+				selectedPolicy.ScalingActions[0].TimeStart = timeInvalidation
 				//update policy
-				oldPolicy.Configurations = append(oldPolicy.Configurations[:indexConflict], selectedPolicy.Configurations...)
+				oldPolicy.ScalingActions = append(oldPolicy.ScalingActions[:indexConflict], selectedPolicy.ScalingActions...)
 
 			}else{
 				//Discart completely old policy and create new one

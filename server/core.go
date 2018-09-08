@@ -1,4 +1,4 @@
-package spd
+package server
 
 import (
 	Pservice "github.com/Cloud-Pie/SPDT/rest_clients/performance_profiles"
@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"io"
+	"gopkg.in/mgo.v2/bson"
 )
 
 var (
@@ -32,15 +33,16 @@ var (
 )
 
 // Main function to start the scaling policy derivation
+func Start(){
 	StyleEntry()
 	setLogger()
 
 	if FlagsVar.ConfigFile == "" {
-		log.Info("ScalingConfiguration file not specified. Default config.yml is expected.")
+		log.Info("ScalingAction file not specified. Default config.yml is expected.")
 		FlagsVar.ConfigFile = util.CONFIG_FILE
 	}
 
-	//Read ScalingConfiguration File
+	//Read ScalingAction File
 	ReadSysConfiguration()
 	timeStart = sysConfiguration.ScalingHorizon.StartTime
 	timeEnd = sysConfiguration.ScalingHorizon.EndTime
@@ -131,6 +133,7 @@ func getServiceProfile(){
 
 		//Store received information about Performance Profiles
 		for _,p := range serviceProfiles.PerformanceProfiles {
+			p.ID = bson.NewObjectId()
 			err = serviceProfileDAO.Insert(p)
 			if err != nil {
 				log.Error(err.Error())
