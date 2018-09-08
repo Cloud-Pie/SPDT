@@ -1,11 +1,12 @@
-FROM golang:1.10.2 as builder
+FROM golang:latest as builder
 # install dep
-RUN go get -u github.com/golang/dep/cmd/dep
+RUN go get github.com/golang/dep/cmd/dep
+
 # setup the working directory
-WORKDIR /go/src/app
+WORKDIR /go/src/spdt
 COPY . .
 # install dependencies
-RUN dep ensure
+RUN dep ensure -v
 # build the source
 RUN CGO_ENABLED=0 GOOS=linux go build
 
@@ -13,9 +14,12 @@ RUN CGO_ENABLED=0 GOOS=linux go build
 FROM ubuntu:16.04
 # set working directory
 WORKDIR /root
-# copy the binary from builder
-COPY --from=builder /go/src/app/config.yml /go/src/app/SPDT.exe ./
+
+# copy the binary and default config files from builder
+COPY --from=builder /go/src/spdt/config.yml /go/src/spdt/spdt ./
+COPY --from=builder /go/src/spdt/ui ./ui/
+
 # Document that the service listens on port 8080.
-EXPOSE 8082
+EXPOSE 8080
 # Run the  command by default when the container starts.
-CMD ["./SPDT"]
+CMD ["./spdt"]
