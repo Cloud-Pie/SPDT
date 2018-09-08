@@ -69,9 +69,9 @@ func (vmSet VMScale) Equal(vmSet2 VMScale) bool {
 }
 
 type ServiceInfo struct {
-	Scale 	int			`json:Scale`
-	CPU 	float64		`json:CPU`
-	Memory	float64		`json:MemoryGB`
+	Scale 	int			`json:"Scale"`
+	CPU 	float64		`json:"CPU"`
+	Memory	float64		`json:"Memory"`
 }
 
 /*_________________________________________
@@ -97,6 +97,10 @@ type State struct {
 	Services   Service   `json:Services`
 	Name       string    `json:Name`
 	VMs        VMScale   `json:VMs`
+	LaunchTime time.Time `json:"ISODate"`
+	Services   Service   `json:"Services"`
+	Name       string    `json:"Name"`
+	VMs        VMScale   `json:"VMs"`
 }
 
 /*_________________________________________

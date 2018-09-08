@@ -373,7 +373,7 @@ func(p DeltaRepackedPolicy) shouldRepackVMSet(currentOption types.ContainersConf
 		durationCurrentVMSet :=  timeEnd.Sub(timeStart).Seconds()
 		reconfigCostCurrent := p.calculateReconfigurationCost(currentOption.VMSet)
 
-		if candidateCost*durationNewVMSet + reconfigCostNew < candidateCost * durationCurrentVMSet + reconfigCostCurrent {
+		if candidateCost*durationNewVMSet + reconfigCostNew < currentCost * durationCurrentVMSet + reconfigCostCurrent {
 			return candidateOption, true
 		}
 	}

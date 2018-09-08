@@ -35,16 +35,20 @@ func computeConfigurationCost(cf types.ScalingAction, unit string, mapVMProfiles
 
 //Calculate detlta time for a time window
 func setDeltaTime (timeStart time.Time, timeEnd time.Time, unit string) float64 {
-	/*s1 := timeStart.String()
-	s2 := timeEnd.String()
-	fmt.Print(s1 ,"--", s2)*/
+	delta := timeEnd.Sub(timeStart).Hours()
+	return delta
+}
+
+
+//Calculate detlta time for a time window
+func billedTime (timeStart time.Time, timeEnd time.Time, unit string) float64 {
 	var delta float64
 	delta = timeEnd.Sub(timeStart).Hours()
 	switch unit {
-		case SECOND :
-			if delta < (0.01666666666) {return 0.01666666666} else {return delta}		//It charges at least 60 seconds
-		case HOUR:
-			return math.Ceil(delta)									//It charges at least 1 hour
+	case SECOND :
+		if delta < (0.01666666666) {return 0.01666666666} else {return delta}		//It charges at least 60 seconds
+	case HOUR:
+		return math.Ceil(delta)									//It charges at least 1 hour
 	}
 	return delta
 }

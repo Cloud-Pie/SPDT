@@ -33,6 +33,7 @@ type NaivePolicy struct {
 func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []types.Policy {
 	policies := []types.Policy {}
 	newPolicy := types.Policy{}
+	state := types.State{}
 	newPolicy.Metrics = types.PolicyMetrics {
 		StartTimeDerivation:time.Now(),
 	}
@@ -76,6 +77,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 			Memory: resourceLimits.MemoryGB,
 		}
 		state := types.State{
+		state = types.State{
 			Services: services,
 			VMs:      vmSet,
 		}
@@ -84,6 +86,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 		timeStart := it.TimeStart
 		timeEnd := it.TimeEnd
 		setConfiguration(&configurations, state, timeStart, timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
+		p.currentState = state
 	}
 	parameters := make(map[string]string)
 	parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL

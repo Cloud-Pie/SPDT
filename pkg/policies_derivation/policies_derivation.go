@@ -44,7 +44,7 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 
 	currentState,err := scheduler.CurrentState(sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_CURRENT_STATE)
 	if err != nil {
-		log.Error("Error to get current state")
+		log.Error("Error to get current state %s", err.Error() )
 	}
 
 	timeWindows := SmallStepOverProvision{PoIList:poiList}
