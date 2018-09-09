@@ -418,7 +418,6 @@ function searchByTimestamp() {
         .join('&')
 
     requestURL = forecastRequestsEndpoint + query
-    console.log(requestURL)
     fetch(requestURL)
         .then((response) => response.json())
         .then(function (data){
@@ -544,7 +543,7 @@ function hideSinglePolicyPannels() {
     var m = document.getElementById("metricsDiv");
     m.style.display = "none";
 
-    var d = document.getElementById("detailsDiv");
+   /* var d = document.getElementById("detailsDiv");
     d.style.display = "none";
 
     /*var y = document.getElementById("multiplePolicyDiv");
@@ -565,8 +564,8 @@ function showSinglePolicyPannels() {
     var m = document.getElementById("metricsDiv");
     m.style.display = "block";
 
-    var d = document.getElementById("detailsDiv");
-    d.style.display = "block";
+   /* var d = document.getElementById("detailsDiv");
+    d.style.display = "block";*/
 }
 
 function getVirtualUnitsAll(policies) {

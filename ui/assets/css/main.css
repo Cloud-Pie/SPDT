@@ -196,7 +196,8 @@ html.fullscreen-bg #wrapper {
     background-color: #009b75; }
   .navbar-default .brand {
     float: left;
-    padding: 30px 39px;
+    padding: 15px 15px;
+    color: whitesmoke;
     background-color: #009b75; }
 .navbar-default .navbar-nav > li > a {
   color: #000;
@@ -667,9 +668,7 @@ fieldset[disabled] .btn {
   -webkit-border-radius: 3px;
   -moz-border-radius: 3px;
   border-radius: 3px;
-  -moz-box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  -webkit-box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+   border: 1px solid #DCE6EB;
   margin-bottom: 30px; }
   .panel .panel-heading,
   .panel .panel-body,
@@ -737,6 +736,11 @@ fieldset[disabled] .btn {
 .panel .table > tbody {
   font-size: 12px;
   padding: 2px;
+}
+
+.selected-row{
+  background-color: #009b75;
+  font-weight: bold
 }
 .panel-footer {
   background-color: #fafafa; }
@@ -1839,4 +1843,5 @@ ul.activity-timeline > li {
   .project-table > tbody > tr > td .avatar {
     width: 22px;
     border: 1px solid #CCC; }
+
 

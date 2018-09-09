@@ -34,26 +34,18 @@
     <!-- NAVBAR -->
     <nav class="navbar navbar-default navbar-fixed-top">
         <div class="brand">
-            <a href="index.html"><img src="assets/img/logo-dark.png" alt="Klorofil Logo" class="img-responsive logo"></a>
+            <div class="col-md-6 padding-2">
+                <a href="index.html"><img src="assets/img/logo-scale3.png" alt="SPDT Logo" class="img-responsive logo"></a>
+            </div>
+
+            <div class="col-md-6 padding-2">
+                <h3>SPDT</h3>
+            </div>
+
         </div>
         <div class="container-fluid">
             <div id="navbar-menu">
                 <ul class="nav navbar-nav navbar-right">
-                    <li class="dropdown">
-                        <a href="#" class="dropdown-toggle icon-menu" data-toggle="dropdown">
-                            <i class="lnr lnr-alarm"></i>
-                            <span class="badge bg-danger">5</span>
-                        </a>
-                        <ul class="dropdown-menu notifications">
-                            <li><a href="#" class="notification-item"><span class="dot bg-warning"></span>System space is almost full</a></li>
-                            <li><a href="#" class="notification-item"><span class="dot bg-danger"></span>You have 9 unfinished tasks</a></li>
-                            <li><a href="#" class="notification-item"><span class="dot bg-success"></span>Monthly report is available</a></li>
-                            <li><a href="#" class="notification-item"><span class="dot bg-warning"></span>Weekly meeting in 1 hour</a></li>
-                            <li><a href="#" class="notification-item"><span class="dot bg-success"></span>Your request has been approved</a></li>
-                            <li><a href="#" class="more">See all notifications</a></li>
-
-                        </ul>
-                    </li>
                     <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="lnr lnr-question-circle"></i> <span>Algorithms</span> <i class="icon-submenu lnr lnr-chevron-down"></i></a>
                         <ul class="dropdown-menu">
@@ -126,29 +118,18 @@
                         <div class="col-md-3  padding-sides-5" id="candidatesDiv">
                             <div class="container-fluid">
                                 <div class="row">
-                                    <div class="panel panel-headline" id="panel-scrolling-demo">
-                                        <div class="panel-heading">
-                                            <h5 class="panel-title">Policy Candidates</h5>
-                                        </div>
-                                        <div class="panel-body">
-                                            <table class="table table-striped table-hover" id="tCandidates">
-                                                <thead>
-                                                <tr>
-                                                    <th>Policy ID</th>
-                                                    <th>Algorithm</th>
-                                                    <th>Cost</th>
-                                                    <th>Status</th>
-                                                </tr>
-                                                </thead>
-                                                <tbody id="tBodyCandidates"></tbody>
-                                            </table>
-                                        </div>
-                                        <!-- <div class="panel-footer">
-                                             <div class="row">
-                                                 <span class="input-group-btn"><button type="button" class="btn btn-default" onclick="clickedCompareAll()">Compare all</button></span>
-                                             </div>
-                                         </div>-->
-                                    </div>
+                                    <h4>Policy Candidates</h4>
+                                    <table class="table table-hover" id="tCandidates">
+                                        <thead>
+                                        <tr>
+                                            <th>Policy ID</th>
+                                            <th>Algorithm</th>
+                                            <th>Cost</th>
+                                            <th>Status</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody id="tBodyCandidates"></tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -163,7 +144,7 @@
                                 <div id="home" class="tab-pane fade in active">
                                     <!-- END METRICS--->
                                     <div class="row" id="metricsDiv">
-                                        <div class="col-md-2  padding-5">
+                                        <div class="col-md-2  padding-2">
                                             <div class="metric">
                                                 <span class="icon"><i class="fa fa-dollar"></i></span>
                                                 <p>
@@ -172,7 +153,7 @@
                                                 </p>
                                             </div>
                                         </div>
-                                        <div class="col-md-2  padding-5">
+                                        <div class="col-md-2  padding-2">
                                             <div class="metric">
                                                 <span class="icon"><i class="fa fa-upload"></i></span>
                                                 <p>
@@ -181,7 +162,7 @@
                                                 </p>
                                             </div>
                                         </div>
-                                        <div class="col-md-2  padding-5">
+                                        <div class="col-md-2  padding-2">
                                             <div class="metric">
                                                 <span class="icon"><i class="fa fa-download"></i></span>
                                                 <p>
@@ -190,7 +171,7 @@
                                                 </p>
                                             </div>
                                         </div>
-                                        <div class="col-md-2 padding-5">
+                                        <div class="col-md-2 padding-2">
                                             <div class="metric">
                                                 <span class="icon"><i class="fa fa-cogs"></i></span>
                                                 <p>
@@ -199,7 +180,7 @@
                                                 </p>
                                             </div>
                                         </div>
-                                        <div class="col-md-2 padding-5">
+                                        <div class="col-md-2 padding-2">
                                             <div class="metric">
                                                 <span class="icon"><i class="fa fa-cogs"></i></span>
                                                 <p>
@@ -208,7 +189,7 @@
                                                 </p>
                                             </div>
                                         </div>
-                                        <div class="col-md-2 padding-5">
+                                        <div class="col-md-2 padding-2">
                                             <div class="metric">
                                                 <span class="icon"><i class="fa fa-cogs"></i></span>
                                                 <p>
@@ -241,14 +222,14 @@
                                         </div>
                                     </div>
                                     <div class="row">
-                                        <div class="col-md-6">
+                                        <div class="col-md-6 padding-2">
                                             <div class="panel">
                                                 <div class="panel-body">
                                                     <div id="resourceCPU" class="ct-chart"></div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-6 padding-2">
                                             <div class="panel">
                                                 <div class="panel-body">
                                                     <div id="resourceMem" class="ct-chart"></div>
@@ -272,20 +253,19 @@
                                     </div>
                                 </div>
                                 <div id="menu3" class="tab-pane fade">
-                                    <!-- DETAILS-->
-                                    <div class="row">
-                                        <div class="panel panel-headline" id="detailsDiv">
-                                            <div class="panel-heading">
-                                                <h3 class="panel-title">Details</h3>
-                                            </div>
-                                            <div class="panel-body">
-                                                <table class="table" id="tDetails">
-                                                    <tbody id="tBodyDetails"></tbody>
-                                                </table>
-                                            </div>
-                                        </div>
+
+                                    <div class="col-md-10">
+                                        <!-- DETAILS-->
+                                        <table class="table" id="tDetails">
+                                            <tbody id="tBodyDetails"></tbody>
+                                        </table>
+                                        <!-- END DETAILS-->
                                     </div>
-                                    <!-- END DETAILS-->
+
+                                    <div class="btn-bottom col-md-2">
+                                        <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Delete  </button>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
@@ -327,6 +307,23 @@
                 $('#datetimepicker6').data("DateTimePicker").maxDate(e.date);
             });
         });
+    </script>
+
+    <script type="text/javascript">
+        function selectedRow(){
+            var index, table = document.getElementById("tCandidates")
+            for (var i= 1; i< table.rows.length; i++) {
+                table.rows[i].onclick = function() {
+                    if(typeof index !== "undefined") {
+                        table.rows[index].classList.toggle("selected-row")
+                    }
+                    index = this.rowIndex;
+                    this.classList.toggle("selected-row")
+                }
+            }
+            console.log(index)
+        }
+        selectedRow()
     </script>
     <!--
         <script>
