@@ -56,15 +56,6 @@
                             <li><a href="#">Per Step</a></li>
                         </ul>
                     </li>
-                    <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="lnr lnr-question-circle"></i> <span>Manage Policies</span> <i class="icon-submenu lnr lnr-chevron-down"></i></a>
-                        <ul class="dropdown-menu">
-                            <li><a href="#"><i class="lnr lnr-user"></i> <span>Derive a Policy</span></a></li>
-                            <li><a href="#"><i class="lnr lnr-envelope"></i> <span>Compare</span></a></li>
-                            <li><a href="#"><i class="lnr lnr-cog"></i> <span>Download</span></a></li>
-
-                        </ul>
-                    </li>
                 </ul>
             </div>
         </div>
@@ -76,201 +67,371 @@
         <!-- MAIN CONTENT -->
         <div class="main-content">
             <div class="container-fluid padding-5">
-                <!--SEARCH-->
-                <div class="row">
-                    <div class="col-md-3" align="left">
-                        <br>
-                        <div class="input-group">
-                            <input type="text" id="searchpolicyid" class="form-control" placeholder="Search Policy by ID ">
-                            <span class="input-group-btn"><button type="button" class="btn btn-default" onclick="searchByID()">Go</button></span>
-                        </div>
-                    </div>
-                    <div class="form-group col-md-8 col-lg-offset-1" align="right">
-                        <div class="form-group col-md-5">
-                            <label for="datetimepicker6">Start time</label>
-                            <div class='input-group date' id='datetimepicker6'>
-                                <input type='text' class="form-control" id="datetimestart"/>
-                                <span class="input-group-addon">
-                                                    <span class="glyphicon glyphicon-calendar"></span>
-                                                </span>
-                            </div>
-                        </div>
-                        <div class="form-group col-md-5">
-                            <label for="datetimepicker7">End time</label>
-                            <div class='input-group date  bottom-right' id='datetimepicker7'>
-                                <input type='text' class="form-control" id="datetimeend"/>
-                                <span class="input-group-addon">
-                                                    <span class="glyphicon glyphicon-calendar"></span>
-                                                </span>
-                            </div>
-                        </div>
-                        <br>
-                        <div class="btn-bottom col-md-2">
-                            <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Search  </button>
-                        </div>
-                    </div>
-                </div>
-                <!-- END SEARCH-->
+
                 <!-- OVERVIEW -->
                 <div class="row" id="searchOutputDiv">
-                    <div class="row">
-                        <!-- CANDIDATES -->
-                        <div class="col-md-3  padding-sides-5" id="candidatesDiv">
-                            <div class="container-fluid">
-                                <div class="row">
-                                    <h4>Policy Candidates</h4>
-                                    <table class="table table-hover" id="tCandidates">
-                                        <thead>
-                                        <tr>
-                                            <th>Policy ID</th>
-                                            <th>Algorithm</th>
-                                            <th>Cost</th>
-                                            <th>Status</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody id="tBodyCandidates"></tbody>
-                                    </table>
-                                </div>
-                            </div>
+                    <ul class="nav nav-tabs">
+                        <li class="active"><a data-toggle="tab" href="#home">Home</a></li>
+                        <li><a data-toggle="tab" href="#menuSearch">Search</a></li>
+                        <li><a data-toggle="tab" href="#menuDerive">Derive</a></li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <div id="home" class="tab-pane fade in active">
+                            Welcome to SPDT
                         </div>
-                        <!-- END CANDIDATES -->
-                        <div class="col-md-9 padding-sides-5" id="singlePolicyDiv">
-                            <ul class="nav nav-tabs">
-                                <li class="active"><a data-toggle="tab" href="#home">UI</a></li>
-                                <li><a data-toggle="tab" href="#menu2">Json</a></li>
-                                <li><a data-toggle="tab" href="#menu3">Details</a></li>
-                            </ul>
-                            <div class="tab-content">
-                                <div id="home" class="tab-pane fade in active">
-                                    <!-- END METRICS--->
-                                    <div class="row" id="metricsDiv">
-                                        <div class="col-md-2  padding-2">
-                                            <div class="metric">
-                                                <span class="icon"><i class="fa fa-dollar"></i></span>
-                                                <p>
-                                                    <span class="number"><label id="costid"></label></span>
-                                                    <span class="title">Cost</span>
-                                                </p>
+                        <div id="menuSearch" class="tab-pane fade">
+                            <div class="row">
+                                <!-- CANDIDATES -->
+                                <div class="col-md-3  padding-sides-5" id="candidatesDiv">
+                                    <div class="container-fluid">
+                                        <div class="row">
+                                            <h4>Policy Candidates</h4>
+                                            <table class="table table-hover" id="tCandidates">
+                                                <thead>
+                                                <tr>
+                                                    <th>Policy ID</th>
+                                                    <th>Algorithm</th>
+                                                    <th>Cost</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                                </thead>
+                                                <tbody id="tBodyCandidates"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- END CANDIDATES -->
+                                <div class="col-md-9 padding-sides-5" id="singlePolicyDiv">
+
+
+                                    <!--SEARCH-->
+                                    <div class="row">
+                                        <div class="col-md-3" align="left">
+                                            <br>
+                                            <div class="input-group">
+                                                <input type="text" id="searchpolicyid" class="form-control" placeholder="Search Policy by ID ">
+                                                <span class="input-group-btn"><button type="button" class="btn btn-default" onclick="searchByID()">Go</button></span>
                                             </div>
                                         </div>
-                                        <div class="col-md-2  padding-2">
-                                            <div class="metric">
-                                                <span class="icon"><i class="fa fa-upload"></i></span>
-                                                <p>
-                                                    <span class="number"><label id="overid"></label></span>
-                                                    <span class="title">Overprovision</span>
-                                                </p>
+                                        <div class="form-group col-md-8 col-lg-offset-1" align="right">
+                                            <div class="form-group col-md-5">
+                                                <label for="datetimepicker6">Start time</label>
+                                                <div class='input-group date' id='datetimepicker6'>
+                                                    <input type='text' class="form-control" id="datetimestart"/>
+                                                    <span class="input-group-addon">
+                                                            <span class="glyphicon glyphicon-calendar"></span>
+                                                        </span>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="col-md-2  padding-2">
-                                            <div class="metric">
-                                                <span class="icon"><i class="fa fa-download"></i></span>
-                                                <p>
-                                                    <span class="number"><label id="underid"> </label></span>
-                                                    <span class="title">Underprovision</span>
-                                                </p>
+                                            <div class="form-group col-md-5">
+                                                <label for="datetimepicker7">End time</label>
+                                                <div class='input-group date  bottom-right' id='datetimepicker7'>
+                                                    <input type='text' class="form-control" id="datetimeend"/>
+                                                    <span class="input-group-addon">
+                                                            <span class="glyphicon glyphicon-calendar"></span>
+                                                        </span>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="col-md-2 padding-2">
-                                            <div class="metric">
-                                                <span class="icon"><i class="fa fa-cogs"></i></span>
-                                                <p>
-                                                    <span class="number"><label id="reconfVMsid"></label></span>
-                                                    <span class="title">N° Scaling VMs</span>
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-2 padding-2">
-                                            <div class="metric">
-                                                <span class="icon"><i class="fa fa-cogs"></i></span>
-                                                <p>
-                                                    <span class="number"><label id="reconfContid"></label></span>
-                                                    <span class="title">N° Scaling Replicas</span>
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-2 padding-2">
-                                            <div class="metric">
-                                                <span class="icon"><i class="fa fa-cogs"></i></span>
-                                                <p>
-                                                    <span class="number"><label id="reconfid"></label></span>
-                                                    <span class="title">Total Actions</span>
-                                                </p>
+                                            <br>
+                                            <div class="btn-bottom col-md-2">
+                                                <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Search  </button>
                                             </div>
                                         </div>
                                     </div>
-                                    <!-- END METRICS--->
-                                    <div class="row">
-                                        <div class="panel">
-                                            <div class="panel-body">
-                                                <div id="vmUnits" class="ct-chart"></div>
+                                    <!-- END SEARCH-->
+
+
+                                    <ul class="nav nav-tabs">
+                                        <li class="pull-right"><a data-toggle="tab" href="#menuDetails">Details</a></li>
+                                        <li class="pull-right"><a data-toggle="tab" href="#menuJson">Json</a></li>
+                                        <li class="active pull-right"><a data-toggle="tab" href="#ui">UI</a></li>
+                                    </ul>
+                                    <div class="tab-content">
+                                        <div id="ui" class="tab-pane fade in active">
+                                            <!-- END METRICS--->
+                                            <div class="row" id="metricsDiv">
+                                                <div class="col-md-2  padding-2">
+                                                    <div class="metric">
+                                                        <span class="icon"><i class="fa fa-dollar"></i></span>
+                                                        <p>
+                                                            <span class="number"><label id="costid"></label></span>
+                                                            <span class="title">Cost</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2  padding-2">
+                                                    <div class="metric">
+                                                        <span class="icon"><i class="fa fa-upload"></i></span>
+                                                        <p>
+                                                            <span class="number"><label id="overid"></label></span>
+                                                            <span class="title">Overprovision</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2  padding-2">
+                                                    <div class="metric">
+                                                        <span class="icon"><i class="fa fa-download"></i></span>
+                                                        <p>
+                                                            <span class="number"><label id="underid"> </label></span>
+                                                            <span class="title">Underprovision</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2 padding-2">
+                                                    <div class="metric">
+                                                        <span class="icon"><i class="fa fa-cogs"></i></span>
+                                                        <p>
+                                                            <span class="number"><label id="reconfVMsid"></label></span>
+                                                            <span class="title">N° Scaling VMs</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2 padding-2">
+                                                    <div class="metric">
+                                                        <span class="icon"><i class="fa fa-cogs"></i></span>
+                                                        <p>
+                                                            <span class="number"><label id="reconfContid"></label></span>
+                                                            <span class="title">N° Scaling Replicas</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2 padding-2">
+                                                    <div class="metric">
+                                                        <span class="icon"><i class="fa fa-cogs"></i></span>
+                                                        <p>
+                                                            <span class="number"><label id="reconfid"></label></span>
+                                                            <span class="title">Total Actions</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="panel">
-                                            <div class="panel-body">
-                                                <div id="containerUnits" class="ct-chart"></div>
+                                            <!-- END METRICS--->
+                                            <div class="row">
+                                                <div class="panel">
+                                                    <div class="panel-body">
+                                                        <div id="vmUnits" class="ct-chart"></div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="panel">
-                                            <div class="panel-body">
-                                                <div id="requestsUnits" class="ct-chart"></div>
+                                            <div class="row">
+                                                <div class="panel">
+                                                    <div class="panel-body">
+                                                        <div id="containerUnits" class="ct-chart"></div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-6 padding-2">
-                                            <div class="panel">
-                                                <div class="panel-body">
-                                                    <div id="resourceCPU" class="ct-chart"></div>
+                                            <div class="row">
+                                                <div class="panel">
+                                                    <div class="panel-body">
+                                                        <div id="requestsUnits" class="ct-chart"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-6 padding-2">
+                                                    <div class="panel">
+                                                        <div class="panel-body">
+                                                            <div id="resourceCPU" class="ct-chart"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6 padding-2">
+                                                    <div class="panel">
+                                                        <div class="panel-body">
+                                                            <div id="resourceMem" class="ct-chart"></div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-md-6 padding-2">
-                                            <div class="panel">
-                                                <div class="panel-body">
-                                                    <div id="resourceMem" class="ct-chart"></div>
-                                                </div>
+                                        <div id="menuJson" class="tab-pane fade">
+
+                                            <div class="col-md-10">
+                                               <pre>
+                                                <code>
+                                                    <p id="jsonId"></p>
+                                                </code>
+                                            </pre>
                                             </div>
+
+                                            <div class="btn-bottom col-md-2">
+                                                 <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Download  </button>
+                                            </div>
+                                        </div>
+                                        <div id="menuDetails" class="tab-pane fade">
+
+                                            <div class="col-md-10">
+                                                <!-- DETAILS-->
+                                                <table class="table" id="tDetails">
+                                                    <tbody id="tBodyDetails"></tbody>
+                                                </table>
+                                                <!-- END DETAILS-->
+                                            </div>
+
+                                            <div class="btn-bottom col-md-2">
+                                                <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Delete  </button>
+                                            </div>
+
                                         </div>
                                     </div>
                                 </div>
-                                <div id="menu2" class="tab-pane fade">
-
-                                    <div class="col-md-10">
-                                       <pre>
-									    <code>
-									    	<p id="jsonId"></p>
-                                        </code>
-									</pre>
-                                    </div>
-
-                                    <div class="btn-bottom col-md-2">
-                                         <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Download  </button>
-                                    </div>
-                                </div>
-                                <div id="menu3" class="tab-pane fade">
-
-                                    <div class="col-md-10">
-                                        <!-- DETAILS-->
-                                        <table class="table" id="tDetails">
-                                            <tbody id="tBodyDetails"></tbody>
-                                        </table>
-                                        <!-- END DETAILS-->
-                                    </div>
-
-                                    <div class="btn-bottom col-md-2">
-                                        <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Delete  </button>
-                                    </div>
-
-                                </div>
                             </div>
                         </div>
+                         <div id="menuDerive" class="tab-pane fade">
+                             <div class="container-fluid">
+                                 <div class="row">
+                                     <div class="panel col-md-6">
+                                         <div class="panel-heading">
+                                             <h3 class="panel-title">Scaling Horizon</h3>
+                                         </div>
+                                         <div class="panel-body">
+                                             <div class="form-group col-md-4">
+                                                 <label for="datetimepicker6">Start time</label>
+                                                 <div class='input-group date' id='datetimepicker6'>
+                                                     <input type='text' class="form-control" id="datetimestart"/>
+                                                     <span class="input-group-addon">
+                                                    <span class="glyphicon glyphicon-calendar"></span>
+                                                </span>
+                                                 </div>
+                                             </div>
+                                             <div class="form-group col-md-4">
+                                                 <label for="datetimepicker7">End time</label>
+                                                 <div class='input-group date  bottom-right' id='datetimepicker7'>
+                                                     <input type='text' class="form-control" id="datetimeend"/>
+                                                     <span class="input-group-addon">
+                                                    <span class="glyphicon glyphicon-calendar"></span>
+                                                </span>
+                                                 </div>
+                                             </div>
+                                             <br>
+                                             <div class="btn-bottom col-md-2 right-aligned">
+                                                 <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Derive Policy </button>
+                                             </div>
+                                         </div>
+                                     </div>
+
+                                     <div class="panel col-md-5 col-lg-offset-1">
+                                         <div class="panel-heading">
+                                             <h3 class="panel-title">Pricing Model</h3>
+                                         </div>
+                                         <div class="panel-body">
+                                             <div class="col-md-4">
+                                                 <br>
+                                                 <label for="billingUnitDiv">Billing Unit</label>
+                                                 <select class="form-control" id="billingUnitDiv">
+                                                     <option value="hour">Hour</option>
+                                                     <option value="second">Second</option>
+                                                 </select>
+                                             </div>
+                                             <div class="col-md-4">
+                                                 <label for="budgetDiv">Budget</label>
+                                                 <div class="input-group" id="budgetDiv">
+                                                     <span class="input-group-addon">$</span>
+                                                     <input class="form-control" type="text">
+                                                     <span class="input-group-addon">.00</span>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+
+                                 <div class="row">
+                                     <div class="panel col-md-6">
+                                         <div class="panel-heading">
+                                             <h3 class="panel-title">Available VMs</h3>
+                                         </div>
+                                         <div class="panel-body">
+                                             <label class="fancy-checkbox">
+                                                 <input type="checkbox">
+                                                 <span>t2.nano</span>
+                                             </label>
+                                             <label class="fancy-checkbox">
+                                                 <input type="checkbox">
+                                                 <span>t2.micro</span>
+                                             </label>
+                                             <label class="fancy-checkbox">
+                                                 <input type="checkbox">
+                                                 <span>t2.small</span>
+                                             </label>
+                                             <label class="fancy-checkbox">
+                                                 <input type="checkbox">
+                                                 <span>t2.medium</span>
+                                             </label>
+                                             <label class="fancy-checkbox">
+                                                 <input type="checkbox">
+                                                 <span>t2.large</span>
+                                             </label>
+                                             <label class="fancy-checkbox">
+                                                 <input type="checkbox">
+                                                 <span>t2.xlarge</span>
+                                             </label>
+                                             <label class="fancy-checkbox">
+                                                 <input type="checkbox">
+                                                 <span>t2.2xlarge</span>
+                                             </label>
+                                             <br>
+                                         </div>
+                                     </div>
+
+                                     <div class="panel col-md-5 col-md-offset-1">
+                                         <div class="panel-heading">
+                                             <h3 class="panel-title">Policy Settings</h3>
+                                         </div>
+                                         <div class="panel-body">
+                                             <label for="algorithmList">Algorithms</label>
+                                             <select class="form-control" id="algorithmList">
+                                                 <option value="cheese">All</option>
+                                                 <option value="cheese">Naive</option>
+                                                 <option value="tomatoes">Base Instance</option>
+                                                 <option value="mozarella">Per Step</option>
+                                                 <option value="mushrooms">Delta</option>
+                                                 <option value="pepperoni">Delta Repacked</option>
+                                             </select>
+
+                                             <label for="vmScalingRadio">VMs Scaling Method</label>
+                                             <label class="fancy-radio" id="vmScalingRadio">
+                                                 <input name="vmScalingMethod" value="vertical" type="radio">
+                                                 <span><i></i>Vertical</span>
+                                             </label>
+                                             <label class="fancy-radio">
+                                                 <input name="vmScalingMethod" value="horizontal" type="radio">
+                                                 <span><i></i>Horizontal</span>
+                                             </label>
+                                             <label class="fancy-radio">
+                                                 <input name="vmScalingMethod" value="hybrid" type="radio">
+                                                 <span><i></i>Hybrid</span>
+                                             </label>
+
+                                             <label for="contScalingRadio">Containers Scaling Method</label>
+                                             <label class="fancy-radio" id="contScalingRadio">
+                                                 <input name="contScalingMethod" value="vertical" type="radio">
+                                                 <span><i></i>Vertical</span>
+                                             </label>
+                                             <label class="fancy-radio">
+                                                 <input name="contScalingMethod" value="horizontal" type="radio">
+                                                 <span><i></i>Horizontal</span>
+                                             </label>
+                                             <label class="fancy-radio">
+                                                 <input name="contScalingMethod" value="hybrid" type="radio">
+                                                 <span><i></i>Hybrid</span>
+                                             </label>
+
+                                             <label class="fancy-checkbox">
+                                                 <input type="checkbox">
+                                                 <span>Heterogeneos Cluster </span>
+                                             </label>
+                                             <label class="fancy-checkbox">
+                                                 <input type="checkbox">
+                                                 <span>Underprovision allowed</span>
+                                             </label>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+                          </div>
                     </div>
-                    <!-- END OVERVIEW -->
+                        <!-- END OVERVIEW -->
                 </div>
             </div>
             <div class="main-content" id="noResultsDiv">
