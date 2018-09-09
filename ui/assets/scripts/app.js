@@ -130,7 +130,7 @@ function plotVMUnitsPerType(time, vms, textHover) {
            size:18
         },
         autosize:true,
-        margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
+        margin: {l: 25,r: 35,b: 45,t: 35, pad: 50},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 300,
@@ -151,14 +151,10 @@ function plotVMUnitsPerType(time, vms, textHover) {
     };
 
    /* Plotly.newPlot('vmUnits', data,layout);*/
-
-
-
     //var layout = {barmode: 'stack'};
 
     Plotly.newPlot('vmUnits', data, layout);
 }
-
 
 function stackedArea(traces) {
     for(var i=1; i<traces.length; i++) {
@@ -296,7 +292,7 @@ function plotCapacity(time, demand, supply, timeSuply){
 function plotMem(time, memGB) {
     var trace = {
         x: time,
-        y: utilizationMemGB,
+        y: memGB,
         type: 'scatter',
         name: 'Mem GB'
     };
@@ -306,6 +302,7 @@ function plotMem(time, memGB) {
         titlefont: {
            size:18
         },
+        yaxis: {range: [0, 100]},
         autosize:true,
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
         paper_bgcolor:'rgba(0,0,0,0)',
@@ -326,7 +323,7 @@ function plotCPU(time, cpuCores) {
 
     var trace = {
         x: time,
-        y: utilizationCpuCores,
+        y: cpuCores,
         type: 'scatter',
         name: 'CPU Cores'
     };
@@ -336,6 +333,7 @@ function plotCPU(time, cpuCores) {
         titlefont: {
            size:18
         },
+        yaxis: {range: [0, 100]},
         autosize:true,
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
         paper_bgcolor:'rgba(0,0,0,0)',
@@ -362,7 +360,7 @@ function searchByID(policyId) {
     fetch(requestURL)
         .then((response) => response.json())
         .then(function (policy){
-
+            document.getElementById("jsonId").innerText = JSON.stringify(policy,undefined, 5);
             showResultsPannel()
             showSinglePolicyPannels()
             var timeStart = new Date(policy.window_time_start).toISOString();
