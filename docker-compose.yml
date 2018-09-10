@@ -5,6 +5,11 @@ services:
         container_name: 'spdt'
         ports:
             - 8083:8083
+    serie-processing:
+          build: Time-Serie-Processing
+          container_name: 'serie'
+          ports:
+             - 5003:5003
     db-profiles:
          image: mongo:3.6.5
          container_name: 'profilesdb'

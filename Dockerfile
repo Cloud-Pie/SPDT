@@ -12,6 +12,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build
 
 # use a minimal image
 FROM ubuntu:16.04
+
+#RUN apt-get update && apt-get install curl && apt-get install apt-transport-https && apt-get iputils-ping
+
 # set working directory
 WORKDIR /root
 
