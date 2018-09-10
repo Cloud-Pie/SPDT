@@ -1235,6 +1235,10 @@ ul.activity-list > li {
   padding-left: 15px;
 }
 
+.div-overflow {
+  overflow:auto;
+  height:450px;
+}
 /********************
  * PAGE: PROFILE
  ********************/
