@@ -96,7 +96,7 @@ function getVirtualUnits(data){
 }
 
 function plotVMUnitsPerType(time, vms, textHover) {
-    var data = [];
+   var data = [];
 
    for (var key in vms) {
        data.push(
@@ -119,7 +119,7 @@ function plotVMUnitsPerType(time, vms, textHover) {
             y: requestDemand,
             name: 'Demand',
             type: 'scatter',
-            line: {shape: 'spline'},
+            line: {shape: 'spline', color:'#092e20'},
             yaxis: 'y2'
         }
     )
@@ -130,23 +130,23 @@ function plotVMUnitsPerType(time, vms, textHover) {
            size:18
         },
         autosize:true,
-        margin: {l: 25,r: 35,b: 45,t: 35, pad: 50},
+        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 300,
         yaxis: {title: 'N° VMs'},
         yaxis2: {
            title: 'Requests/Sec',
-           titlefont: {color: 'rgb(148, 103, 189)'},
-           tickfont: {color: 'rgb(148, 103, 189)'},
+           titlefont: {color: '#092e20'},
+           tickfont: {color: '#092e20'},
            overlaying: 'y',
            side: 'right'
         },
         legend: {
             "orientation": "h",
             xanchor: "center",
-            y: 1.09,
-            x: 0.9
+            y: 1.088,
+            x: 0.2
         },
     };
 
@@ -235,7 +235,7 @@ function plotContainerUnits(time, replicas, cpuCores, memGB) {
             side: 'right'
         },
         autosize:true,
-        margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
+        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 300,
@@ -256,7 +256,7 @@ function plotCapacity(time, demand, supply, timeSuply){
         y: demand,
         name: 'Demand',
         type: 'scatter',
-        line: {shape: 'spline'}
+        line: {shape: 'spline', color:'#092e20'}
     };
 
     var trace2 = {
@@ -273,7 +273,7 @@ function plotCapacity(time, demand, supply, timeSuply){
            size:18
         },
         autosize:true,
-        margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
+        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 300,
@@ -304,7 +304,7 @@ function plotMem(time, memGB) {
         },
         yaxis: {range: [0, 100]},
         autosize:true,
-        margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
+        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 300,
@@ -335,7 +335,7 @@ function plotCPU(time, cpuCores) {
         },
         yaxis: {range: [0, 100]},
         autosize:true,
-        margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
+        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 300,
@@ -442,8 +442,6 @@ function searchByTimestamp() {
         .catch(function(err) {
             console.log('Fetch Error :-S', err);
         });
-
-
 }
 
 function fillCandidateTable(policyCandidates) {
@@ -464,7 +462,7 @@ function fillCandidateTable(policyCandidates) {
             "</tr>");
     }
 
-    $("tr").click(function() {
+   $("tr").click(function() {
         var id = $(this).find('td:first').text()
         searchByID(id)
     });
@@ -534,6 +532,9 @@ function clickedCompareAll(){
     plotReplicasAll(units.time, units.replicasAll,units.tracesAll)
     plotCPUAll(units.time, units.cpuCoresAll, units.tracesAll)
     plotMemAll(units.time, units.memGBAll, units.tracesAll)
+    plotNScalingVMAll(units.nScalingVMsAll, units.tracesAll)
+    plotOverprovisionAll(units.overprovisionAll, units.tracesAll)
+    plotUnderprovisionAll(units.underprovisionAll, units.tracesAll)
 }
 
 function hideSinglePolicyPannels() {
@@ -544,18 +545,18 @@ function hideSinglePolicyPannels() {
     m.style.display = "none";
 
    /* var d = document.getElementById("detailsDiv");
-    d.style.display = "none";
+    d.style.display = "none";*/
 
-    /*var y = document.getElementById("multiplePolicyDiv");
+    var y = document.getElementById("multiplePolicyDiv");
     if (y.style.display === "none") {
         y.style.display = "block";
-    }*/
+    }
 
 }
 
 function showSinglePolicyPannels() {
-    /*var x = document.getElementById("multiplePolicyDiv");
-    x.style.display = "none";*/
+    var x = document.getElementById("multiplePolicyDiv");
+    x.style.display = "none";
 
     var y = document.getElementById("singlePolicyDiv");
     if (y.style.display === "none") {
@@ -574,7 +575,10 @@ function getVirtualUnitsAll(policies) {
     TRNAll = [];
     cpuCoresAll = [];
     memGBAll = [];
-    tracesAll = []
+    tracesAll = [];
+    overprovisionAll = [];
+    underprovisionAll = [];
+    nScalingVMsAll = [];
     policies.forEach(function (policy) {
         time = [];
         vms = [];
@@ -604,6 +608,9 @@ function getVirtualUnitsAll(policies) {
         TRNAll.push(TRN)
         cpuCoresAll.push(utilizationCpuCores)
         memGBAll.push(utilizationMemGB)
+        overprovisionAll.push(policy.metrics.over_provision)
+        underprovisionAll.push(policy.metrics.under_provision)
+        nScalingVMsAll.push(policy.metrics.num_scale_vms)
     })
 
     return {
@@ -613,7 +620,10 @@ function getVirtualUnitsAll(policies) {
         replicasAll: replicasAll,
         trnAll: TRNAll,
         cpuCoresAll: cpuCoresAll,
-        memGBAll: memGBAll
+        memGBAll: memGBAll,
+        overprovisionAll: overprovisionAll,
+        underprovisionAll: underprovisionAll,
+        nScalingVMsAll: nScalingVMsAll
     }
 }
 
@@ -648,7 +658,7 @@ function plotCapacityAll(time, demand, supplyAll,tracesAll){
     var layout = {
         title: 'Workload',
         autosize:true,
-        margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
+        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 200
@@ -681,7 +691,7 @@ function plotMemAll(time, memGBAll, tracesAll) {
     var layout = {
         title: 'Memory provisioned',
         autosize:true,
-        margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
+        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 200
@@ -714,7 +724,7 @@ function plotCPUAll(time, cpuCoresAll, tracesAll) {
     var layout = {
         title: 'CPU cores provisioned',
         autosize:true,
-        margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
+        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 200
@@ -747,7 +757,7 @@ function plotVMsAll(time, vmsAll, tracesAll) {
     var layout = {
         title: 'N° VMs',
         autosize:true,
-        margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
+        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 200
@@ -778,7 +788,7 @@ function plotReplicasAll(time, replicasAll, tracesAll) {
     var layout = {
         title: 'N° Replicas',
         autosize:true,
-        margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
+        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 200
@@ -787,6 +797,67 @@ function plotReplicasAll(time, replicasAll, tracesAll) {
     Plotly.newPlot('replicaUnitsAll', data,layout);
 }
 
+function plotNScalingVMAll(nScalingVMs, tracesAll) {
+    var trace = {
+        x: tracesAll,
+        y: nScalingVMs,
+        type: 'bar'
+    };
+
+    var data = [trace];
+    var layout = {
+        title: 'N° times VM scaling',
+        autosize:true,
+        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        paper_bgcolor:'rgba(0,0,0,0)',
+        plot_bgcolor:'rgba(0,0,0,0)',
+        height: 200
+    };
+
+    Plotly.newPlot('nScalingVmsAll', data,layout);
+}
+
+
+function plotOverprovisionAll(overAll, tracesAll) {
+    var trace = {
+        x: tracesAll,
+        y: overAll,
+        type: 'bar'
+    };
+
+    var data = [trace];
+    var layout = {
+        title: '% Over provision',
+        autosize:true,
+        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        paper_bgcolor:'rgba(0,0,0,0)',
+        plot_bgcolor:'rgba(0,0,0,0)',
+        height: 200
+    };
+
+    Plotly.newPlot('overprovisionAll', data,layout);
+}
+
+
+function plotUnderprovisionAll(underAll, tracesAll) {
+    var trace = {
+        x: tracesAll,
+        y: underAll,
+        type: 'bar'
+    };
+
+    var data = [trace];
+    var layout = {
+        title: '% Under provision',
+        autosize:true,
+        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        paper_bgcolor:'rgba(0,0,0,0)',
+        plot_bgcolor:'rgba(0,0,0,0)',
+        height: 200
+    };
+
+    Plotly.newPlot('underprovisionAll', data,layout);
+}
 function showNoResultsPannel(){
     var x = document.getElementById("searchOutputDiv");
     x.style.display = "none";

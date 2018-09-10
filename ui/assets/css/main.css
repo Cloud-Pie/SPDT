@@ -103,7 +103,7 @@ footer {
   left: 0;
   position: relative;
   float: right;
-  color: #676a6d; }
+  color: #000000; }
 
 #wrapper #sidebar-nav,
 #wrapper .main {
@@ -189,18 +189,18 @@ html.fullscreen-bg #wrapper {
   padding: 0;
   margin: 0;
   border: none;
-  background-color: #009b75; }
+  background-color: #092e20; }
   .navbar-default .navbar-nav > .open > a, .navbar-default .navbar-nav > .open > a:hover, .navbar-default .navbar-nav > .open > a:focus {
-    background-color: #009b75; }
+    background-color: #092e20; }
   .navbar-default .navbar-toggle, .navbar-default .navbar-toggle:hover, .navbar-default .navbar-toggle:focus {
-    background-color: #009b75; }
+    background-color: #092e20; }
   .navbar-default .brand {
     float: left;
     padding: 15px 15px;
     color: whitesmoke;
-    background-color: #009b75; }
+    background-color: #092e20; }
 .navbar-default .navbar-nav > li > a {
-  color: #000;
+  color: whitesmoke;
 }
   @media screen and (max-width: 1024px) {
     .navbar-default .brand {
@@ -295,8 +295,8 @@ html.fullscreen-bg #wrapper {
   min-width: 200px; }
 
 .navbar-nav .dropdown-menu {
-  border-top: 2px solid #009b75;
-  background-color: #009b75;}
+  border-top: 2px solid #092e20;
+  background-color: #092e20;}
 
 .navbar-nav .dropdown-menu > li > a {
   padding: 10px 20px; }
@@ -380,11 +380,12 @@ ul.notifications > li {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   border-color: #eaeaea; }
   .dropdown-menu > li > a {
-    color: #000000; }
+    color: #ffffff; }
   .dropdown-menu > li i {
     margin-right: 6px; }
   .dropdown-menu .active > a, .dropdown-menu .active > a:focus, .dropdown-menu .active > a:hover {
-    background-color: #009b75; }
+    background-color: #092e20;
+    }
   .dropdown-menu > .disabled > a, .dropdown-menu > .disabled > a:focus, .dropdown-menu > .disabled > a:hover {
     color: #ffffff; }
 
@@ -621,11 +622,13 @@ ul.list-justify > li {
 .btn-xs {
   padding: 5px 14px; }
 .btn-default {
-  background-color: #009b75;
-  border-color: #009b75; }
+  background-color: #092e20;
+  border-color: #092e20;
+  color: #ffffff;}
 .btn-default:hover, .btn-default:focus {
-  background-color: #009b75;
-  border-color: #009b75; }
+  background-color: #092e20;
+  border-color: #092e20;
+  color: whitesmoke;}
 
 .btn-default-contrast {
   background-color: #DADDD8;
@@ -738,10 +741,14 @@ fieldset[disabled] .btn {
   padding: 2px;
 }
 
-.selected-row{
-  background-color: #009b75;
-  font-weight: bold
+.fixed-top150
+{
+  position: fixed;
+  top: 150px;
 }
+
+
+
 .panel-footer {
   background-color: #fafafa; }
 
@@ -753,6 +760,19 @@ fieldset[disabled] .btn {
 .padding-2{
   padding-right:2px;
   padding-left:2px;
+}
+
+/********************
+ * TABLES
+ ********************/
+
+.table-hover>tbody>tr:hover {
+  background-color: #009b75;
+}
+
+.selected-row{
+  background-color: #009b75;
+  font-weight: bold
 }
 
 /********************
@@ -784,10 +804,10 @@ fieldset[disabled] .btn {
     width: 35px;
     height: 35px;
     line-height: 30px;
-    background-color: #009b75;
+    background-color: #092e20;
     text-align: center; }
     .metric .icon i {
-      font-size: 10px;
+      font-size: 9px;
       color: #fff; }
   .metric p {
     margin-bottom: 0;
@@ -795,10 +815,10 @@ fieldset[disabled] .btn {
     text-align: right; }
   .metric .number {
     display: block;
-    font-size: 13px;
+    font-size: 10px;
     font-weight: 200; }
   .metric .title {
-    font-size: 12px; }
+    font-size: 10px; }
 
 ul.activity-list > li {
   padding: 25px 0; }

@@ -7,12 +7,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <!-- VENDOR CSS -->
-    <link rel="stylesheet" href="assets/vendor/bootstrap/css/bootstrap.min.css">
-    <link rel="stylesheet" href="assets/vendor/font-awesome/css/font-awesome.min.css">
-    <link rel="stylesheet" href="assets/vendor/linearicons/style.css">
+    <link rel="stylesheet" href="ui/assets/vendor/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="ui/assets/vendor/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="ui/assets/vendor/linearicons/style.css">
 
     <!-- MAIN CSS -->
-    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="ui/assets/css/main.css">
 
     <!-- GOOGLE FONTS -->
     <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700" rel="stylesheet">
@@ -20,6 +20,9 @@
     <!--CUSTOM-->
     <!--  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css">-->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.7.14/css/bootstrap-datetimepicker.min.css">
+
+    <!-- SINTAX HIGHLIGHT-->
+    <link rel="stylesheet" href="ui/assets/css/default.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"  type="text/javascript"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.15.1/moment.min.js"  type="text/javascript"></script>
@@ -35,11 +38,11 @@
     <nav class="navbar navbar-default navbar-fixed-top">
         <div class="brand">
             <div class="col-md-6 padding-2">
-                <a href="index.html"><img src="assets/img/logo-scale3.png" alt="SPDT Logo" class="img-responsive logo"></a>
+                <a href="index.html"><img src="ui/assets/img/logo-scale3.png" alt="SPDT Logo" class="img-responsive logo"></a>
             </div>
 
             <div class="col-md-6 padding-2">
-                <h3>SPDT</h3>
+                <h3><bold>SPDT</bold></h3>
             </div>
 
         </div>
@@ -49,11 +52,11 @@
                     <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="lnr lnr-question-circle"></i> <span>Algorithms</span> <i class="icon-submenu lnr lnr-chevron-down"></i></a>
                         <ul class="dropdown-menu">
-                            <li><a href="#">Naive</a></li>
+                            <li><a href="ui/naive.html">Naive</a></li>
                             <li><a href="ui/algo_base_instance.html">Base Instance</a></li>
-                            <li><a href="#">Delta</a></li>
-                            <li><a href="#">Delta Repacked</a></li>
-                            <li><a href="#">Per Step</a></li>
+                            <li><a href="ui/delta.html">Delta</a></li>
+                            <li><a href="ui/delta_repacked.html">Delta Repacked</a></li>
+                            <li><a href="ui/per_step.html">Per Step</a></li>
                         </ul>
                     </li>
                 </ul>
@@ -67,7 +70,6 @@
         <!-- MAIN CONTENT -->
         <div class="main-content">
             <div class="container-fluid padding-5">
-
                 <!-- OVERVIEW -->
                 <div class="row" id="searchOutputDiv">
                     <ul class="nav nav-tabs">
@@ -78,43 +80,48 @@
 
                     <div class="tab-content">
                         <div id="home" class="tab-pane fade in active">
-                            Welcome to SPDT
+                            <div class="hero-unit">
+                                <h1><bold>Welcome to SPDT</bold></h1>
+                                 <br>
+                                 <p>
+                                     A Scaling Policy Derivation Tool
+                                 </p>
+                            </div>
                         </div>
                         <div id="menuSearch" class="tab-pane fade">
                             <div class="row">
                                 <!-- CANDIDATES -->
-                                <div class="col-md-3  padding-sides-5" id="candidatesDiv">
+                                <div class="col-md-4" id="candidatesDiv">
                                     <div class="container-fluid">
-                                        <div class="row">
-                                            <h4>Policy Candidates</h4>
-                                            <table class="table table-hover" id="tCandidates">
-                                                <thead>
-                                                <tr>
-                                                    <th>Policy ID</th>
-                                                    <th>Algorithm</th>
-                                                    <th>Cost</th>
-                                                    <th>Status</th>
-                                                </tr>
-                                                </thead>
-                                                <tbody id="tBodyCandidates"></tbody>
-                                            </table>
-                                        </div>
+                                            <div class="row fixed-top150">
+                                                <h4>Policy Candidates</h4>
+                                                <table class="table table-hover" id="tCandidates">
+                                                    <thead>
+                                                    <tr>
+                                                        <th>Policy ID</th>
+                                                        <th>Algorithm</th>
+                                                        <th>Cost</th>
+                                                        <th>Status</th>
+                                                    </tr>
+                                                    </thead>
+                                                    <tbody id="tBodyCandidates"></tbody>
+                                                </table>
+                                                <button type="button" class="btn btn-default" onclick="clickedCompareAll()">Compare all</button>
+                                            </div>
                                     </div>
                                 </div>
                                 <!-- END CANDIDATES -->
-                                <div class="col-md-9 padding-sides-5" id="singlePolicyDiv">
-
-
+                                <div class="col-md-8">
                                     <!--SEARCH-->
                                     <div class="row">
-                                        <div class="col-md-3" align="left">
+                                        <div class="col-md-4" align="left">
                                             <br>
                                             <div class="input-group">
                                                 <input type="text" id="searchpolicyid" class="form-control" placeholder="Search Policy by ID ">
                                                 <span class="input-group-btn"><button type="button" class="btn btn-default" onclick="searchByID()">Go</button></span>
                                             </div>
                                         </div>
-                                        <div class="form-group col-md-8 col-lg-offset-1" align="right">
+                                        <div class="form-group col-md-8 " align="right">
                                             <div class="form-group col-md-5">
                                                 <label for="datetimepicker6">Start time</label>
                                                 <div class='input-group date' id='datetimepicker6'>
@@ -140,146 +147,245 @@
                                         </div>
                                     </div>
                                     <!-- END SEARCH-->
-
-
-                                    <ul class="nav nav-tabs">
-                                        <li class="pull-right"><a data-toggle="tab" href="#menuDetails">Details</a></li>
-                                        <li class="pull-right"><a data-toggle="tab" href="#menuJson">Json</a></li>
-                                        <li class="active pull-right"><a data-toggle="tab" href="#ui">UI</a></li>
-                                    </ul>
-                                    <div class="tab-content">
-                                        <div id="ui" class="tab-pane fade in active">
-                                            <!-- END METRICS--->
-                                            <div class="row" id="metricsDiv">
-                                                <div class="col-md-2  padding-2">
-                                                    <div class="metric">
-                                                        <span class="icon"><i class="fa fa-dollar"></i></span>
-                                                        <p>
-                                                            <span class="number"><label id="costid"></label></span>
-                                                            <span class="title">Cost</span>
-                                                        </p>
+                                    <div class="row" id="singlePolicyDiv">
+                                        <ul class="nav nav-tabs">
+                                            <li class="pull-right"><a data-toggle="tab" href="#menuDetails">Details</a></li>
+                                            <li class="pull-right"><a data-toggle="tab" href="#menuJson">Json</a></li>
+                                            <li class="active pull-right"><a data-toggle="tab" href="#ui">UI</a></li>
+                                        </ul>
+                                        <div class="tab-content">
+                                            <div id="ui" class="tab-pane fade in active">
+                                                <!-- END METRICS--->
+                                                <div class="row" id="metricsDiv">
+                                                    <div class="col-md-2  padding-2">
+                                                        <div class="metric">
+                                                            <span class="icon"><i class="fa fa-dollar"></i></span>
+                                                            <p>
+                                                                <span class="number"><label id="costid"></label></span>
+                                                                <span class="title">Cost</span>
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div class="col-md-2  padding-2">
-                                                    <div class="metric">
-                                                        <span class="icon"><i class="fa fa-upload"></i></span>
-                                                        <p>
-                                                            <span class="number"><label id="overid"></label></span>
-                                                            <span class="title">Overprovision</span>
-                                                        </p>
+                                                    <div class="col-md-2  padding-2">
+                                                        <div class="metric">
+                                                            <span class="icon"><i class="fa fa-upload"></i></span>
+                                                            <p>
+                                                                <span class="number"><label id="overid"></label></span>
+                                                                <span class="title">% Overprovision</span>
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div class="col-md-2  padding-2">
-                                                    <div class="metric">
-                                                        <span class="icon"><i class="fa fa-download"></i></span>
-                                                        <p>
-                                                            <span class="number"><label id="underid"> </label></span>
-                                                            <span class="title">Underprovision</span>
-                                                        </p>
+                                                    <div class="col-md-2  padding-2">
+                                                        <div class="metric">
+                                                            <span class="icon"><i class="fa fa-download"></i></span>
+                                                            <p>
+                                                                <span class="number"><label id="underid"> </label></span>
+                                                                <span class="title">% Underprovision</span>
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div class="col-md-2 padding-2">
-                                                    <div class="metric">
-                                                        <span class="icon"><i class="fa fa-cogs"></i></span>
-                                                        <p>
-                                                            <span class="number"><label id="reconfVMsid"></label></span>
-                                                            <span class="title">N° Scaling VMs</span>
-                                                        </p>
+                                                    <div class="col-md-2 padding-2">
+                                                        <div class="metric">
+                                                            <span class="icon"><i class="fa fa-cogs"></i></span>
+                                                            <p>
+                                                                <span class="number"><label id="reconfVMsid"></label></span>
+                                                                <span class="title">N° Scaling VMs</span>
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div class="col-md-2 padding-2">
-                                                    <div class="metric">
-                                                        <span class="icon"><i class="fa fa-cogs"></i></span>
-                                                        <p>
-                                                            <span class="number"><label id="reconfContid"></label></span>
-                                                            <span class="title">N° Scaling Replicas</span>
-                                                        </p>
+                                                    <div class="col-md-2 padding-2">
+                                                        <div class="metric">
+                                                            <span class="icon"><i class="fa fa-cogs"></i></span>
+                                                            <p>
+                                                                <span class="number"><label id="reconfContid"></label></span>
+                                                                <span class="title">N° Scaling Replicas</span>
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div class="col-md-2 padding-2">
-                                                    <div class="metric">
-                                                        <span class="icon"><i class="fa fa-cogs"></i></span>
-                                                        <p>
-                                                            <span class="number"><label id="reconfid"></label></span>
-                                                            <span class="title">Total Actions</span>
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <!-- END METRICS--->
-                                            <div class="row">
-                                                <div class="panel">
-                                                    <div class="panel-body">
-                                                        <div id="vmUnits" class="ct-chart"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="row">
-                                                <div class="panel">
-                                                    <div class="panel-body">
-                                                        <div id="containerUnits" class="ct-chart"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="row">
-                                                <div class="panel">
-                                                    <div class="panel-body">
-                                                        <div id="requestsUnits" class="ct-chart"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col-md-6 padding-2">
-                                                    <div class="panel">
-                                                        <div class="panel-body">
-                                                            <div id="resourceCPU" class="ct-chart"></div>
+                                                    <div class="col-md-2 padding-2">
+                                                        <div class="metric">
+                                                            <span class="icon"><i class="fa fa-cogs"></i></span>
+                                                            <p>
+                                                                <span class="number"><label id="reconfid"></label></span>
+                                                                <span class="title">Total Actions</span>
+                                                            </p>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-6 padding-2">
+                                                <!-- END METRICS--->
+                                                <div class="row">
                                                     <div class="panel">
                                                         <div class="panel-body">
-                                                            <div id="resourceMem" class="ct-chart"></div>
+                                                            <div id="vmUnits" class="ct-chart"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="panel">
+                                                        <div class="panel-body">
+                                                            <div id="containerUnits" class="ct-chart"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="panel">
+                                                        <div class="panel-body">
+                                                            <div id="requestsUnits" class="ct-chart"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-6 padding-2">
+                                                        <div class="panel">
+                                                            <div class="panel-body">
+                                                                <div id="resourceCPU" class="ct-chart"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6 padding-2">
+                                                        <div class="panel">
+                                                            <div class="panel-body">
+                                                                <div id="resourceMem" class="ct-chart"></div>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div id="menuJson" class="tab-pane fade">
+                                            <div id="menuJson" class="tab-pane fade">
 
-                                            <div class="col-md-10">
-                                               <pre>
-                                                <code>
-                                                    <p id="jsonId"></p>
-                                                </code>
-                                            </pre>
+                                                <div class="col-md-10">
+                                                   <pre>
+                                                    <code class="json hljs" id="jsonId">
+                                                    </code>
+                                                </pre>
+                                                </div>
+
+                                                <div class="btn-bottom col-md-2">
+                                                     <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Download  </button>
+                                                </div>
                                             </div>
+                                            <div id="menuDetails" class="tab-pane fade">
 
-                                            <div class="btn-bottom col-md-2">
-                                                 <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Download  </button>
+                                                <div class="col-md-10">
+                                                    <!-- DETAILS-->
+                                                    <table class="table" id="tDetails">
+                                                        <tbody id="tBodyDetails"></tbody>
+                                                    </table>
+                                                    <!-- END DETAILS-->
+                                                </div>
+
+                                                <div class="btn-bottom col-md-2">
+                                                    <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Delete  </button>
+                                                </div>
+
                                             </div>
-                                        </div>
-                                        <div id="menuDetails" class="tab-pane fade">
-
-                                            <div class="col-md-10">
-                                                <!-- DETAILS-->
-                                                <table class="table" id="tDetails">
-                                                    <tbody id="tBodyDetails"></tbody>
-                                                </table>
-                                                <!-- END DETAILS-->
-                                            </div>
-
-                                            <div class="btn-bottom col-md-2">
-                                                <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Delete  </button>
-                                            </div>
-
                                         </div>
                                     </div>
+
+                                    <!-- Multple Policy DIV-->
+                                    <div class="row" id="multiplePolicyDiv">
+                                        <ul class="nav nav-tabs">
+                                            <li class="pull-right"><a data-toggle="tab" href="#menuMultiJson">Json</a></li>
+                                            <li class="active pull-right"><a data-toggle="tab" href="#uiMulti">UI</a></li>
+                                        </ul>
+                                        <div class="tab-content">
+                                            <div id="uiMulti" class="tab-pane fade in active">
+
+                                                <div class="row">
+                                                    <div class="col-md-4 padding-2">
+                                                        <div class="panel">
+                                                            <div class="panel-body">
+                                                                <div id="overprovisionAll" class="ct-chart"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4 padding-2">
+                                                        <div class="panel">
+                                                            <div class="panel-body">
+                                                                <div id="underprovisionAll" class="ct-chart"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4 padding-2">
+                                                        <div class="panel">
+                                                            <div class="panel-body">
+                                                                <div id="nScalingVmsAll" class="ct-chart"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="row">
+                                                    <div class="panel">
+                                                        <div class="panel-body">
+                                                            <div id="vmUnitsAll" class="ct-chart"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="panel">
+                                                        <div class="panel-body">
+                                                            <div id="replicaUnitsAll" class="ct-chart"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="panel">
+                                                        <div class="panel-body">
+                                                            <div id="requestsUnitsAll" class="ct-chart"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="panel">
+                                                        <div class="panel-body">
+                                                            <div id="cpuUtilizationAll" class="ct-chart"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="panel">
+                                                        <div class="panel-body">
+                                                            <div id="memoryUtilizationAll" class="ct-chart"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div id="menuMultiJson" class="tab-pane fade">
+
+                                                <div class="col-md-10">
+                                                   <pre>
+                                                    <code>
+                                                        <p id="jsonId"></p>
+                                                    </code>
+                                                </pre>
+                                                </div>
+
+                                                <div class="btn-bottom col-md-2">
+                                                    <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Download  </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- END Multiple Policy DIV-->
+                                    <!--NO Results DIV -->
+                                    <div class="main-content" id="noResultsDiv">
+                                        <div class="hero-unit">
+                                            <h1><bold>No Results Found.</bold></h1>
+                                            <br>
+                                            <p>
+                                               Review the time period for which you are searching policies.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <!-- END NO Results DIV -->
+
                                 </div>
                             </div>
                         </div>
                          <div id="menuDerive" class="tab-pane fade">
                              <div class="container-fluid">
+                                 <h2 class="page-title"> Create new Scaling Policy</h2>
                                  <div class="row">
                                      <div class="panel col-md-6">
                                          <div class="panel-heading">
@@ -434,9 +540,7 @@
                         <!-- END OVERVIEW -->
                 </div>
             </div>
-            <div class="main-content" id="noResultsDiv">
-                No Results
-            </div>
+
             <!-- END MAIN CONTENT -->
         </div>
         <!-- END MAIN -->
@@ -449,11 +553,13 @@
     </div>
     <!-- END WRAPPER -->
     <!-- Javascript -->
-    <!--<script src="assets/vendor/jquery/jquery.min.js"></script>
-    <script src="assets/vendor/bootstrap/js/bootstrap.min.js"></script>-->
-    <script src="assets/vendor/jquery-slimscroll/jquery.slimscroll.min.js"></script>
-    <script src="assets/scripts/klorofil-common.js"></script>
-    <script src="assets/scripts/app.js"></script>
+    <!--<script src="ui/assets/vendor/jquery/jquery.min.js"></script>
+    <script src="ui/assets/vendor/bootstrap/js/bootstrap.min.js"></script>-->
+    <script src="ui/assets/vendor/jquery-slimscroll/jquery.slimscroll.min.js"></script>
+    <script src="ui/assets/scripts/klorofil-common.js"></script>
+    <script src="ui/assets/scripts/app.js"></script>
+    <script src="ui/assets/scripts/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
 
     <script type="text/javascript">
         $(function () {
@@ -486,13 +592,14 @@
         }
         selectedRow()
     </script>
-    <!--
+<!--
         <script>
             var x = document.getElementById("multiplePolicyDiv");
             x.style.display = "none"
-            showNoResultsPannel()
+
         </script>
         -->
+</div>
 </body>
 
 </html>

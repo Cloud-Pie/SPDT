@@ -15,12 +15,11 @@ var forecastChannel chan types.Forecast
 func SetUpServer( fc chan types.Forecast ) *gin.Engine {
 	forecastChannel = fc
 	router := gin.Default()
-	router.Static("/assets", "./ui/assets")
+	//router.Static("/assets", "./ui/assets")
+	router.Static("/ui", "./ui")
 	router.LoadHTMLGlob("ui/*.html")
 	router.POST("/api/policies", serverCall)
 	router.GET("/ui", homeUI)
-	router.GET("/ui/algoBase", algoBaseInstanceUI)
-	router.GET("/ui/derivePolicy", derivePolicyUI)
 	router.PUT("/api/policies", updateForecast)
 	router.GET("/api/policies/:id", policyByID)
 	router.GET("/api/policies", getPolicies)
@@ -176,14 +175,6 @@ func updateForecast(c *gin.Context) {
 //This handler return the home page of the user interface
 func homeUI(c *gin.Context) {
 	c.HTML(http.StatusOK, "index.html", nil)
-}
-
-func algoBaseInstanceUI(c *gin.Context) {
-	c.HTML(http.StatusOK, "algo_base_instance.html", nil)
-}
-
-func derivePolicyUI(c *gin.Context) {
-	c.HTML(http.StatusOK, "derive_policy.html", nil)
 }
 
 func getRequests(c *gin.Context) {
