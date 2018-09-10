@@ -30,17 +30,22 @@ function getVirtualUnits(data){
         time.push(conf.time_start)
         let vmLabels = ""
         let totalVMS = 0
+
+        //Flags map to identify if a record for that type was already inserted
+        vmScalesInTimeFlags = {}
+        vmTypesList.forEach(function (vmType) {
+            vmScalesInTimeFlags[vmType] = false
+        })
         vmSet = conf.State.VMs
         for (var key in vmSet) {
             vmLabels = vmLabels + key + ":" + vmSet[key] + ", "
             totalVMS = totalVMS + vmSet[key]
-
-            for (var key2 in vmScalesInTime){
-                if (key == key2) {
-                    vmScalesInTime[key2].push(vmSet[key])
-                } else {
-                    vmScalesInTime[key2].push(0)
-                }
+            vmScalesInTime[key].push(vmSet[key])
+            vmScalesInTimeFlags[key] = true
+        }
+        for (var type in vmScalesInTimeFlags) {
+            if (vmScalesInTimeFlags[type] == false) {
+                vmScalesInTime[type].push(0)
             }
         }
         vms.push(totalVMS)
@@ -54,23 +59,33 @@ function getVirtualUnits(data){
         TRN.push(conf.metrics.requests_capacity)
         utilizationCpuCores.push(conf.metrics.cpu_utilization)
         utilizationMemGB.push(conf.metrics.mem_utilization)
-
     })
+
     //Needed to include the last time t into the plot
     lastConf = arrayConfig[arrayConfig.length - 1]
     time.push(lastConf.time_end)
     vmSet = lastConf.State.VMs
+    let vmLabels = ""
+    let totalVMS = 0
+    //Flags map to identify if a record for that type was already inserted
+    vmScalesInTimeFlags = {}
+    vmTypesList.forEach(function (vmType) {
+        vmScalesInTimeFlags[vmType] = false
+    })
 
     for (var key in vmSet) {
-        vms.push(vmSet[key])
-        for (var key2 in vmScalesInTime){
-            if (key == key2) {
-                vmScalesInTime[key2].push(vmSet[key])
-            } else {
-                vmScalesInTime[key2].push(0)
-            }
+        vmLabels = vmLabels + key + ":" + vmSet[key] + ", "
+        totalVMS = totalVMS + vmSet[key]
+        vmScalesInTime[key].push(vmSet[key])
+        vmScalesInTimeFlags[key] = true
+    }
+    for (var type in vmScalesInTimeFlags) {
+        if (vmScalesInTimeFlags[type] == false) {
+            vmScalesInTime[type].push(0)
         }
     }
+    vms.push(totalVMS)
+    labelsTypesVmSet.push(vmLabels)
     services = lastConf.State.Services
     for (var key in services) {
         replicas.push(services[key].Scale)
@@ -80,6 +95,7 @@ function getVirtualUnits(data){
     TRN.push(lastConf.metrics.requests_capacity)
     utilizationCpuCores.push(lastConf.metrics.cpu_utilization)
     utilizationMemGB.push(lastConf.metrics.mem_utilization)
+    //End last t
 
    return {
         time: time,
@@ -96,24 +112,23 @@ function getVirtualUnits(data){
 }
 
 function plotVMUnitsPerType(time, vms, textHover) {
-   var data = [];
-
+   let data = [];
    for (var key in vms) {
-       data.push(
+      data.push(
            {
                x: time,
                y: vms[key],
                name: key,
                type: 'scatter',
-               text: textHover,
                line: {shape: 'hv'}
 
            }
-
        )
-   }
 
-    data.push(
+   }
+   l = data.length
+   data[l-1].text = textHover
+   data.push(
         {
             x: time,
             y: requestDemand,
@@ -134,7 +149,7 @@ function plotVMUnitsPerType(time, vms, textHover) {
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 300,
-        yaxis: {title: 'N° VMs'},
+        yaxis: {title: 'N° VMs', range: [0, 8]},
         yaxis2: {
            title: 'Requests/Sec',
            titlefont: {color: '#092e20'},
@@ -150,10 +165,9 @@ function plotVMUnitsPerType(time, vms, textHover) {
         },
     };
 
-   /* Plotly.newPlot('vmUnits', data,layout);*/
-    //var layout = {barmode: 'stack'};
+   Plotly.newPlot('vmUnits', stackedArea(data),layout);
 
-    Plotly.newPlot('vmUnits', data, layout);
+   // Plotly.newPlot('vmUnits', data, layout);
 }
 
 function stackedArea(traces) {
@@ -226,7 +240,7 @@ function plotContainerUnits(time, replicas, cpuCores, memGB) {
         titlefont: {
            size:18
         },
-        yaxis: {title: 'N° Containers'},
+        yaxis: {title: 'N° Containers', range: [0, 15]},
         yaxis2: {
             title: 'Resources',
             titlefont: {color: 'rgb(148, 103, 189)'},
@@ -242,8 +256,8 @@ function plotContainerUnits(time, replicas, cpuCores, memGB) {
         legend: {
             "orientation": "h",
             xanchor: "center",
-            y: 1.09,
-            x: 0.9
+            y: 1.088,
+            x: 0.2
         },
     };
     var data = [trace1, trace2, trace3];
@@ -281,8 +295,8 @@ function plotCapacity(time, demand, supply, timeSuply){
         legend: {
             "orientation": "h",
             xanchor: "center",
-            y: 1.09,
-            x: 0.9
+            y: 1.088,
+            x: 0.2
         },
     };
     var data = [trace1, trace2];
@@ -311,8 +325,8 @@ function plotMem(time, memGB) {
         legend: {
             "orientation": "h",
             xanchor: "center",
-            y: 1.09,
-            x: 0.9
+            y: 1.088,
+            x: 0.2
         },
     };
     var data = [trace];
@@ -342,8 +356,8 @@ function plotCPU(time, cpuCores) {
         legend: {
             "orientation": "h",
             xanchor: "center",
-            y: 1.09,
-            x: 0.9
+            y: 1.088,
+            x: 0.2
         },
     };
     var data = [trace];
@@ -360,49 +374,49 @@ function searchByID(policyId) {
     fetch(requestURL)
         .then((response) => response.json())
         .then(function (policy){
-            document.getElementById("jsonId").innerText = JSON.stringify(policy,undefined, 5);
-            showResultsPannel()
-            showSinglePolicyPannels()
-            var timeStart = new Date(policy.window_time_start).toISOString();
-            var timeEnd = new Date( policy.window_time_end).toISOString();
-            units = getVirtualUnits(policy)
-
-            let params = {
-                "start": timeStart,
-                "end": timeEnd
-            }
-            let esc = encodeURIComponent
-            let query = Object.keys(params)
-                .map(k => esc(k) + '=' + esc(params[k]))
-                .join('&')
-
-            url_forecast = forecastRequestsEndpoint + query
-            fetch(url_forecast)
-                .then((response) => response.json())
-                .then(function (forecast){
-                    requestDemand = forecast.Requests
-                    plotCapacity(forecast.Timestamp, forecast.Requests, units.trn, units.time)
-
-
-                    //plotVMUnits(units.time, units.vms, units.labelsTypesVmSet)
-                    plotVMUnitsPerType(units.time, units.vmScalesInTime, units.labelsTypesVmSet)
-                    plotContainerUnits(units.time, units.replicas, units.cpuCores, units.memGB)
-                    plotMem(units.time, units.utilizationMemGB)
-                    plotCPU(units.time, units.utilizationCpuCores)
-                    fillMetrics(policy)
-                    fillDetailsTable(policy)
-
-                })
-                .catch(function(err) {
-                    console.log('Fetch Error :-S', err);
-                });
+           showPolicyInfo(policy)
+           //hideCandidatesDiv()
         })
         .catch(function(err) {
             console.log('Fetch Error :-S', err);
-            showNoResultsPannel()
+            showNoResultsPanel()
         });
+}
 
 
+function showPolicyInfo(policy) {
+    var units
+    document.getElementById("jsonId").innerText = JSON.stringify(policy,undefined, 5);
+    showSinglePolicyPanels()
+    var timeStart = new Date(policy.window_time_start).toISOString();
+    var timeEnd = new Date( policy.window_time_end).toISOString();
+    units = getVirtualUnits(policy)
+
+    let params = {
+       "start": timeStart,
+       "end": timeEnd
+    }
+    let esc = encodeURIComponent
+    let query = Object.keys(params)
+        .map(k => esc(k) + '=' + esc(params[k]))
+        .join('&')
+
+    url_forecast = forecastRequestsEndpoint + query
+    fetch(url_forecast)
+         .then((response) => response.json())
+         .then(function (forecast){
+                requestDemand = forecast.Requests
+                plotCapacity(forecast.Timestamp, forecast.Requests, units.trn, units.time)
+                plotVMUnitsPerType(units.time, units.vmScalesInTime, units.labelsTypesVmSet)
+                plotContainerUnits(units.time, units.replicas, units.cpuCores, units.memGB)
+                plotMem(units.time, units.utilizationMemGB)
+                plotCPU(units.time, units.utilizationCpuCores)
+                fillMetrics(policy)
+                fillDetailsTable(policy)
+         })
+        .catch(function(err) {
+              console.log('Fetch Error :-S', err);
+        });
 }
 
 function searchByTimestamp() {
@@ -427,20 +441,22 @@ function searchByTimestamp() {
                 .then(function (data){
                     allPolicies = data
                     if(allPolicies.length > 0) {
-                        showResultsPannel()
+                        showSinglePolicyPanels()
                         fillCandidateTable(data)
-                        searchByID(allPolicies[0].id)
+                        showPolicyInfo(allPolicies[0])
                     }else{
-                        showNoResultsPannel()
+                        showNoResultsPanel()
                     }
                 })
                 .catch(function(err) {
                     console.log('Fetch Error :-S', err);
+                    showNoResultsPanel()
                 });
 
         })
         .catch(function(err) {
             console.log('Fetch Error :-S', err);
+            showNoResultsPanel()
         });
 }
 
@@ -524,7 +540,7 @@ function fillParameters(policy){
 }
 
 function clickedCompareAll(){
-    hideSinglePolicyPannels()
+    showMultiplePolicyPanels()
 
     units = getVirtualUnitsAll(allPolicies)
     plotCapacityAll(units.time,requestDemand, units.trnAll, units.tracesAll)
@@ -535,38 +551,6 @@ function clickedCompareAll(){
     plotNScalingVMAll(units.nScalingVMsAll, units.tracesAll)
     plotOverprovisionAll(units.overprovisionAll, units.tracesAll)
     plotUnderprovisionAll(units.underprovisionAll, units.tracesAll)
-}
-
-function hideSinglePolicyPannels() {
-    var x = document.getElementById("singlePolicyDiv");
-    x.style.display = "none";
-
-    var m = document.getElementById("metricsDiv");
-    m.style.display = "none";
-
-   /* var d = document.getElementById("detailsDiv");
-    d.style.display = "none";*/
-
-    var y = document.getElementById("multiplePolicyDiv");
-    if (y.style.display === "none") {
-        y.style.display = "block";
-    }
-
-}
-
-function showSinglePolicyPannels() {
-    var x = document.getElementById("multiplePolicyDiv");
-    x.style.display = "none";
-
-    var y = document.getElementById("singlePolicyDiv");
-    if (y.style.display === "none") {
-        y.style.display = "block";
-    }
-    var m = document.getElementById("metricsDiv");
-    m.style.display = "block";
-
-   /* var d = document.getElementById("detailsDiv");
-    d.style.display = "block";*/
 }
 
 function getVirtualUnitsAll(policies) {
@@ -817,7 +801,6 @@ function plotNScalingVMAll(nScalingVMs, tracesAll) {
     Plotly.newPlot('nScalingVmsAll', data,layout);
 }
 
-
 function plotOverprovisionAll(overAll, tracesAll) {
     var trace = {
         x: tracesAll,
@@ -838,7 +821,6 @@ function plotOverprovisionAll(overAll, tracesAll) {
     Plotly.newPlot('overprovisionAll', data,layout);
 }
 
-
 function plotUnderprovisionAll(underAll, tracesAll) {
     var trace = {
         x: tracesAll,
@@ -858,18 +840,55 @@ function plotUnderprovisionAll(underAll, tracesAll) {
 
     Plotly.newPlot('underprovisionAll', data,layout);
 }
-function showNoResultsPannel(){
-    var x = document.getElementById("searchOutputDiv");
-    x.style.display = "none";
 
+function showNoResultsPanel(){
+    var x = document.getElementById("singlePolicyDiv");
+    x.style.display = "none";
+    var y = document.getElementById("multiplePolicyDiv");
+    y.style.display = "none";
     var m = document.getElementById("noResultsDiv");
     m.style.display = "block";
+    var x = document.getElementById("candidatesDiv");
+    x.style.display = "none";
 }
 
-function showResultsPannel(){
-    var x = document.getElementById("searchOutputDiv");
+function showCandidatesDiv() {
+    var x = document.getElementById("candidatesDiv");
     x.style.display = "block";
+}
 
+function hideCandidatesDiv() {
+    var x = document.getElementById("candidatesDiv");
+    x.style.display = "none";
+}
+
+function showSinglePolicyPanels() {
     var m = document.getElementById("noResultsDiv");
     m.style.display = "none";
+
+    var x = document.getElementById("multiplePolicyDiv");
+    x.style.display = "none";
+
+    var y = document.getElementById("singlePolicyDiv");
+    if (y.style.display === "none") {
+        y.style.display = "block";
+    }
+    var x = document.getElementById("candidatesDiv");
+    x.style.display = "block";
+}
+
+function showMultiplePolicyPanels() {
+    var x = document.getElementById("singlePolicyDiv");
+    x.style.display = "none";
+
+    var m = document.getElementById("metricsDiv");
+    m.style.display = "none";
+
+    var x = document.getElementById("candidatesDiv");
+    x.style.display = "block";
+
+    var y = document.getElementById("multiplePolicyDiv");
+    if (y.style.display === "none") {
+        y.style.display = "block";
+    }
 }
