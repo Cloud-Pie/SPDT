@@ -121,20 +121,33 @@ func getVMProfiles(){
 //Fetch the performance profile of the microservice that should be scaled
 func getServiceProfile(){
 	var err error
+	var servicePerformanceProfile types.ServicePerformanceProfile
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
-	storedServiceProfiles,_ := serviceProfileDAO.FindAll()
-	if(len(storedServiceProfiles)==0) {
+	storedPerformanceProfiles,_ := serviceProfileDAO.FindAll()
+	if(len(storedPerformanceProfiles)==0) {
 		log.Info("Start request Performance Profiles")
-		serviceProfiles, err = Pservice.GetPerformanceProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILES)
+		servicePerformanceProfile, err = Pservice.GetServicePerformanceProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILES)
 		if err != nil {
 			log.Error(err.Error())
 		}
 		log.Info("Finish request Performance Profiles")
 
-		//Store received information about Performance Profiles
-		for _,p := range serviceProfiles.PerformanceProfiles {
-			p.ID = bson.NewObjectId()
-			err = serviceProfileDAO.Insert(p)
+		//Selects and stores received information about Performance Profiles
+		for _,p := range servicePerformanceProfile.Profiles {
+			mscSettings := []types.MSCSetting{}
+			for _,msc := range p.MSCs {
+				setting := types.MSCSetting {
+					BootTimeSec: millisecondsToSeconds(msc.BootTimeMs),
+					MSCPerSecond: msc.MSCPerSecond.RegBruteForce,
+					Replicas: msc.Replicas,
+					StandDevBootTimeSec: millisecondsToSeconds(msc.StandDevBootTimeMS),
+				}
+				mscSettings = append(mscSettings, setting)
+			}
+			performanceProfile := types.PerformanceProfile {
+				ID: bson.NewObjectId(),Limit: p.Limits, MSCSettings: mscSettings,
+			}
+			err = serviceProfileDAO.Insert(performanceProfile)
 			if err != nil {
 				log.Error(err.Error())
 			}
@@ -165,4 +178,9 @@ func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64
 			log.Error("The policy with ID = %s could not be stored. Error %s\n", p.ID, err)
 		}
 	}
+}
+
+//Utility function to convert from milliseconds to seconds
+func millisecondsToSeconds(m float64) float64{
+	return m/1000
 }

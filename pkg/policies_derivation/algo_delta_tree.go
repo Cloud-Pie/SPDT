@@ -64,7 +64,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 		var vmSet types.VMScale
 		var newNumServiceReplicas int
 		var resourceLimits types.Limit
-		var totalServicesBootingTime int
+		var totalServicesBootingTime float64
 		var stateLoadCapacity float64
 
 		//Current configuration
@@ -83,15 +83,15 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 		} else {
 			//Alternative configuration
 			ProfileCurrentLimits := selectProfileWithLimits(totalLoad, currentContainerLimits, false)
-			newNumServiceReplicas = ProfileCurrentLimits.TRNConfiguration.NumberReplicas
+			newNumServiceReplicas = ProfileCurrentLimits.MSCSetting.Replicas
 			resourceLimits  = ProfileCurrentLimits.Limits
-			stateLoadCapacity = ProfileCurrentLimits.TRNConfiguration.TRN
-			totalServicesBootingTime = ProfileCurrentLimits.TRNConfiguration.BootTimeSec
+			stateLoadCapacity = ProfileCurrentLimits.MSCSetting.MSCPerSecond
+			totalServicesBootingTime = ProfileCurrentLimits.MSCSetting.BootTimeSec
 
 			if deltaLoad > 0 {
 				computeCapacity(&p.sortedVMProfiles, ProfileCurrentLimits.Limits, &p.mapVMProfiles)
 				currentReplicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
-				if currentReplicasCapacity >= ProfileCurrentLimits.TRNConfiguration.NumberReplicas {
+				if currentReplicasCapacity >= ProfileCurrentLimits.MSCSetting.Replicas {
 					//case 1: Increases number of replicas but VMS remain the same
 					vmSet = p.currentState.VMs
 				} else {
@@ -101,9 +101,9 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 
 					if underProvisionAllowed {
 						ProfileCurrentLimitsUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-						vmSetUnder := p.FindSuitableVMs(ProfileCurrentLimits.TRNConfiguration.NumberReplicas, ProfileCurrentLimits.Limits)
+						vmSetUnder := p.FindSuitableVMs(ProfileCurrentLimits.MSCSetting.Replicas, ProfileCurrentLimits.Limits)
 
-						if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.TRNConfiguration.TRN, percentageUnderProvision) &&
+						if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.MSCSetting.MSCPerSecond, percentageUnderProvision) &&
 							vmSetUnder.Cost(p.mapVMProfiles) < vmSet.Cost(p.mapVMProfiles) {
 							vmSet = vmSetUnder
 							ProfileCurrentLimits = ProfileCurrentLimitsUnder
@@ -114,13 +114,13 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 					vmSet.Merge(p.currentState.VMs)
 				}
 
-				newNumServiceReplicas = ProfileCurrentLimits.TRNConfiguration.NumberReplicas
+				newNumServiceReplicas = ProfileCurrentLimits.MSCSetting.Replicas
 				resourceLimits  = ProfileCurrentLimits.Limits
-				stateLoadCapacity = ProfileCurrentLimits.TRNConfiguration.TRN
-				totalServicesBootingTime = ProfileCurrentLimits.TRNConfiguration.BootTimeSec
+				stateLoadCapacity = ProfileCurrentLimits.MSCSetting.MSCPerSecond
+				totalServicesBootingTime = ProfileCurrentLimits.MSCSetting.BootTimeSec
 
 			} else {
-				deltaReplicas := currentNumberReplicas - ProfileCurrentLimits.TRNConfiguration.NumberReplicas
+				deltaReplicas := currentNumberReplicas - ProfileCurrentLimits.MSCSetting.Replicas
 				vmSet = p.removeVMs(p.currentState.VMs, deltaReplicas, currentContainerLimits)
 			}
 		}
@@ -256,22 +256,22 @@ func (p TreePolicy)removeVMs(currentVMSet types.VMScale, numberReplicas int, lim
 		@ContainersConfig
 		@error
 */
-func (p TreePolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.TRNConfiguration,
-	newLimits types.Limit, profileNewLimits types.TRNConfiguration, containerResize bool) (TRNProfile, error) {
+func (p TreePolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.MSCSetting,
+	newLimits types.Limit, profileNewLimits types.MSCSetting, containerResize bool) (TRNProfile, error) {
 
-	currentNumberReplicas := float64(profileCurrentLimits.NumberReplicas)
+	currentNumberReplicas := float64(profileCurrentLimits.Replicas)
 	utilizationCurrent := (currentNumberReplicas * currentLimits.CPUCores)+(currentNumberReplicas * currentLimits.MemoryGB)
 
-	newNumberReplicas := float64(profileNewLimits.NumberReplicas)
+	newNumberReplicas := float64(profileNewLimits.Replicas)
 	utilizationNew := (newNumberReplicas * newLimits.CPUCores)+(newNumberReplicas * newLimits.MemoryGB)
 
 	if utilizationNew < utilizationCurrent && containerResize {
 		return TRNProfile{ResourceLimits:newLimits,
 			NumberReplicas:int(newNumberReplicas),
-			TRN:profileNewLimits.TRN,}, nil
+			TRN:profileNewLimits.MSCPerSecond,}, nil
 	} else {
 		return TRNProfile{ResourceLimits:currentLimits,
 			NumberReplicas:int(currentNumberReplicas),
-			TRN:profileCurrentLimits.TRN,}, nil
+			TRN:profileCurrentLimits.MSCPerSecond,}, nil
 	}
 }

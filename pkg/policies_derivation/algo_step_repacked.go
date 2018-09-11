@@ -58,7 +58,7 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 			}
 		}
 
-		vmSet,_ := p.FindSuitableVMs(ProfileCurrentLimits.TRNConfiguration.NumberReplicas, ProfileCurrentLimits.Limits)
+		vmSet,_ := p.FindSuitableVMs(ProfileCurrentLimits.MSCSetting.Replicas, ProfileCurrentLimits.Limits)
 
 		if underProvisionAllowed {
 			ProfileCurrentLimitsUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
@@ -67,9 +67,9 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 			if resize {
 				ProfileCurrentLimitsUnder = ProfileNewLimitsUnder
 			}
-			vmSetUnder,_ := p.FindSuitableVMs(ProfileCurrentLimits.TRNConfiguration.NumberReplicas, ProfileCurrentLimits.Limits)
+			vmSetUnder,_ := p.FindSuitableVMs(ProfileCurrentLimits.MSCSetting.Replicas, ProfileCurrentLimits.Limits)
 
-			if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.TRNConfiguration.TRN, percentageUnderProvision) &&
+			if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.MSCSetting.MSCPerSecond, percentageUnderProvision) &&
 				vmSetUnder.Cost(p.mapVMProfiles) < vmSet.Cost(p.mapVMProfiles) {
 
 				vmSet = vmSetUnder
@@ -77,9 +77,9 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 			}
 		}
 
-		newNumServiceReplicas := ProfileCurrentLimits.TRNConfiguration.NumberReplicas
-		stateLoadCapacity := ProfileCurrentLimits.TRNConfiguration.TRN
-		totalServicesBootingTime := ProfileCurrentLimits.TRNConfiguration.BootTimeSec
+		newNumServiceReplicas := ProfileCurrentLimits.MSCSetting.Replicas
+		stateLoadCapacity := ProfileCurrentLimits.MSCSetting.MSCPerSecond
+		totalServicesBootingTime := ProfileCurrentLimits.MSCSetting.BootTimeSec
 		limits := ProfileCurrentLimits.Limits
 
 		services := make(map[string]types.ServiceInfo)

@@ -27,6 +27,26 @@ func GetPerformanceProfiles(endpoint string) (types.ServiceProfile, error){
 	return performanceProfile,err
 }
 
+func GetServicePerformanceProfiles(endpoint string) (types.ServicePerformanceProfile, error){
+
+	servicePerformanceProfile := types.ServicePerformanceProfile{}
+	response, err := http.Get(endpoint)
+	if err != nil {
+		return servicePerformanceProfile,err
+	}
+	defer response.Body.Close()
+	data, err := ioutil.ReadAll(response.Body)
+
+	if err != nil {
+		return servicePerformanceProfile,err
+	}
+	err = json.Unmarshal(data, &servicePerformanceProfile)
+	if err != nil {
+		return servicePerformanceProfile,err
+	}
+	return servicePerformanceProfile,err
+}
+
 
 func GetVMsProfiles(endpoint string) ([]types.VmProfile, error){
 	vmList := []types.VmProfile{}

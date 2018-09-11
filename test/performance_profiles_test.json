@@ -1,345 +1,898 @@
 {
-  "service_name":"movieapp",
-  "profiles" : [
-    {
-      "limits" : {
-        "cpu_cores" : 0.1,
-        "mem_gb" : 0.1,
-        "request_per_sercond" : 0.0
+    "HostInstanceType":"",
+    "ServiceType":"compute",
+    "ServiceName":"primeapp",
+    "TestAPI":"/api/prime",
+    "Profiles":[
+      {
+        "Limits":{
+          "Cpu_cores":0.1,
+          "Mem_gb":0.1,
+          "Request_per_sercond":0
+        },
+        "MSCs":[
+          {
+            "Replicas":1,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":421.84278829070354,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":7.030713138178393,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":37800,
+            "Sd_Pod_boot_time_ms":5381.449618829484,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":2,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":883.1186660324806,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":14.718644433874678,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":44750,
+            "Sd_Pod_boot_time_ms":1785.3571071357126,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":3,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":1337.3335624252359,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":22.288892707087264,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":42500,
+            "Sd_Pod_boot_time_ms":2061.5528128088304,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":4,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":1784.4874774689724,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":29.741457957816205,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":46375,
+            "Sd_Pod_boot_time_ms":3805.8343369095824,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":5,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":2224.5804111636894,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":37.07634018606149,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":43600,
+            "Sd_Pod_boot_time_ms":3808.7618285561866,
+            "PredictedReplicas":0
+          }
+        ]
       },
-      "trns" : [
-        {
-          "replicas" : 1,
-          "maximum_service_capacity_per_sec" : 8.541874,
-          "pod_boot_time_ms" : 200
+      {
+        "Limits":{
+          "Cpu_cores":0.2,
+          "Mem_gb":0.2,
+          "Request_per_sercond":0
         },
-        {
-          "replicas" : 2,
-          "maximum_service_capacity_per_sec" : 16.187347,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 3,
-          "maximum_service_capacity_per_sec" : 23.582110,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 4,
-          "maximum_service_capacity_per_sec" : 30.726165,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 5,
-          "maximum_service_capacity_per_sec" :37.619510,
-          "pod_boot_time_ms" : 200
-        }
-      ]
-    },
-    {
-      "limits" : {
-        "cpu_cores" : 0.2,
-        "mem_gb" : 0.2,
-        "request_per_sercond" : 0.0
+        "MSCs":[
+          {
+            "Replicas":1,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":774.4771598757402,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":12.90795266459567,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":37800,
+            "Sd_Pod_boot_time_ms":5381.449618829484,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":2,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":1707.7693735008352,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":28.462822891680585,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":44750,
+            "Sd_Pod_boot_time_ms":1785.3571071357126,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":3,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":2634.0006057769115,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":43.90001009628186,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":42500,
+            "Sd_Pod_boot_time_ms":2061.5528128088304,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":4,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":3553.1708567039677,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":59.219514278399465,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":46375,
+            "Sd_Pod_boot_time_ms":3805.8343369095824,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":5,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":4465.280126282004,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":74.4213354380334,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":43600,
+            "Sd_Pod_boot_time_ms":3808.7618285561866,
+            "PredictedReplicas":0
+          }
+        ]
       },
-      "trns" : [
-        {
-          "replicas" : 1,
-          "maximum_service_capacity_per_sec" : 14.610663,
-          "pod_boot_time_ms" : 200
+      {
+        "Limits":{
+          "Cpu_cores":0.5,
+          "Mem_gb":0.5,
+          "Request_per_sercond":0
         },
-        {
-          "replicas" : 2,
-          "maximum_service_capacity_per_sec" : 30.002851,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 3,
-          "maximum_service_capacity_per_sec" :45.144330,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 4,
-          "maximum_service_capacity_per_sec" : 60.035100,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 5,
-          "maximum_service_capacity_per_sec" : 74.675160,
-          "pod_boot_time_ms" : 200
-        }
-      ]
-    },
-    {
-      "limits" : {
-        "cpu_cores" : 0.5,
-        "mem_gb" : 0.5,
-        "request_per_sercond" : 0.0
+        "MSCs":[
+          {
+            "Replicas":1,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":1981.9900569590318,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":33.033167615983864,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":37800,
+            "Sd_Pod_boot_time_ms":5381.449618829484,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":2,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":4331.331278234085,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":72.18885463723475,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":44750,
+            "Sd_Pod_boot_time_ms":1785.3571071357126,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":3,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":6673.61151816012,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":111.22685863600199,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":42500,
+            "Sd_Pod_boot_time_ms":2061.5528128088304,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":4,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":9008.830776737135,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":150.14717961228558,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":46375,
+            "Sd_Pod_boot_time_ms":3805.8343369095824,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":5,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":11336.989053965131,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":188.94981756608553,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":43600,
+            "Sd_Pod_boot_time_ms":3808.7618285561866,
+            "PredictedReplicas":0
+          }
+        ]
       },
-      "trns" : [
-        {
-          "replicas" : 1,
-          "maximum_service_capacity_per_sec" : 34.305442,
-          "pod_boot_time_ms" : 200
+      {
+        "Limits":{
+          "Cpu_cores":0.7,
+          "Mem_gb":0.7,
+          "Request_per_sercond":0
         },
-        {
-          "replicas" : 2,
-          "maximum_service_capacity_per_sec" : 72.937775,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 3,
-          "maximum_service_capacity_per_sec" : 111.319399,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 4,
-          "maximum_service_capacity_per_sec" :149.450314,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 5,
-          "maximum_service_capacity_per_sec" : 187.330520,
-          "pod_boot_time_ms" : 200
-        }
-      ]
-    },
-    {
-      "limits" : {
-        "cpu_cores" : 0.7,
-        "mem_gb" : 0.7,
-        "request_per_sercond" : 0.0
+        "MSCs":[
+          {
+            "Replicas":1,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":2911.6734736213784,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":48.52789122702298,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":37800,
+            "Sd_Pod_boot_time_ms":5381.449618829484,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":2,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":6205.047366663071,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":103.4174561110512,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":44750,
+            "Sd_Pod_boot_time_ms":1785.3571071357126,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":3,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":9491.360278355744,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":158.18933797259572,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":42500,
+            "Sd_Pod_boot_time_ms":2061.5528128088304,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":4,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":12770.612208699398,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":212.84353681165663,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":46375,
+            "Sd_Pod_boot_time_ms":3805.8343369095824,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":5,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":16042.803157694032,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":267.38005262823384,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":43600,
+            "Sd_Pod_boot_time_ms":3808.7618285561866,
+            "PredictedReplicas":0
+          }
+        ]
       },
-      "trns" : [
-        {
-          "replicas" : 1,
-          "maximum_service_capacity_per_sec" : 48.675636,
-          "pod_boot_time_ms" : 200
+      {
+        "Limits":{
+          "Cpu_cores":1,
+          "Mem_gb":1,
+          "Request_per_sercond":0
         },
-        {
-          "replicas" : 2,
-          "maximum_service_capacity_per_sec" :102.801399,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 3,
-          "maximum_service_capacity_per_sec" : 156.676453,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 4,
-          "maximum_service_capacity_per_sec" :210.300799,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 5,
-          "maximum_service_capacity_per_sec" : 263.674434,
-          "pod_boot_time_ms" : 200
-        }
-      ]
-    },
-    {
-      "limits" : {
-        "cpu_cores" : 1.0,
-        "mem_gb" : 1.0,
-        "request_per_sercond" : 0.0
+        "MSCs":[
+          {
+            "Replicas":1,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":4493.21082652513,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":74.88684710875216,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":37800,
+            "Sd_Pod_boot_time_ms":5381.449618829484,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":2,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":9202.63372721678,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":153.37722878694635,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":44750,
+            "Sd_Pod_boot_time_ms":1785.3571071357126,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":3,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":13904.995646559413,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":231.74992744265688,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":42500,
+            "Sd_Pod_boot_time_ms":2061.5528128088304,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":4,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":18600.296584553027,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":310.0049430758838,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":46375,
+            "Sd_Pod_boot_time_ms":3805.8343369095824,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":5,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":23288.536541197616,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":388.14227568662693,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":43600,
+            "Sd_Pod_boot_time_ms":3808.7618285561866,
+            "PredictedReplicas":0
+          }
+        ]
       },
-      "trns" : [
-        {
-          "replicas" : 1,
-          "maximum_service_capacity_per_sec" : 72.091439,
-          "pod_boot_time_ms" : 200
+      {
+        "Limits":{
+          "Cpu_cores":1,
+          "Mem_gb":0.5,
+          "Request_per_sercond":0
         },
-        {
-          "replicas" : 2,
-          "maximum_service_capacity_per_sec" : 149.457348,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 3,
-          "maximum_service_capacity_per_sec" : 226.572547,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 4,
-          "maximum_service_capacity_per_sec" : 303.437037,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 5,
-          "maximum_service_capacity_per_sec" : 380.050819,
-          "pod_boot_time_ms" : 200
-        }
-      ]
-    },
-    {
-      "limits" : {
-        "cpu_cores" : 1.0,
-        "mem_gb" : 0.5,
-        "request_per_sercond" : 0.0
+        "MSCs":[
+          {
+            "Replicas":1,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":4505.552960278046,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":75.09254933796744,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":37800,
+            "Sd_Pod_boot_time_ms":5381.449618829484,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":2,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":9237.143917432351,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":153.9523986238725,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":44750,
+            "Sd_Pod_boot_time_ms":1785.3571071357126,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":3,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":13961.673893237637,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":232.69456488729395,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":42500,
+            "Sd_Pod_boot_time_ms":2061.5528128088304,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":4,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":18679.142887693903,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":311.3190481282317,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":46375,
+            "Sd_Pod_boot_time_ms":3805.8343369095824,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":5,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":23389.55090080115,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":389.82584834668586,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":43600,
+            "Sd_Pod_boot_time_ms":3808.7618285561866,
+            "PredictedReplicas":0
+          }
+        ]
       },
-      "trns" : [
-        {
-          "replicas" : 1,
-          "maximum_service_capacity_per_sec" : 72.142657,
-          "pod_boot_time_ms" : 200
+      {
+        "Limits":{
+          "Cpu_cores":1,
+          "Mem_gb":2,
+          "Request_per_sercond":0
         },
-        {
-          "replicas" : 2,
-          "maximum_service_capacity_per_sec" : 149.383455,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 3,
-          "maximum_service_capacity_per_sec" : 226.373544,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 4,
-          "maximum_service_capacity_per_sec" : 303.112924,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 5,
-          "maximum_service_capacity_per_sec" : 379.601595,
-          "pod_boot_time_ms" : 200
-        }
-      ]
-    },
-    {
-      "limits" : {
-        "cpu_cores" : 1.0,
-        "mem_gb" : 2.0,
-        "request_per_sercond" : 0.0
+        "MSCs":[
+          {
+            "Replicas":1,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":4231.6309580276065,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":70.52718263379344,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":37800,
+            "Sd_Pod_boot_time_ms":5381.449618829484,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":2,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":8896.71774579395,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":148.27862909656585,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":44750,
+            "Sd_Pod_boot_time_ms":1785.3571071357126,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":3,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":13554.743552211276,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":225.91239253685458,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":42500,
+            "Sd_Pod_boot_time_ms":2061.5528128088304,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":4,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":18205.708377279585,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":303.42847295465975,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":46375,
+            "Sd_Pod_boot_time_ms":3805.8343369095824,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":5,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":22849.61222099887,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":380.8268703499812,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":43600,
+            "Sd_Pod_boot_time_ms":3808.7618285561866,
+            "PredictedReplicas":0
+          }
+        ]
       },
-      "trns" : [
-        {
-          "replicas" : 1,
-          "maximum_service_capacity_per_sec" : 69.434634,
-          "pod_boot_time_ms" : 200
+      {
+        "Limits":{
+          "Cpu_cores":2,
+          "Mem_gb":4,
+          "Request_per_sercond":0
         },
-        {
-          "replicas" : 2,
-          "maximum_service_capacity_per_sec" :147.050764,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 3,
-          "maximum_service_capacity_per_sec" : 224.416185,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 4,
-          "maximum_service_capacity_per_sec" : 301.530897,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 5,
-          "maximum_service_capacity_per_sec" :378.394899,
-          "pod_boot_time_ms" : 200
-        }
-      ]
-    },
-    {
-      "limits" : {
-        "cpu_cores" : 2.0,
-        "mem_gb" : 4.0,
-        "request_per_sercond" : 0.0
+        "MSCs":[
+          {
+            "Replicas":1,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":10929.235239504485,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":182.15392065840808,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":37800,
+            "Sd_Pod_boot_time_ms":5381.449618829484,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":2,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":20270.149273178722,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":337.83582121964537,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":44750,
+            "Sd_Pod_boot_time_ms":1785.3571071357126,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":3,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":29604.002325503934,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":493.4000387583989,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":42500,
+            "Sd_Pod_boot_time_ms":2061.5528128088304,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":4,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":38930.79439648012,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":648.8465732746687,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":46375,
+            "Sd_Pod_boot_time_ms":3805.8343369095824,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":5,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":48250.525486107304,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":804.1754247684551,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":43600,
+            "Sd_Pod_boot_time_ms":3808.7618285561866,
+            "PredictedReplicas":0
+          }
+        ]
       },
-      "trns" : [
-        {
-          "replicas" : 1,
-          "maximum_service_capacity_per_sec" :155.530388,
-          "pod_boot_time_ms" : 200
+      {
+        "Limits":{
+          "Cpu_cores":2,
+          "Mem_gb":8,
+          "Request_per_sercond":0
         },
-        {
-          "replicas" : 2,
-          "maximum_service_capacity_per_sec" : 310.863891,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 3,
-          "maximum_service_capacity_per_sec" : 465.946684,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 4,
-          "maximum_service_capacity_per_sec" :620.778768,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 5,
-          "maximum_service_capacity_per_sec" : 775.360143,
-          "pod_boot_time_ms" : 200
-        }
-      ]
-    },
-    {
-      "limits" : {
-        "cpu_cores" : 2.0,
-        "mem_gb" : 8.0,
-        "request_per_sercond" : 0.0
+        "MSCs":[
+          {
+            "Replicas":1,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":6225.826813127137,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":103.76378021878561,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":37800,
+            "Sd_Pod_boot_time_ms":5381.449618829484,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":2,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":15389.39639510015,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":256.48993991833584,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":44750,
+            "Sd_Pod_boot_time_ms":1785.3571071357126,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":3,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":24545.90499572414,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":409.09841659540234,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":42500,
+            "Sd_Pod_boot_time_ms":2061.5528128088304,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":4,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":33695.3526149991,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":561.5892102499851,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":46375,
+            "Sd_Pod_boot_time_ms":3805.8343369095824,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":5,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":42837.73925292505,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":713.9623208820842,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":43600,
+            "Sd_Pod_boot_time_ms":3808.7618285561866,
+            "PredictedReplicas":0
+          }
+        ]
       },
-      "trns" : [
-        {
-          "replicas" : 1,
-          "maximum_service_capacity_per_sec" : 93.184174,
-          "pod_boot_time_ms" : 200
+      {
+        "Limits":{
+          "Cpu_cores":4,
+          "Mem_gb":16,
+          "Request_per_sercond":0
         },
-        {
-          "replicas" : 2,
-          "maximum_service_capacity_per_sec" : 249.518561,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 3,
-          "maximum_service_capacity_per_sec" : 405.602240,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 4,
-          "maximum_service_capacity_per_sec" : 561.435209,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 5,
-          "maximum_service_capacity_per_sec" : 717.017469,
-          "pod_boot_time_ms" : 200
-        }
-      ]
-    },
-    {
-      "limits" : {
-        "cpu_cores" : 4.0,
-        "mem_gb" : 16.0,
-        "request_per_sercond" : 0.0
-      },
-      "trns" : [
-        {
-          "replicas" : 1,
-          "maximum_service_capacity_per_sec" : 136.040069,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 2,
-          "maximum_service_capacity_per_sec" : 448.810086,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 3,
-          "maximum_service_capacity_per_sec" : 761.329394,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 4,
-          "maximum_service_capacity_per_sec" : 1073.597993,
-          "pod_boot_time_ms" : 200
-        },
-        {
-          "replicas" : 5,
-          "maximum_service_capacity_per_sec" :1385.615883,
-          "pod_boot_time_ms" : 200
-        }
-      ]
-    }
-  ]
-}
+        "MSCs":[
+          {
+            "Replicas":1,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":15550.280483517592,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":259.17134139195986,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":37800,
+            "Sd_Pod_boot_time_ms":5381.449618829484,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":2,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":33888.16010560516,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":564.8026684267527,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":44750,
+            "Sd_Pod_boot_time_ms":1785.3571071357126,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":3,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":52218.97874634369,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":870.3163124390614,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":42500,
+            "Sd_Pod_boot_time_ms":2061.5528128088304,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":4,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":70542.73640573322,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":1175.7122734288869,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":46375,
+            "Sd_Pod_boot_time_ms":3805.8343369095824,
+            "PredictedReplicas":0
+          },
+          {
+            "Replicas":5,
+            "Maximum_service_capacity_per_min":{
+              "Experimental":0,
+              "RegBruteForce":88859.43308377372,
+              "RegSmart":0
+            },
+            "Maximum_service_capacity_per_sec":{
+              "Experimental":0,
+              "RegBruteForce":1480.9905513962287,
+              "RegSmart":0
+            },
+            "Pod_boot_time_ms":43600,
+            "Sd_Pod_boot_time_ms":3808.7618285561866,
+            "PredictedReplicas":0
+          }
+        ]
+      }
+    ]
+  }

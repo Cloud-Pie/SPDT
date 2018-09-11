@@ -198,8 +198,8 @@ It includes the resource limits per replica, number of replicas, bootTime of the
 a VMSet suitable to deploy the containers set and the cost of the solution
 */
 type ContainersConfig struct {
-	Limits           Limit            	`json:"limits" bson:"limits"`
-	TRNConfiguration TRNConfiguration 	`json:"trns" bson:"trns"`
-	VMSet            VMScale		  	`json:"vms" bson:"vms"`
-	Cost             float64			`json:"cost" bson:"cost"`
+	Limits     Limit      `json:"limits" bson:"limits"`
+	MSCSetting MSCSetting `json:"mscs" bson:"mscs"`
+	VMSet      VMScale    `json:"vms" bson:"vms"`
+	Cost       float64    `json:"cost" bson:"cost"`
 }

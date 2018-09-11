@@ -167,7 +167,7 @@ func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.Sy
 /* Compute the max number of service replicas (Replicas capacity) that a VM can host
 	in:
 		@vmProfile types.VmProfile
-		@resourceLimit types.Limit
+		@resourceLimit types.Limits
 	out:
 		@int	Number of replicas
 */
@@ -181,7 +181,7 @@ func maxReplicasCapacityInVM(vmProfile types.VmProfile, resourceLimit types.Limi
 /* Select the service profile for a given container limit resources
 	in:
 		@requests	float64 - number of requests that the service should serve
-		@limits types.Limit	- resource limits (cpu cores and memory gb) configured in the container
+		@limits types.Limits	- resource limits (cpu cores and memory gb) configured in the container
 		@underProvision bool	- flag that indicate if when searching for a service profile, the underprovision is allowed
 	out:
 		@ContainersConfig	- configuration with number of replicas and limits that best fit for the number of requests
@@ -198,15 +198,15 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 		containerConfig = overProvisionConfig
 	} else if err2 == nil {
 		containerConfig = underProvisionConfig
-		//TODO: Should call Terminus to know the exact TRN, as temporal solution I calculated here.
-		numberReplicas := float64(containerConfig.TRNConfiguration.NumberReplicas) * requests / containerConfig.TRNConfiguration.TRN
-		containerConfig.TRNConfiguration.NumberReplicas = int(numberReplicas)
-		containerConfig.TRNConfiguration.TRN = requests
+		//TODO: Should call Terminus to know the exact MSCPerSecond, as temporal solution I calculated here.
+		numberReplicas := float64(containerConfig.MSCSetting.Replicas) * requests / containerConfig.MSCSetting.MSCPerSecond
+		containerConfig.MSCSetting.Replicas = int(numberReplicas)
+		containerConfig.MSCSetting.MSCPerSecond = requests
 
 		profilesDAO := storage.GetPerformanceProfileDAO()
 		profile,_:= profilesDAO.FindProfileByLimits(limits)
-		newTRNConf := types.TRNConfiguration{NumberReplicas:int(numberReplicas), TRN:requests, BootTimeSec:100}
-		profile.TRNConfiguration = append(profile.TRNConfiguration,newTRNConf)
+		newTRNConf := types.MSCSetting{Replicas:int(numberReplicas), MSCPerSecond:requests, BootTimeSec:100}
+		profile.MSCSettings = append(profile.MSCSettings,newTRNConf)
 		err3 := profilesDAO.UpdateById(profile.ID, profile)
 		if err3 != nil{
 			log.Error("Performance profile not updated")
@@ -232,15 +232,15 @@ func selectProfile(requests float64,  limits types.Limit, underProvision bool) t
 	if underProvision && err1 == nil && len(profilesUnder) > 0 {
 		profiles = profilesUnder
 		sort.Slice(profiles, func(i, j int) bool {
-			utilizationFactori := float64(profiles[i].TRNConfiguration.NumberReplicas) * profiles[i].Limits.CPUCores +  float64(profiles[i].TRNConfiguration.NumberReplicas) * profiles[i].Limits.MemoryGB
-			utilizationFactorj := float64(profiles[j].TRNConfiguration.NumberReplicas) * profiles[j].Limits.CPUCores + float64(profiles[j].TRNConfiguration.NumberReplicas) * profiles[i].Limits.MemoryGB
+			utilizationFactori := float64(profiles[i].MSCSetting.Replicas) * profiles[i].Limits.CPUCores +  float64(profiles[i].MSCSetting.Replicas) * profiles[i].Limits.MemoryGB
+			utilizationFactorj := float64(profiles[j].MSCSetting.Replicas) * profiles[j].Limits.CPUCores + float64(profiles[j].MSCSetting.Replicas) * profiles[i].Limits.MemoryGB
 			return utilizationFactori < utilizationFactorj
 		})
 
 	} else if err2 == nil{
 		profiles = profilesOver
 		sort.Slice(profiles, func(i, j int) bool {
-			return profiles[i].TRNConfiguration.TRN < profiles[j].TRNConfiguration.TRN
+			return profiles[i].MSCSetting.MSCPerSecond < profiles[j].MSCSetting.MSCPerSecond
 		})
 	} else if err1 == nil {
 		profiles = profilesUnder
@@ -251,21 +251,21 @@ func selectProfile(requests float64,  limits types.Limit, underProvision bool) t
 /* Select the service profile for any limit resources that satisfies the number of requests
 	in:
 		@numberReplicas	int - number of replicas
-		@limits bool types.Limit - limits constraints(cpu cores and memory gb) per replica
+		@limits bool types.Limits - limits constraints(cpu cores and memory gb) per replica
 	out:
 		@float64	- Max number of request for this containers configuration
 */
 func configurationLoadCapacity(numberReplicas int, limits types.Limit) float64 {
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
 	profile,_ := serviceProfileDAO.FindProfileTRN(limits.CPUCores, limits.MemoryGB, numberReplicas)
-	currentLoadCapacity := profile.TRNConfiguration[0].TRN
+	currentLoadCapacity := profile.MSCSettings[0].MSCPerSecond
 
 	return currentLoadCapacity
 }
 
 /* Utility method to set up each scaling configuration
 */
-func setConfiguration(configurations *[]types.ScalingAction, state types.State, timeStart time.Time, timeEnd time.Time, name string, totalServicesBootingTime int, sysConfiguration config.SystemConfiguration, stateLoadCapacity float64) {
+func setConfiguration(configurations *[]types.ScalingAction, state types.State, timeStart time.Time, timeEnd time.Time, name string, totalServicesBootingTime float64, sysConfiguration config.SystemConfiguration, stateLoadCapacity float64) {
 	nConfigurations := len(*configurations)
 	if nConfigurations >= 1 && state.Equal((*configurations)[nConfigurations-1].State) {
 		(*configurations)[nConfigurations-1].TimeEnd = timeEnd
@@ -304,7 +304,7 @@ func setConfiguration(configurations *[]types.ScalingAction, state types.State, 
 /* Build Heterogeneous cluster to deploy a number of replicas, each one with the defined constraint limits
 	in:
 		@numberReplicas	int - number of replicas
-		@limits bool types.Limit - limits constraints(cpu cores and memory gb) per replica
+		@limits bool types.Limits - limits constraints(cpu cores and memory gb) per replica
 		@mapVMProfiles - map with the profiles of VMs available
 	out:
 		@VMScale	- Map with the type of VM as key and the number of vms as value
@@ -385,7 +385,7 @@ func buildTree(node *Node, numberReplicas int, vmScaleList *[]types.VMScale, map
 /* Build Homogeneous cluster to deploy a number of replicas, each one with the defined constraint limits
 	in:
 		@numberReplicas	int - number of replicas
-		@limits bool types.Limit - limits constraints(cpu cores and memory gb) per replica
+		@limits bool types.Limits - limits constraints(cpu cores and memory gb) per replica
 		@mapVMProfiles - map with the profiles of VMs available
 	out:
 		@VMScale	- Map with the type of VM as key and the number of vms as value
@@ -448,11 +448,11 @@ func isUnderProvisionInRange(demandedRequests float64, suppliedRequests float64,
 */
 func shouldResizeContainer(currentConfiguration types.ContainersConfig, newCandidateConfiguration types.ContainersConfig) bool{
 
-	utilizationFactorCurrent :=  currentConfiguration.Limits.MemoryGB * float64(currentConfiguration.TRNConfiguration.NumberReplicas) +
-		currentConfiguration.Limits.CPUCores* float64(currentConfiguration.TRNConfiguration.NumberReplicas)
+	utilizationFactorCurrent :=  currentConfiguration.Limits.MemoryGB * float64(currentConfiguration.MSCSetting.Replicas) +
+		currentConfiguration.Limits.CPUCores* float64(currentConfiguration.MSCSetting.Replicas)
 
-	utilizationFactorNew := newCandidateConfiguration.Limits.MemoryGB * float64(newCandidateConfiguration.TRNConfiguration.NumberReplicas) +
-		newCandidateConfiguration.Limits.CPUCores* float64(newCandidateConfiguration.TRNConfiguration.NumberReplicas)
+	utilizationFactorNew := newCandidateConfiguration.Limits.MemoryGB * float64(newCandidateConfiguration.MSCSetting.Replicas) +
+		newCandidateConfiguration.Limits.CPUCores* float64(newCandidateConfiguration.MSCSetting.Replicas)
 
 	if utilizationFactorNew < utilizationFactorCurrent {
 		return true

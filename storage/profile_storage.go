@@ -65,13 +65,13 @@ func (p *PerformanceProfileDAO) UpdateById(id bson.ObjectId, performanceProfile 
 }
 
 func (p *PerformanceProfileDAO) FindByLimitsOver(cores float64, memory float64, requests float64) (types.PerformanceProfile, error) {
-	//db.getCollection('trnProfiles').find({"limits.cpu_cores" : 1000,"limits.mem_gb" : 500, "trns": {$elemMatch:{"replicas":2} } }, {_id: 0, "trns.$":1})
+	//db.getCollection('trnProfiles').find({"limits.cpu_cores" : 1000,"limits.mem_gb" : 500, "mscs": {$elemMatch:{"replicas":2} } }, {_id: 0, "mscs.$":1})
 	var performanceProfile types.PerformanceProfile
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Find(bson.M{
 					"limits.cpu_cores" : cores,
 					 "limits.mem_gb" : memory,
-					"trns": bson.M{"$elemMatch": bson.M{"maximum_service_capacity_per_sec":bson.M{"$gte": requests}}}}).
-		Select(bson.M{"_id": 0, "limits":1, "trns.$":1}).One(&performanceProfile)
+					"mscs": bson.M{"$elemMatch": bson.M{"maximum_service_capacity_per_sec":bson.M{"$gte": requests}}}}).
+		Select(bson.M{"_id": 0, "limits":1, "mscs.$":1}).One(&performanceProfile)
 	return performanceProfile,err
 }
 
@@ -81,14 +81,14 @@ func (p *PerformanceProfileDAO) FindByLimitsUnder(cores float64, memory float64,
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Find(bson.M{
 		"limits.cpu_cores" : cores,
 		"limits.mem_gb" : memory,
-		"trns": bson.M{"$elemMatch": bson.M{"maximum_service_capacity_per_sec":bson.M{"$lt": requests}}}}).
-		Select(bson.M{"_id": 0, "limits":1, "trns.$":1}).One(&performanceProfile)
+		"mscs": bson.M{"$elemMatch": bson.M{"maximum_service_capacity_per_sec":bson.M{"$lt": requests}}}}).
+		Select(bson.M{"_id": 0, "limits":1, "mscs.$":1}).One(&performanceProfile)
 
 	return performanceProfile,err
 }
 
 /*
-	Matches the profiles that have exactly the resource limits specified as input and that provide a TRN greater or equal
+	Matches the profiles that have exactly the resource limits specified as input and that provide a MSCPerSecond greater or equal
 	than the number of requests needed
 	in:
 		@cores float64
@@ -102,15 +102,15 @@ func (p *PerformanceProfileDAO) MatchByLimitsOver(cores float64, memory float64,
 	var result types.ContainersConfig
 	query := []bson.M{
 		bson.M{"$match" : bson.M{"limits.cpu_cores" : cores,"limits.mem_gb" : memory} },
-		bson.M{"$unwind": "$trns" },
-		bson.M{"$match": bson.M{"trns.maximum_service_capacity_per_sec":bson.M{"$gte": requests}}},
-		bson.M{"$sort": bson.M{"trns.maximum_service_capacity_per_sec": 1}}}
+		bson.M{"$unwind": "$mscs" },
+		bson.M{"$match": bson.M{"mscs.maximum_service_capacity_per_sec":bson.M{"$gte": requests}}},
+		bson.M{"$sort": bson.M{"mscs.maximum_service_capacity_per_sec": 1}}}
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Pipe(query).One(&result)
 	return result, err
 }
 
 /*
-	Matches the profiles that have exactly the resource limits specified as input and that provide a TRN less
+	Matches the profiles that have exactly the resource limits specified as input and that provide a MSCPerSecond less
 	than the number of requests needed
 	in:
 		@cores float64
@@ -124,15 +124,15 @@ func (p *PerformanceProfileDAO) MatchByLimitsUnder(cores float64, memory float64
 	var result types.ContainersConfig
 	query := []bson.M{
 		bson.M{"$match" : bson.M{"limits.cpu_cores" : cores,"limits.mem_gb" : memory} },
-		bson.M{"$unwind": "$trns" },
-		bson.M{"$match": bson.M{"trns.maximum_service_capacity_per_sec":bson.M{"$lt": requests}}},
-		bson.M{"$sort": bson.M{"trns.maximum_service_capacity_per_sec": -1}}}
+		bson.M{"$unwind": "$mscs" },
+		bson.M{"$match": bson.M{"mscs.maximum_service_capacity_per_sec":bson.M{"$lt": requests}}},
+		bson.M{"$sort": bson.M{"mscs.maximum_service_capacity_per_sec": -1}}}
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Pipe(query).One(&result)
 	return result, err
 }
 
 /*
-	Matches the profiles without consider restriction of limits that provide a TRN greater or equal
+	Matches the profiles without consider restriction of limits that provide a MSCPerSecond greater or equal
 	than the number of requests needed
 	in:
 		@requests float64
@@ -144,15 +144,15 @@ func (p *PerformanceProfileDAO) MatchByLimitsUnder(cores float64, memory float64
 func (p *PerformanceProfileDAO) MatchOver(requests float64) ([]types.ContainersConfig, error) {
 	var result []types.ContainersConfig
 	query := []bson.M{
-		bson.M{"$unwind": "$trns" },
-		bson.M{"$match": bson.M{"trns.maximum_service_capacity_per_sec":bson.M{"$gte": requests}}},
-		bson.M{"$sort": bson.M{"limits.cpu_cores":1, "limits.mem_gb":1, "trns.replicas":1, "trns.maximum_service_capacity_per_sec": 1}}}
+		bson.M{"$unwind": "$mscs" },
+		bson.M{"$match": bson.M{"mscs.maximum_service_capacity_per_sec":bson.M{"$gte": requests}}},
+		bson.M{"$sort": bson.M{"limits.cpu_cores":1, "limits.mem_gb":1, "mscs.replicas":1, "mscs.maximum_service_capacity_per_sec": 1}}}
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Pipe(query).All(&result)
 	return result, err
 }
 
 /*
-	Matches the profiles without consider restriction of limits that provide a TRN less than
+	Matches the profiles without consider restriction of limits that provide a MSCPerSecond less than
 	than the number of requests needed
 	in:
 		@requests float64
@@ -163,15 +163,15 @@ func (p *PerformanceProfileDAO) MatchOver(requests float64) ([]types.ContainersC
 func (p *PerformanceProfileDAO) MatchUnder(requests float64) ([]types.ContainersConfig, error) {
 	var result []types.ContainersConfig
 	query := []bson.M{
-		bson.M{"$unwind": "$trns" },
-		bson.M{"$match": bson.M{"trns.maximum_service_capacity_per_sec":bson.M{"$lt": requests}}},
-		bson.M{"$sort": bson.M{"limits.cpu_cores":1, "limits.mem_gb":1, "trns.replicas":1, "trns.maximum_service_capacity_per_sec":-1}}}
+		bson.M{"$unwind": "$mscs" },
+		bson.M{"$match": bson.M{"mscs.maximum_service_capacity_per_sec":bson.M{"$lt": requests}}},
+		bson.M{"$sort": bson.M{"limits.cpu_cores":1, "limits.mem_gb":1, "mscs.replicas":1, "mscs.maximum_service_capacity_per_sec":-1}}}
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Pipe(query).All(&result)
 	return result, err
 }
 
 /*
-	Matches the profiles  which fit into the specified limits and that provide a TRN greater or equal than
+	Matches the profiles  which fit into the specified limits and that provide a MSCPerSecond greater or equal than
 	than the number of requests needed
 	in:
 		@requests float64
@@ -183,9 +183,9 @@ func (p *PerformanceProfileDAO) MatchProfileFitLimitsOver(cores float64, memory 
 	var result []types.ContainersConfig
 	query := []bson.M{
 		bson.M{ "$match" : bson.M{"limits.cpu_cores" : bson.M{"$lte": cores}, "limits.mem_gb" : bson.M{"$lte":memory}}},
-		bson.M{"$unwind": "$trns" },
-		bson.M{"$match": bson.M{"trns.maximum_service_capacity_per_sec":bson.M{"$gte": requests}}},
-		bson.M{"$sort": bson.M{"limits.cpu_cores":1, "limits.mem_gb":1, "trns.replicas":1, "trns.maximum_service_capacity_per_sec": 1}}}
+		bson.M{"$unwind": "$mscs" },
+		bson.M{"$match": bson.M{"mscs.maximum_service_capacity_per_sec":bson.M{"$gte": requests}}},
+		bson.M{"$sort": bson.M{"limits.cpu_cores":1, "limits.mem_gb":1, "mscs.replicas":1, "mscs.maximum_service_capacity_per_sec": 1}}}
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Pipe(query).All(&result)
 	if len(result) == 0 {
 		return result, errors.New("No result found")
@@ -194,7 +194,7 @@ func (p *PerformanceProfileDAO) MatchProfileFitLimitsOver(cores float64, memory 
 }
 
 /*
-	Matches the profiles  which fit into the specified limits and that provide a TRN less than
+	Matches the profiles  which fit into the specified limits and that provide a MSCPerSecond less than
 	than the number of requests needed
 	in:
 		@requests float64
@@ -206,9 +206,9 @@ func (p *PerformanceProfileDAO) MatchProfileFitLimitsUnder(cores float64, memory
 	var result []types.ContainersConfig
 	query := []bson.M{
 		bson.M{ "$match" : bson.M{"limits.cpu_cores" : bson.M{"$lte": cores}, "limits.mem_gb" : bson.M{"$lte":memory}}},
-		bson.M{"$unwind": "$trns" },
-		bson.M{"$match": bson.M{"trns.maximum_service_capacity_per_sec":bson.M{"$lt": requests}}},
-		bson.M{"$sort": bson.M{"limits.cpu_cores":1, "limits.mem_gb":1, "trns.replicas":1, "trns.maximum_service_capacity_per_sec":-1}}}
+		bson.M{"$unwind": "$mscs" },
+		bson.M{"$match": bson.M{"mscs.maximum_service_capacity_per_sec":bson.M{"$lt": requests}}},
+		bson.M{"$sort": bson.M{"limits.cpu_cores":1, "limits.mem_gb":1, "mscs.replicas":1, "mscs.maximum_service_capacity_per_sec":-1}}}
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Pipe(query).All(&result)
 	if len(result) == 0 {
 		return result, errors.New("No result found")
@@ -219,16 +219,16 @@ func (p *PerformanceProfileDAO) MatchProfileFitLimitsUnder(cores float64, memory
 func (p *PerformanceProfileDAO) FindNewLimitsOver(requests float64) ([]types.PerformanceProfile, error) {
 	var performanceProfile []types.PerformanceProfile
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Find(bson.M{
-		"trns": bson.M{"$elemMatch": bson.M{"maximum_service_capacity_per_sec":bson.M{"$gte": requests}}}}).
-		Select(bson.M{"_id": 0, "limits":1, "trns.$":1}).All(&performanceProfile)
+		"mscs": bson.M{"$elemMatch": bson.M{"maximum_service_capacity_per_sec":bson.M{"$gte": requests}}}}).
+		Select(bson.M{"_id": 0, "limits":1, "mscs.$":1}).All(&performanceProfile)
 	return performanceProfile,err
 }
 
 func (p *PerformanceProfileDAO) FindNewLimitsUnder(requests float64) ([]types.PerformanceProfile, error) {
 	var performanceProfile []types.PerformanceProfile
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Find(bson.M{
-		"trns": bson.M{"$elemMatch": bson.M{"maximum_service_capacity_per_sec":bson.M{"$lt": requests}}}}).
-		Select(bson.M{"_id": 0, "limits":1, "trns.$":1}).All(&performanceProfile)
+		"mscs": bson.M{"$elemMatch": bson.M{"maximum_service_capacity_per_sec":bson.M{"$lt": requests}}}}).
+		Select(bson.M{"_id": 0, "limits":1, "mscs.$":1}).All(&performanceProfile)
 	return performanceProfile,err
 }
 
@@ -237,8 +237,8 @@ func (p *PerformanceProfileDAO) FindProfileTRN(cores float64, memory float64, nu
 	err := p.db.C(util.DEFAULT_DB_COLLECTION_PROFILES).Find(bson.M{
 		"limits.cpu_cores" : cores,
 		"limits.mem_gb" : memory,
-		"trns": bson.M{"$elemMatch": bson.M{"replicas":bson.M{"$gte": numberReplicas}}}}).
-		Select(bson.M{"_id": 0, "limits":1, "trns.$":1}).One(&performanceProfile)
+		"mscs": bson.M{"$elemMatch": bson.M{"replicas":bson.M{"$gte": numberReplicas}}}}).
+		Select(bson.M{"_id": 0, "limits":1, "mscs.$":1}).One(&performanceProfile)
 	return performanceProfile,err
 }
 

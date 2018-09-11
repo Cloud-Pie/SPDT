@@ -60,7 +60,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 				}
 			}
 
-			vmSet,err := p.FindSuitableVMs(ProfileCurrentLimits.TRNConfiguration.NumberReplicas, ProfileCurrentLimits.Limits, vmType)
+			vmSet,err := p.FindSuitableVMs(ProfileCurrentLimits.MSCSetting.Replicas, ProfileCurrentLimits.Limits, vmType)
 			if err !=  nil {
 				vmTypeSuitable = false
 			}
@@ -72,7 +72,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 				if resize {
 					ProfileCurrentLimitsUnder = ProfileNewLimitsUnder
 				}
-				vmSetUnder,err2 := p.FindSuitableVMs(ProfileCurrentLimits.TRNConfiguration.NumberReplicas, ProfileCurrentLimits.Limits, vmType)
+				vmSetUnder,err2 := p.FindSuitableVMs(ProfileCurrentLimits.MSCSetting.Replicas, ProfileCurrentLimits.Limits, vmType)
 
 				if err2 !=  nil {
 					vmTypeSuitable = false
@@ -80,7 +80,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 					break
 				}
 				vmTypeSuitable = true
-				if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.TRNConfiguration.TRN, percentageUnderProvision) &&
+				if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.MSCSetting.MSCPerSecond, percentageUnderProvision) &&
 					vmSetUnder.Cost(p.mapVMProfiles) < vmSet.Cost(p.mapVMProfiles) {
 
 					vmSet = vmSetUnder
@@ -88,9 +88,9 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 				}
 			}
 
-			newNumServiceReplicas := ProfileCurrentLimits.TRNConfiguration.NumberReplicas
-			stateLoadCapacity := ProfileCurrentLimits.TRNConfiguration.TRN
-			totalServicesBootingTime := ProfileCurrentLimits.TRNConfiguration.BootTimeSec
+			newNumServiceReplicas := ProfileCurrentLimits.MSCSetting.Replicas
+			stateLoadCapacity := ProfileCurrentLimits.MSCSetting.MSCPerSecond
+			totalServicesBootingTime := ProfileCurrentLimits.MSCSetting.BootTimeSec
 			limits := ProfileCurrentLimits.Limits
 
 			services :=  make(map[string]types.ServiceInfo)

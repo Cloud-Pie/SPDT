@@ -61,17 +61,17 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		if deltaLoad == 0 {
 			resourcesConfiguration.VMSet = p.currentState.VMs
 			resourcesConfiguration.Limits = currentContainerLimits
-			resourcesConfiguration.TRNConfiguration = types.TRNConfiguration{TRN:currentLoadCapacity, NumberReplicas:currentNumberReplicas,}
+			resourcesConfiguration.MSCSetting = types.MSCSetting{MSCPerSecond:currentLoadCapacity, Replicas:currentNumberReplicas,}
 
 		} else 	{
 			//Candidate option to handle total load with current limits
 			profileCurrentLimits := selectProfileWithLimits(totalLoad, currentContainerLimits, false)
 
-			vmSetTLoad := p.FindSuitableVMs(profileCurrentLimits.TRNConfiguration.NumberReplicas, profileCurrentLimits.Limits)
+			vmSetTLoad := p.FindSuitableVMs(profileCurrentLimits.MSCSetting.Replicas, profileCurrentLimits.Limits)
 			resourceConfigTLoad := types.ContainersConfig {
-				Limits:           profileCurrentLimits.Limits,
-				TRNConfiguration: profileCurrentLimits.TRNConfiguration,
-				VMSet:            vmSetTLoad,
+				Limits:     profileCurrentLimits.Limits,
+				MSCSetting: profileCurrentLimits.MSCSetting,
+				VMSet:      vmSetTLoad,
 			}
 
 			rConfigDeltaLoad := types.ContainersConfig {}
@@ -82,21 +82,21 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 				currentReplicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
 				//Validate if the current configuration is able to handle the new replicas
 				//Using the current Resource Limits configuration for the containers
-				if currentReplicasCapacity > profileCurrentLimits.TRNConfiguration.NumberReplicas {
+				if currentReplicasCapacity > profileCurrentLimits.MSCSetting.Replicas {
 					//case 1: Increases number of replicas but VMS remain the same
 					resourcesConfiguration.VMSet = p.currentState.VMs
 					resourcesConfiguration.Limits = profileCurrentLimits.Limits
-					resourcesConfiguration.TRNConfiguration = profileCurrentLimits.TRNConfiguration
+					resourcesConfiguration.MSCSetting = profileCurrentLimits.MSCSetting
 				} else {
 					//case 2: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.
-					deltaNumberReplicas := profileCurrentLimits.TRNConfiguration.NumberReplicas - currentNumberReplicas
+					deltaNumberReplicas := profileCurrentLimits.MSCSetting.Replicas - currentNumberReplicas
 					vmSetDeltaLoad := p.FindSuitableVMs(deltaNumberReplicas,profileCurrentLimits.Limits)
 
 					if underProvisionAllowed {
 						ProfileCurrentLimitsUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-						vmSetUnder := p.FindSuitableVMs(profileCurrentLimits.TRNConfiguration.NumberReplicas, profileCurrentLimits.Limits)
+						vmSetUnder := p.FindSuitableVMs(profileCurrentLimits.MSCSetting.Replicas, profileCurrentLimits.Limits)
 
-						if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.TRNConfiguration.TRN, percentageUnderProvision) &&
+						if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.MSCSetting.MSCPerSecond, percentageUnderProvision) &&
 							vmSetUnder.Cost(p.mapVMProfiles) < vmSetDeltaLoad.Cost(p.mapVMProfiles) {
 							vmSetDeltaLoad = vmSetUnder
 							profileCurrentLimits = ProfileCurrentLimitsUnder
@@ -106,7 +106,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 					vmSetDeltaLoad.Merge(p.currentState.VMs)
 
 					rConfigDeltaLoad.Limits = profileCurrentLimits.Limits
-					rConfigDeltaLoad.TRNConfiguration = profileCurrentLimits.TRNConfiguration
+					rConfigDeltaLoad.MSCSetting = profileCurrentLimits.MSCSetting
 					rConfigDeltaLoad.VMSet = vmSetDeltaLoad
 
 					if containerResizeEnabled {
@@ -129,13 +129,13 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 			} else if deltaLoad < 0 {
 				//Need to decrease resources
 				deltaLoad *= -1
-				deltaNumberReplicas := currentNumberReplicas - profileCurrentLimits.TRNConfiguration.NumberReplicas
+				deltaNumberReplicas := currentNumberReplicas - profileCurrentLimits.MSCSetting.Replicas
 
 				//Build new VM set releasing resources used by extra container replicas
 				vmSetDeltaLoad := p.releaseResources(deltaNumberReplicas,p.currentState.VMs)
 
 				rConfigDeltaLoad.Limits = profileCurrentLimits.Limits
-				rConfigDeltaLoad.TRNConfiguration = profileCurrentLimits.TRNConfiguration
+				rConfigDeltaLoad.MSCSetting = profileCurrentLimits.MSCSetting
 				rConfigDeltaLoad.VMSet = vmSetDeltaLoad
 
 				if containerResizeEnabled {
@@ -158,7 +158,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		}
 		services := make(map[string]types.ServiceInfo)
 		services[p.sysConfiguration.ServiceName] = types.ServiceInfo {
-			Scale:  resourcesConfiguration.TRNConfiguration.NumberReplicas,
+			Scale:  resourcesConfiguration.MSCSetting.Replicas,
 			CPU:    resourcesConfiguration.Limits.CPUCores,
 			Memory: resourcesConfiguration.Limits.MemoryGB,
 		}
@@ -171,8 +171,8 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		state.VMs = vmSet
 		timeStart := it.TimeStart
 		timeEnd := it.TimeEnd
-		totalServicesBootingTime := resourcesConfiguration.TRNConfiguration.BootTimeSec
-		stateLoadCapacity := resourcesConfiguration.TRNConfiguration.TRN
+		totalServicesBootingTime := resourcesConfiguration.MSCSetting.BootTimeSec
+		stateLoadCapacity := resourcesConfiguration.MSCSetting.MSCPerSecond
 		setConfiguration(&configurations,state,timeStart,timeEnd,p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration,stateLoadCapacity)
 		//Update current state
 		p.currentState = state
@@ -315,23 +315,23 @@ func (p DeltaRepackedPolicy) isCurrentlyHomogeneous() (string, bool) {
 		@error
 
 */
-func (p DeltaRepackedPolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.TRNConfiguration,
-	newLimits types.Limit, profileNewLimits types.TRNConfiguration, containerResize bool) (TRNProfile, error) {
+func (p DeltaRepackedPolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.MSCSetting,
+	newLimits types.Limit, profileNewLimits types.MSCSetting, containerResize bool) (TRNProfile, error) {
 
-	currentNumberReplicas := float64(profileCurrentLimits.NumberReplicas)
+	currentNumberReplicas := float64(profileCurrentLimits.Replicas)
 	utilizationCurrent := (currentNumberReplicas * currentLimits.CPUCores)+(currentNumberReplicas * currentLimits.MemoryGB)
 
-	newNumberReplicas := float64(profileNewLimits.NumberReplicas)
+	newNumberReplicas := float64(profileNewLimits.Replicas)
 	utilizationNew := (newNumberReplicas * newLimits.CPUCores)+(newNumberReplicas * newLimits.MemoryGB)
 
 	if utilizationNew < utilizationCurrent && containerResize {
 		return TRNProfile{ResourceLimits:newLimits,
 							NumberReplicas:int(newNumberReplicas),
-							TRN:profileNewLimits.TRN,}, nil
+							TRN:profileNewLimits.MSCPerSecond,}, nil
 	} else {
 		return TRNProfile{ResourceLimits:currentLimits,
 			NumberReplicas:int(currentNumberReplicas),
-			TRN:profileCurrentLimits.TRN,}, nil
+			TRN:profileCurrentLimits.MSCPerSecond,}, nil
 	}
 }
 
@@ -349,7 +349,7 @@ func(p DeltaRepackedPolicy) shouldRepackVMSet(currentOption types.ContainersConf
 		idx := indexTimeInterval
 		lenInterval := len(timeIntervals)
 		//Compute duration for new set
-		candidateLoadCapacity := candidateOption.TRNConfiguration.TRN
+		candidateLoadCapacity := candidateOption.MSCSetting.MSCPerSecond
 		for idx < lenInterval {
 			if timeIntervals[idx].Requests > candidateLoadCapacity {
 				timeEnd = timeIntervals[idx].TimeStart
@@ -362,7 +362,7 @@ func(p DeltaRepackedPolicy) shouldRepackVMSet(currentOption types.ContainersConf
 
 		//Compute duration for current set
 		jdx := indexTimeInterval
-		currentLoadCapacity := currentOption.TRNConfiguration.TRN
+		currentLoadCapacity := currentOption.MSCSetting.MSCPerSecond
 		for jdx < lenInterval {
 			if timeIntervals[jdx].Requests > currentLoadCapacity{
 				timeEnd = timeIntervals[jdx].TimeStart

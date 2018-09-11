@@ -5,11 +5,23 @@ services:
         container_name: 'spdt'
         ports:
             - 8083:8083
+        depends_on:
+            - 'db-profiles'
+            - 'db-policies'
+            - 'db-forecast'
+            - 'serie-processing'
+        links:
+            - 'db-profiles'
+            - 'db-policies'
+            - 'db-forecast'
+            - 'serie-processing'
+
     serie-processing:
           build: Time-Serie-Processing
           container_name: 'serie'
           ports:
              - 5003:5003
+
     db-profiles:
          image: mongo:3.6.5
          container_name: 'profilesdb'
@@ -18,9 +30,10 @@ services:
              - MONGO_DATA_DIR=/data/db
              - MONGO_LOG_DIR=/dev/null
          ports:
-              - 27016:27016
+              - 27016:27017
          volumes:
               - db-data-pro:/root/mongodb/data
+
     db-policies:
          image: mongo:3.6.5
          container_name: 'policiesdb'
@@ -29,7 +42,7 @@ services:
             - MONGO_DATA_DIR=/data/db
             - MONGO_LOG_DIR=/dev/null
          ports:
-            - 27018:27018
+            - 27018:27017
          volumes:
             - db-data-pol:/root/mongodb/data
 
@@ -41,7 +54,7 @@ services:
           - MONGO_DATA_DIR=/data/db
           - MONGO_LOG_DIR=/dev/null
         ports:
-          - 27019:27019
+          - 27019:27017
         volumes:
           - db-data-for:/root/mongodb/data
 volumes:
