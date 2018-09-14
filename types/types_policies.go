@@ -5,6 +5,9 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+/*VMScale is the factor for which a type of VM is scales*/
+type VMTimeRecord map[string][]time.Time
+
 /*Service keeps the name and scale of the scaled service*/
 type Service map[string]ServiceInfo
 
@@ -99,6 +102,19 @@ type State struct {
 	VMs        VMScale   `json:"VMs"`
 }
 
+type RequestCapacitySupply struct {
+	ID                bson.ObjectId         `bson:"_id"`
+	StatesCapacity   []StateLoadCapacity	`json:"requests_supplied"  bson:"requests_supplied"`
+	TimeWindowStart   time.Time				`json:"window_time_start"  bson:"window_time_start"`
+	TimeWindowEnd     time.Time				`json:"window_time_end"  bson:"window_time_end"`
+}
+
+/*Represent the number of requests for a time T*/
+type StateLoadCapacity struct {
+	 TimeStamp   time.Time	`json:"timestamp"`
+	 Requests	float64     `json:"max_request_capacity"`
+}
+
 /*_________________________________________
 		State Methods
 ___________________________________________
@@ -142,8 +158,8 @@ type PolicyMetrics struct {
 	StartTimeDerivation           time.Time		`json:"start_derivation_time" bson:"start_derivation_time"`
 	FinishTimeDerivation          time.Time		`json:"finish_derivation_time" bson:"finish_derivation_time"`
 	DerivationDuration            float64       `json:"derivation_duration" bson:"derivation_duration"`
-	NumberVMScalingActions        int		  	`json:"num_scale_containers" bson:"num_scale_containers"`
-	NumberContainerScalingActions int		  	`json:"num_scale_vms" bson:"num_scale_vms"`
+	NumberVMScalingActions        int		  	`json:"num_scale_vms" bson:"num_scale_vms"`
+	NumberContainerScalingActions int		  	`json:"num_scale_containers" bson:"num_scale_containers"`
 }
 
 /*Resource configuration*/
@@ -152,6 +168,7 @@ type ScalingAction struct {
 	TimeStart 				time.Time			`json:"time_start" bson:"time_start"`
 	TimeEnd					time.Time			`json:"time_end" bson:"time_end"`
 	Metrics					ConfigMetrics		`json:"metrics" bson:"metrics"`
+	TimeStartBilling		time.Time			`json:"time_start_billing" bson:"time_start_billing"`
 }
 
 

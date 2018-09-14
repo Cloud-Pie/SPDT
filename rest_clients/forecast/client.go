@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/url"
 	"time"
+	"bytes"
 )
 
 func GetForecast(endpoint string, startTime time.Time, endTime time.Time) (types.Forecast, error){
@@ -37,4 +38,10 @@ func GetForecast(endpoint string, startTime time.Time, endTime time.Time) (types
 		return forecast,err
 	}
 	return forecast,nil
+}
+
+func PostMaxRequestCapacities(loadCapacitiesPerState types.RequestCapacitySupply, endpoint string) error {
+	jsonValue, _ := json.Marshal(loadCapacitiesPerState)
+	_, err := http.Post(endpoint, "application/json", bytes.NewBuffer(jsonValue))
+	return err
 }
