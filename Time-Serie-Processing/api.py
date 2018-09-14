@@ -8,7 +8,7 @@ app = Flask(__name__)
 def processSignal():
     threshold = request.json['threshold']
     serie = request.json['serie']
-    response = poi(serie)
+    response = getMeassures(serie)
     y ={"PoI": response}
     return jsonify(y)
 

@@ -22,7 +22,7 @@ def  poi(x):
         response.append(interval)
     return response
 
-def getMeassures(x, threshold):
+def getMeassures(x):
 
     vector = np.array(x)
     invvector = vector * -1
@@ -130,7 +130,8 @@ def getMeassures(x, threshold):
             interval["index_in_interval_right"] = list(range(interval["index"] + 1, end))
             response.append(interval)
 
-        return response,peaks, valleys, properties, propValleys, vector, invvector
+        #return response,peaks, valleys, properties, propValleys, vector, invvector
+        return response
     else:
         for t in range(1,len(vector)-2):
             interval = {}

@@ -89,20 +89,20 @@ func getPolicies(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, err.Error())
 		}
 	} else if windowTimeStart == "" && windowTimeEnd != "" {
-		time, err := time.Parse(util.STD_TIME_LAYOUT, windowTimeEnd)
+		time, err := time.Parse(util.UTC_TIME_LAYOUT, windowTimeEnd)
 		policies,err = policyDAO.FindByEndTime(time)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, err.Error())
 		}
 	} else if windowTimeStart != "" && windowTimeEnd == "" {
-		time, err := time.Parse(util.STD_TIME_LAYOUT, windowTimeStart)
+		time, err := time.Parse(util.UTC_TIME_LAYOUT, windowTimeStart)
 		policies,err = policyDAO.FindByStartTime(time)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, err.Error())
 		}
 	} else if windowTimeStart != "" && windowTimeEnd != "" {
-		startTime, err := time.Parse(util.STD_TIME_LAYOUT, windowTimeStart)
-		endTime, err := time.Parse(util.STD_TIME_LAYOUT, windowTimeEnd)
+		startTime, err := time.Parse(util.UTC_TIME_LAYOUT, windowTimeStart)
+		endTime, err := time.Parse(util.UTC_TIME_LAYOUT, windowTimeEnd)
 		policies,err = policyDAO.FindAllByTimeWindow(startTime,endTime)
 		if err != nil && len(policies)==0{
 			c.JSON(http.StatusOK, policies)
@@ -126,8 +126,8 @@ func deletePolicyWindow(c *gin.Context) {
 	policyDAO.Connect()
 
 	if windowTimeStart != "" && windowTimeEnd != "" {
-		startTime, err := time.Parse(util.STD_TIME_LAYOUT, windowTimeStart)
-		endTime, err := time.Parse(util.STD_TIME_LAYOUT, windowTimeEnd)
+		startTime, err := time.Parse(util.UTC_TIME_LAYOUT, windowTimeStart)
+		endTime, err := time.Parse(util.UTC_TIME_LAYOUT, windowTimeEnd)
 		err = policyDAO.DeleteOneByTimeWindow(startTime,endTime)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, err.Error())
@@ -196,8 +196,8 @@ func getRequests(c *gin.Context) {
 	forecastedValues :=[]float64{}
 
 	if windowTimeStart != "" && windowTimeEnd != "" {
-		startTime, err := time.Parse(util.STD_TIME_LAYOUT, windowTimeStart)
-		endTime, err := time.Parse(util.STD_TIME_LAYOUT, windowTimeEnd)
+		startTime, err := time.Parse(util.UTC_TIME_LAYOUT, windowTimeStart)
+		endTime, err := time.Parse(util.UTC_TIME_LAYOUT, windowTimeEnd)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, err.Error())
 		} else {
@@ -221,8 +221,8 @@ func getRequests(c *gin.Context) {
 
 func getTRN(c *gin.Context) {
 	dao := db.GetForecastDAO()
-	startTime, _ := time.Parse(util.STD_TIME_LAYOUT, "2019-08-08T05:24:00.000Z")
-	endTime, _ := time.Parse(util.STD_TIME_LAYOUT, "2019-08-09T05:25:00.000Z")
+	startTime, _ := time.Parse(util.UTC_TIME_LAYOUT, "2019-08-08T05:24:00.000Z")
+	endTime, _ := time.Parse(util.UTC_TIME_LAYOUT, "2019-08-09T05:25:00.000Z")
 	f, _ := dao.FindOneByTimeWindow(startTime, endTime)
 
 	c.JSON(http.StatusOK, f)
