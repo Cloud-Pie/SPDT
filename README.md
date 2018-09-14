@@ -1,9 +1,12 @@
 # SPDT
 Scaling Policy Derivation Tool
 
+#Set Up
+Modify config.yml accordingly
+
 #RUN
-Execute go run cmd/spd/main.go
+Execute docker-compose up
 
 #Test
 To test use the mocks in /test
-go run mock_performance_profiles_service.go
+go run mock_services.go
