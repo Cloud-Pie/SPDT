@@ -1,7 +1,7 @@
 package util
 
 //Services endpoints
-const URL_SERIE_PROCESSING = "http://serie-processing:5003/api/peaks"
+const URL_SERIE_PROCESSING = "http://serie:5000/api/peaks"
 const ENDPOINT_SERIE_PROCESSING = "/api/peaks"
 const ENDPOINT_SERVICE_PROFILES = "/api/profiles"
 const ENDPOINT_VMS_PROFILES = "/api/vms"
