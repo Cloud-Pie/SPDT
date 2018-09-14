@@ -267,6 +267,7 @@ func configurationLoadCapacity(numberReplicas int, limits types.Limit) float64 {
 */
 func setConfiguration(configurations *[]types.ScalingAction, state types.State, timeStart time.Time, timeEnd time.Time, name string, totalServicesBootingTime float64, sysConfiguration config.SystemConfiguration, stateLoadCapacity float64) {
 	nConfigurations := len(*configurations)
+	timeStartBill := timeStart
 	if nConfigurations >= 1 && state.Equal((*configurations)[nConfigurations-1].State) {
 		(*configurations)[nConfigurations-1].TimeEnd = timeEnd
 	} else {
@@ -276,27 +277,40 @@ func setConfiguration(configurations *[]types.ScalingAction, state types.State, 
 
 		//Adjust booting times for resources configuration
 		if nConfigurations >= 1 {
-			vmAdded, vmRemoved := DeltaVMSet((*configurations)[nConfigurations-1].State.VMs ,state.VMs)
+			currentVMSet := (*configurations)[nConfigurations-1].State.VMs
+			vmAdded, vmRemoved := DeltaVMSet(currentVMSet,state.VMs)
 			//Adjust previous configuration
-			if len(vmRemoved) > 0 {
+			nVMRemoved := len(vmRemoved)
+			if nVMRemoved > 0 {
 				finishTimeVMRemoved = computeVMTerminationTime(vmRemoved, sysConfiguration)
 				previousTimeEnd := (*configurations)[nConfigurations-1].TimeEnd
 				(*configurations)[nConfigurations-1].TimeEnd = previousTimeEnd.Add(time.Duration(finishTimeVMRemoved) * time.Second)
 			}
-			if len(vmAdded) > 0 {
+			nVMAdded := len(vmAdded)
+			if nVMAdded > 0 {
 				bootTimeVMAdded = computeVMBootingTime(vmAdded, sysConfiguration)
 			}
+			lastBilledStartedTime := (*configurations)[nConfigurations-1].TimeStartBilling
+			removeBilledVMs := checkBillingPeriod(sysConfiguration.PricingModel.BillingUnit, nVMRemoved, lastBilledStartedTime,timeStart)
+			if !removeBilledVMs {
+				newVMSet := currentVMSet
+				newVMSet.Merge(vmAdded)
+				state.VMs = newVMSet
+			}
+			hasVMSetChanged := nVMRemoved > 0 || nVMAdded > 0
+			timeStartBill = updateStartBillingTime(lastBilledStartedTime, timeStart, hasVMSetChanged)
 		}
 		startTime := timeStart.Add(-1 * time.Duration(bootTimeVMAdded) * time.Second)       //Booting/Termination time VM
 		startTime = startTime.Add(-1 * time.Duration(totalServicesBootingTime) * time.Second) //Start time containers
 		state.LaunchTime = startTime
-		state.Name = strconv.Itoa(nConfigurations) + "__" + name + "__" + startTime.Format(util.TIME_LAYOUT)
+		state.Name = strconv.Itoa(nConfigurations) + "__" + name + "__" + timeStart.Format(util.TIME_LAYOUT)
 		*configurations = append(*configurations,
-			types.ScalingAction{
+			types.ScalingAction {
 				State:          state,
 				TimeStart:      timeStart,
 				TimeEnd:        timeEnd,
 				Metrics:types.ConfigMetrics{RequestsCapacity:stateLoadCapacity,},
+				TimeStartBilling:timeStartBill,
 			})
 	}
 }
@@ -458,4 +472,31 @@ func shouldResizeContainer(currentConfiguration types.ContainersConfig, newCandi
 		return true
 	}
 	return false
+}
+
+func checkBillingPeriod(billingUnit string, nRemovedVMs int, startBillingTime time.Time, startScalingAction time.Time) (bool) {
+	switch billingUnit {
+		case util.SECOND :
+			return true
+		case util.HOUR:
+			delta := startScalingAction.Sub(startBillingTime).Hours() - math.Floor(startScalingAction.Sub(startBillingTime).Hours())
+			if delta > 0.7 && nRemovedVMs > 0 {
+				return true
+			}
+	}
+	return false
+}
+
+func updateStartBillingTime(lastStartBillingTime time.Time, startScalingAction time.Time, hasVMSetChanged bool) time.Time {
+	startBillingTime := lastStartBillingTime
+	billedPeriod := startScalingAction.Sub(lastStartBillingTime).Hours()
+	if billedPeriod >= 1 && hasVMSetChanged{
+		bp := int(math.Floor(billedPeriod))
+		startBillingTime = startBillingTime.Add(time.Duration(bp)* time.Hour)
+	}
+	return startBillingTime
+}
+
+func computeTransitionTime(vmScale bool, podResize bool) {
+	//TODO
 }

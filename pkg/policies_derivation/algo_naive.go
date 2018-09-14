@@ -49,23 +49,23 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 
 		//Select the performance profile that fits better
 		containerConfigOver := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
-		newNumServiceReplicas := containerConfigOver.TRNConfiguration.NumberReplicas
+		newNumServiceReplicas := containerConfigOver.MSCSetting.Replicas
 		vmSet := p.FindSuitableVMs(newNumServiceReplicas, containerConfigOver.Limits)
 		costOver := vmSet.Cost(p.mapVMProfiles)
-		stateLoadCapacity := containerConfigOver.TRNConfiguration.TRN
-		totalServicesBootingTime := containerConfigOver.TRNConfiguration.BootTimeSec
+		stateLoadCapacity := containerConfigOver.MSCSetting.MSCPerSecond
+		totalServicesBootingTime := containerConfigOver.MSCSetting.BootTimeSec
 		resourceLimits = containerConfigOver.Limits
 
 		if underProvisionAllowed {
 			containerConfigUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-			vmSetUnder := p.FindSuitableVMs(containerConfigUnder.TRNConfiguration.NumberReplicas, containerConfigUnder.Limits)
+			vmSetUnder := p.FindSuitableVMs(containerConfigUnder.MSCSetting.Replicas, containerConfigUnder.Limits)
 			costUnder := vmSetUnder.Cost(p.mapVMProfiles)
 			//Update values if the configuration that leads to under provisioning is cheaper
-			if costUnder < costOver && isUnderProvisionInRange(it.Requests, containerConfigUnder.TRNConfiguration.TRN, percentageUnderProvision){
+			if costUnder < costOver && isUnderProvisionInRange(it.Requests, containerConfigUnder.MSCSetting.MSCPerSecond, percentageUnderProvision){
 				vmSet = vmSetUnder
-				newNumServiceReplicas = containerConfigUnder.TRNConfiguration.NumberReplicas
-				stateLoadCapacity = containerConfigUnder.TRNConfiguration.TRN
-				totalServicesBootingTime = containerConfigUnder.TRNConfiguration.BootTimeSec
+				newNumServiceReplicas = containerConfigUnder.MSCSetting.Replicas
+				stateLoadCapacity = containerConfigUnder.MSCSetting.MSCPerSecond
+				totalServicesBootingTime = containerConfigUnder.MSCSetting.BootTimeSec
 				resourceLimits = containerConfigUnder.Limits
 			}
 		}
@@ -144,3 +144,6 @@ func (p NaivePolicy) currentVMType() string {
 	}
 	return vmType
 }
+
+
+

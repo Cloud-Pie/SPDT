@@ -4,12 +4,9 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"time"
 	"math"
+	"github.com/Cloud-Pie/SPDT/util"
 )
 
-const (
-	HOUR = "hour"
-	SECOND = "second"
-)
 
 //Compute the total cost for a given policy
 //It takes into account the billing unit according to the pricing model
@@ -26,7 +23,7 @@ func computePolicyCost(policy types.Policy, billingUnit string, mapVMProfiles ma
 //Compute cost for a configuration of resources
 func computeConfigurationCost(cf types.ScalingAction, unit string, mapVMProfiles map[string] types.VmProfile) float64 {
 	configurationCost := 0.0
-	deltaTime := setDeltaTime(cf.TimeStart,cf.TimeEnd,unit)
+	deltaTime := billedTime(cf.TimeStart,cf.TimeEnd,unit)
 	for k,v := range cf.State.VMs {
 		configurationCost += mapVMProfiles [k].Pricing.Price * float64(v) * deltaTime
 	}
@@ -45,9 +42,9 @@ func billedTime (timeStart time.Time, timeEnd time.Time, unit string) float64 {
 	var delta float64
 	delta = timeEnd.Sub(timeStart).Hours()
 	switch unit {
-	case SECOND :
+	case util.SECOND :
 		if delta < (0.01666666666) {return 0.01666666666} else {return delta}		//It charges at least 60 seconds
-	case HOUR:
+	case util.HOUR:
 		return math.Ceil(delta)									//It charges at least 1 hour
 	}
 	return delta
