@@ -1,26 +1,26 @@
 ---
 version: v1
-service-name: movieapp
-service-type: web
+service-name: primeapp
+service-type: compute
 CSP: AWS
 pricing-model:
-  monthly-budget: 2000
-  billing-unit: second
+  monthly-budget: 12000
+  billing-unit: hour
 scaling-horizon:
-  start-time: 2018-08-08T07:00:00.1Z
-  end-time: 2018-08-12T07:00:00.1Z
+  start-time: 2018-08-25T00:00:00.000Z
+  end-time: 2018-08-31T07:00:00.1Z
 forecasting-component:
-  endpoint: http://localhost:8081
+  endpoint: http://172.29.39.209:8081
   username:
   password:
   api-key:
 performance-profiles-component:
-  endpoint: http://localhost:8081
+  endpoint: http://172.29.39.209:8081
   username:
   password:
   api-key:
 scheduler-component:
-  endpoint: http://localhost:8081
+  endpoint: http://172.29.39.209:8081
   username:
   password:
   api-key:
@@ -29,7 +29,8 @@ policy-settings:
   scaling-method: horizontal
   heterogeneous-vms-allowed: true
   underprovisioning-allowed: false
-  pods-resize-allowed: false
+  percentage-max-underprovision: 20
+  pods-resize-allowed: true
   vm-family: all
 
 

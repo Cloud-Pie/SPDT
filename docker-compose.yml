@@ -33,12 +33,6 @@ services:
           ports:
              - 5003:5003
 
-    #mock-services:
-    #          build: test
-    #          container_name: 'mock-services'
-    #          ports:
-    #             - 8081:8081
-
     profilesdb:
          image: mongo:latest
          container_name: 'profilesdb'
@@ -49,7 +43,7 @@ services:
              - MONGO_INITDB_ROOT_PASSWORD=spdt
 
          ports:
-              - 27017:27017
+              - 27016:27017
          volumes:
               - db-data-pro:/root/mongodb/data
 
