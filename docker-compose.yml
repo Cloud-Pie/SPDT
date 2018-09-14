@@ -1,19 +1,26 @@
-version: '3'
+version: '2'
 services:
     spdt:
         build: .
         container_name: 'spdt'
         ports:
             - 8083:8083
+        environment:
+          - PROFILESDB_USER=spdt
+          - PROFILESDB_PASS=spdt
+          - POLICIESDB_USER=spdt
+          - POLICIESDB_PASS=spdt
+          - FORECASTDB_USER=spdt
+          - FORECASTDB_PASS=spdt
         depends_on:
-            - 'db-profiles'
-            - 'db-policies'
-            - 'db-forecast'
+            - 'profilesdb'
+            - 'policiesdb'
+            - 'forecastdb'
             - 'serie-processing'
         links:
-            - 'db-profiles'
-            - 'db-policies'
-            - 'db-forecast'
+            - 'profilesdb'
+            - 'policiesdb'
+            - 'forecastdb'
             - 'serie-processing'
 
     serie-processing:
@@ -22,37 +29,45 @@ services:
           ports:
              - 5003:5003
 
-    db-profiles:
-         image: mongo:3.6.5
+    profilesdb:
+         image: mongo:latest
          container_name: 'profilesdb'
-         restart: always
          environment:
              - MONGO_DATA_DIR=/data/db
              - MONGO_LOG_DIR=/dev/null
+             - PROFILESDB_USER=spdt
+             - PROFILESDB_PASS=spdt
+         command: mongod --auth
          ports:
-              - 27016:27017
+              - 27017:27017
          volumes:
               - db-data-pro:/root/mongodb/data
 
-    db-policies:
-         image: mongo:3.6.5
+    policiesdb:
+         image: mongo:latest
          container_name: 'policiesdb'
          restart: always
          environment:
             - MONGO_DATA_DIR=/data/db
             - MONGO_LOG_DIR=/dev/null
+            - MONGODB_USER=spdt
+            - MONGODB_PASSWORD=spdt
+         command: mongod --auth
          ports:
             - 27018:27017
          volumes:
             - db-data-pol:/root/mongodb/data
 
-    db-forecast:
-        image: mongo:3.6.5
+    forecastdb:
+        image: mongo:latest
         container_name: 'forecastdb'
         restart: always
         environment:
           - MONGO_DATA_DIR=/data/db
           - MONGO_LOG_DIR=/dev/null
+          - MONGODB_USER=spdt
+          - MONGODB_PASSWORD=spdt
+        command: mongod --auth
         ports:
           - 27019:27017
         volumes:

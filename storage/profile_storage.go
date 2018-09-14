@@ -6,6 +6,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/util"
 	"errors"
+	"os"
 )
 
 var PerformanceProfileDB *PerformanceProfileDAO
@@ -18,11 +19,18 @@ type PerformanceProfileDAO struct {
 
 }
 
+var profilesDBHost = []string{ util.DEFAULT_DB_SERVER_PROFILES, "profilesdb:27017" }
+
 //Connect to the database
 func (p *PerformanceProfileDAO) Connect() (*mgo.Database, error) {
 	var err error
+	log.Info("Connecting to profiles db ...")
 	if p.session == nil {
-		p.session, err = mgo.Dial(p.Server)
+		p.session,  err = mgo.DialWithInfo(&mgo.DialInfo{
+			Addrs: profilesDBHost,
+			Username: os.Getenv("PROFILESDB_USER"),
+			Password: os.Getenv("PROFILESDB_PASS"),
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -258,7 +266,7 @@ func GetPerformanceProfileDAO() *PerformanceProfileDAO {
 		}
 		_,err := PerformanceProfileDB.Connect()
 		if err != nil {
-			log.Error(err.Error())
+			log.Error(util.DEFAULT_DB_SERVER_PROFILES +" "+err.Error())
 		}
 	}
 	return PerformanceProfileDB

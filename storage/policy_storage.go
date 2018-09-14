@@ -6,9 +6,12 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"time"
 	"github.com/Cloud-Pie/SPDT/util"
+	"os"
 )
 
 var PolicyDB *PolicyDAO
+
+var policyDBHost = []string{ util.DEFAULT_DB_SERVER_POLICIES, }
 
 type PolicyDAO struct {
 	Server	string
@@ -21,7 +24,11 @@ type PolicyDAO struct {
 func (p *PolicyDAO) Connect() (*mgo.Database, error) {
 	var err error
 	if p.session == nil {
-		p.session, err = mgo.Dial(p.Server)
+		p.session,  err = mgo.DialWithInfo(&mgo.DialInfo{
+			Addrs: policyDBHost,
+			Username: os.Getenv("POLICIESDB_USER"),
+			Password: os.Getenv("POLICIESDB_PASS"),
+		})
 		if err != nil {
 			return nil, err
 		}

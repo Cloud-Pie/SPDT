@@ -7,6 +7,7 @@ import (
 	"github.com/Cloud-Pie/SPDT/util"
 	"github.com/op/go-logging"
 	"time"
+	"os"
 )
 
 type ForecastDAO struct {
@@ -17,12 +18,17 @@ type ForecastDAO struct {
 }
 var ForecastDB *ForecastDAO
 var log = logging.MustGetLogger("spdt")
+var forecastDBHost = []string{ util.DEFAULT_DB_SERVER_FORECAST, }
 
 //Connect to the database
 func (p *ForecastDAO) Connect() (*mgo.Database, error) {
 	var err error
 	if p.session == nil {
-		p.session, err = mgo.Dial(p.Server)
+		p.session,  err = mgo.DialWithInfo(&mgo.DialInfo{
+			Addrs: forecastDBHost,
+			Username: os.Getenv("FORECASTDB_USER"),
+			Password: os.Getenv("FORECASTDB_PASS"),
+		})
 		if err != nil {
 			return nil, err
 		}
