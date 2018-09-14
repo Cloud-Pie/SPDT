@@ -8,10 +8,13 @@ services:
         environment:
           - PROFILESDB_USER=spdt
           - PROFILESDB_PASS=spdt
+          - PROFILESDB_HOST=profilesdb
           - POLICIESDB_USER=spdt
           - POLICIESDB_PASS=spdt
+          - POLICIESDB_HOST=policiesdb
           - FORECASTDB_USER=spdt
           - FORECASTDB_PASS=spdt
+          - FORECASTDB_HOST=forecastdb
         depends_on:
             - 'profilesdb'
             - 'policiesdb'
@@ -23,11 +26,18 @@ services:
             - 'forecastdb'
             - 'serie-processing'
 
+
     serie-processing:
           build: Time-Serie-Processing
           container_name: 'serie'
           ports:
              - 5003:5003
+
+    #mock-services:
+    #          build: test
+    #          container_name: 'mock-services'
+    #          ports:
+    #             - 8081:8081
 
     profilesdb:
          image: mongo:latest
@@ -35,9 +45,9 @@ services:
          environment:
              - MONGO_DATA_DIR=/data/db
              - MONGO_LOG_DIR=/dev/null
-             - PROFILESDB_USER=spdt
-             - PROFILESDB_PASS=spdt
-         command: mongod --auth
+             - MONGO_INITDB_ROOT_USERNAME=spdt
+             - MONGO_INITDB_ROOT_PASSWORD=spdt
+
          ports:
               - 27017:27017
          volumes:
@@ -50,9 +60,9 @@ services:
          environment:
             - MONGO_DATA_DIR=/data/db
             - MONGO_LOG_DIR=/dev/null
-            - MONGODB_USER=spdt
-            - MONGODB_PASSWORD=spdt
-         command: mongod --auth
+            - MONGO_INITDB_ROOT_USERNAME=spdt
+            - MONGO_INITDB_ROOT_PASSWORD=spdt
+
          ports:
             - 27018:27017
          volumes:
@@ -65,9 +75,9 @@ services:
         environment:
           - MONGO_DATA_DIR=/data/db
           - MONGO_LOG_DIR=/dev/null
-          - MONGODB_USER=spdt
-          - MONGODB_PASSWORD=spdt
-        command: mongod --auth
+          - MONGO_INITDB_ROOT_USERNAME=spdt
+          - MONGO_INITDB_ROOT_PASSWORD=spdt
+
         ports:
           - 27019:27017
         volumes:

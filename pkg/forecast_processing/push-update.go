@@ -3,7 +3,6 @@ package forecast_processing
 import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"github.com/Cloud-Pie/SPDT/storage"
-	"github.com/Cloud-Pie/SPDT/util"
 	"time"
 	"github.com/op/go-logging"
 )
@@ -11,10 +10,7 @@ import (
 var log = logging.MustGetLogger("spdt")
 
 func UpdateForecast(forecast types.Forecast) (bool, types.Forecast, time.Time) {
-		forecastDAO := storage.ForecastDAO{
-			Server:util.DEFAULT_DB_SERVER_FORECAST,
-			Database:util.DEFAULT_DB_FORECAST,
-		}
+		forecastDAO := storage.GetForecastDAO()
 		_,err := forecastDAO.Connect()
 		if err != nil {
 			log.Fatalf(err.Error())

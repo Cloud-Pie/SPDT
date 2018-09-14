@@ -37,10 +37,7 @@ func SetUpServer( fc chan types.Forecast ) *gin.Engine {
 func policyByID(c *gin.Context) {
 	id := c.Param("id")
 
-	policyDAO := db.PolicyDAO{
-		Server:util.DEFAULT_DB_SERVER_POLICIES,
-		Database:util.DEFAULT_DB_POLICIES,
-	}
+	policyDAO := db.GetPolicyDAO()
 	policyDAO.Connect()
 	policy,err := policyDAO.FindByID(id)
 
@@ -55,10 +52,7 @@ func policyByID(c *gin.Context) {
 func deletePolicyByID(c *gin.Context) {
 	id := c.Param("id")
 
-	policyDAO := db.PolicyDAO{
-		Server:util.DEFAULT_DB_SERVER_POLICIES,
-		Database:util.DEFAULT_DB_POLICIES,
-	}
+	policyDAO := db.GetPolicyDAO()
 	policyDAO.Connect()
 	err := policyDAO.DeleteById(id)
 
@@ -74,10 +68,7 @@ func getPolicies(c *gin.Context) {
 	windowTimeStart := c.DefaultQuery("start", "")
 	windowTimeEnd := c.DefaultQuery("end","")
 
-	policyDAO := db.PolicyDAO{
-		Server:util.DEFAULT_DB_SERVER_POLICIES,
-		Database:util.DEFAULT_DB_POLICIES,
-	}
+	policyDAO := db.GetPolicyDAO()
 	policyDAO.Connect()
 
 	var policies		[]types.Policy
@@ -119,10 +110,7 @@ func deletePolicyWindow(c *gin.Context) {
 	windowTimeStart := c.DefaultQuery("start", "")
 	windowTimeEnd := c.DefaultQuery("end","")
 
-	policyDAO := db.PolicyDAO{
-		Server:util.DEFAULT_DB_SERVER_POLICIES,
-		Database:util.DEFAULT_DB_POLICIES,
-	}
+	policyDAO := db.GetPolicyDAO()
 	policyDAO.Connect()
 
 	if windowTimeStart != "" && windowTimeEnd != "" {
@@ -143,10 +131,7 @@ func deletePolicyWindow(c *gin.Context) {
 func invalidatePolicyByID(c *gin.Context) {
 	id := c.Param("id")
 
-	policyDAO := db.PolicyDAO{
-		Server:util.DEFAULT_DB_SERVER_POLICIES,
-		Database:util.DEFAULT_DB_POLICIES,
-	}
+	policyDAO := db.GetPolicyDAO()
 	policyDAO.Connect()
 	err := policyDAO.DeleteById(id)
 
@@ -186,10 +171,7 @@ func getRequests(c *gin.Context) {
 		Requests 	[]float64
 	}
 
-	forecastDAO := db.ForecastDAO{
-		Server:util.DEFAULT_DB_SERVER_FORECAST,
-		Database:util.DEFAULT_DB_FORECAST,
-	}
+	forecastDAO := db.GetForecastDAO()
 	forecastDAO.Connect()
 
 	timestamps :=[]time.Time{}
