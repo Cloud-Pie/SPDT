@@ -18,9 +18,15 @@ type VmProfile struct {
 
 //Times in seconds
 type BootShutDownTime struct {
-	BootTime			int		`json:"BootTime" bson:"boot_time"`
-	ShutDownTime		int		`json:"ShutDownTime" bson:"shutdown_time"`
-	NumInstances		int		`json:"NumInstances" bson:"num_instances"`
+	BootTime			float64		`json:"BootTime" bson:"boot_time"`
+	ShutDownTime		float64		`json:"ShutDownTime" bson:"shutdown_time"`
+}
+
+//Times in seconds
+type InstancesBootShutdownTime struct {
+	BootTime			float64		`json:"BootTime" bson:"boot_time"`
+	ShutDownTime		float64		`json:"ShutDownTime" bson:"shutdown_time"`
+	NumInstances		int			`json:"NumInstances" bson:"num_instances"`
 }
 
 type Limit struct {

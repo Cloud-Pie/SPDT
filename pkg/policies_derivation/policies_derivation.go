@@ -116,8 +116,8 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 	out:
 		@int	Time in seconds that the booting wil take
 */
-func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.SystemConfiguration) int {
-	bootTime := 0
+func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.SystemConfiguration) float64 {
+	bootTime := 0.0
 	// If Heterogeneous cluster, take the bigger cluster
 	list := mapToList(vmsScale)
 	sort.Slice(list, func(i, j int) bool {
@@ -147,8 +147,8 @@ func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.System
 	out:
 		@int	Time in seconds that the termination wil take
 */
-func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.SystemConfiguration) int {
-	terminationTime := 0
+func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.SystemConfiguration) float64 {
+	terminationTime := 0.0
 	list := mapToList(vmsScale)
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].Value > list[j].Value
@@ -216,7 +216,9 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 		if err == nil{
 			containerConfig.MSCSetting.Replicas = mscSetting.Replicas
 			containerConfig.MSCSetting.MSCPerSecond = mscSetting.MSCPerSecond.RegBruteForce
-			newMSCSetting = types.MSCSimpleSetting{Replicas:mscSetting.Replicas, MSCPerSecond:requests, BootTimeSec:mscSetting.BootTimeMs/1000}
+			newMSCSetting.Replicas = mscSetting.Replicas
+			newMSCSetting.MSCPerSecond = mscSetting.MSCPerSecond.RegBruteForce
+			newMSCSetting.BootTimeSec = mscSetting.BootTimeMs / 1000
 
 		}
 		//TODO: What happend if there is no data from Terminos?
@@ -293,8 +295,8 @@ func setConfiguration(configurations *[]types.ScalingAction, state types.State, 
 		(*configurations)[nConfigurations-1].TimeEnd = timeEnd
 	} else {
 		//var deltaTime int //time in seconds
-		var finishTimeVMRemoved int
-		var bootTimeVMAdded int
+		var finishTimeVMRemoved float64
+		var bootTimeVMAdded float64
 
 		//Adjust booting times for resources configuration
 		if nConfigurations >= 1 {

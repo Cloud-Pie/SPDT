@@ -60,10 +60,10 @@ func GetPredictedReplicas(endpoint string, appName string, appType string, msc f
 	parameters := make(map[string]string)
 	parameters["apptype"] = appType
 	parameters["appname"] = appName
-	parameters["msc"] = strconv.FormatFloat(msc, 'g', 1, 64)
-	parameters["numcoresutil"] = strconv.FormatFloat(cpuCores, 'g', 1, 64)
-	parameters["numcoreslimit"] = strconv.FormatFloat(cpuCores, 'g', 1, 64)
-	parameters["nummemlimit"] = strconv.FormatFloat(memGb, 'g', 1, 64)
+	parameters["msc"] = strconv.FormatFloat(msc, 'f', 1, 64)
+	parameters["numcoresutil"] = strconv.FormatFloat(cpuCores, 'f', 1, 64)
+	parameters["numcoreslimit"] = strconv.FormatFloat(cpuCores, 'f', 1, 64)
+	parameters["nummemlimit"] = strconv.FormatFloat(memGb, 'f', 1, 64)
 
 	endpoint = util.ParseURL(endpoint, parameters)
 
@@ -114,6 +114,9 @@ func GetAllBootShutDownProfiles(endpoint string, vmType string) ([]types.BootShu
 	if err != nil {
 		return instanceValues,err
 	}
+
+	req.URL.RawQuery = q.Encode()
+
 	client := &http.Client{}
 	response, err := client.Do(req)
 	if err != nil {
@@ -140,12 +143,15 @@ func GetBootShutDownProfile(endpoint string, vmType string, numberInstance int, 
 	q.Add("region", region)
 	q.Add("appraoch", "avg")
 	q.Add("csp", csp)
-	q.Add("numInstances", string(numberInstance))
+	q.Add("numInstances", strconv.Itoa(numberInstance))
 
 	req, err := http.NewRequest("GET",endpoint,nil)
 	if err != nil {
 		return instanceValues,err
 	}
+
+	req.URL.RawQuery = q.Encode()
+
 	client := &http.Client{}
 	response, err := client.Do(req)
 	if err != nil {
