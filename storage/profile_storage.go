@@ -6,6 +6,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"errors"
 	"os"
+	"time"
 )
 
 type PerformanceProfileDAO struct {
@@ -28,12 +29,13 @@ const (
 //Connect to the database
 func (p *PerformanceProfileDAO) Connect() (*mgo.Database, error) {
 	var err error
-	log.Info("Connecting to profiles db ...")
+	log.Info("Connecting to Profiles db ...")
 	if p.session == nil {
 		p.session,  err = mgo.DialWithInfo(&mgo.DialInfo{
 			Addrs: profilesDBHost,
 			Username: os.Getenv("PROFILESDB_USER"),
 			Password: os.Getenv("PROFILESDB_PASS"),
+			Timeout:  30 * time.Second,
 		})
 		if err != nil {
 			return nil, err

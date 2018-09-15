@@ -16,6 +16,7 @@ import (
 )
 
 var log = logging.MustGetLogger("spdt")
+var systemConfiguration config.SystemConfiguration
 
 //Interface for strategies of how to scale
 type PolicyDerivation interface {
@@ -41,7 +42,7 @@ type TimeWindowDerivation interface {
 */
 func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedVMProfiles []types.VmProfile, sysConfiguration config.SystemConfiguration) []types.Policy {
 	var policies []types.Policy
-
+	systemConfiguration = sysConfiguration
 	currentState,err := scheduler.CurrentState(sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_CURRENT_STATE)
 	if err != nil {
 		log.Error("Error to get current state %s", err.Error() )
@@ -127,7 +128,9 @@ func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.System
 	//Call API
 	if len(list) > 0 {
 		url := sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VM_TIMES
-		times, error := performance_profiles.GetBootShutDownProfile(url,list[0].Key, list[0].Value)
+		csp := sysConfiguration.CSP
+		region := sysConfiguration.Region
+		times, error := performance_profiles.GetBootShutDownProfile(url,list[0].Key, list[0].Value, csp, region)
 		if error != nil {
 			log.Error("Error in bootingTime query", error.Error())
 		}
@@ -155,7 +158,9 @@ func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.Sy
 	//Call API
 	if len(list) > 0 {
 		url := sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VM_TIMES
-		times, error := performance_profiles.GetBootShutDownProfile(url,list[0].Key, list[0].Value)
+		csp := sysConfiguration.CSP
+		region := sysConfiguration.Region
+		times, error := performance_profiles.GetBootShutDownProfile(url,list[0].Key, list[0].Value, csp, region)
 		if error != nil {
 			log.Error("Error in terminationTime query %s", error.Error())
 		}
@@ -198,15 +203,31 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 		containerConfig = overProvisionConfig
 	} else if err2 == nil {
 		containerConfig = underProvisionConfig
-		//TODO: Should call Terminus to know the exact MSCPerSecond, as temporal solution I calculated here.
-		numberReplicas := float64(containerConfig.MSCSetting.Replicas) * requests / containerConfig.MSCSetting.MSCPerSecond
-		containerConfig.MSCSetting.Replicas = int(numberReplicas)
-		containerConfig.MSCSetting.MSCPerSecond = requests
+
+		url := systemConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_UPDATE_PROFILE
+		appName := systemConfiguration.ServiceName
+		appType := systemConfiguration.ServiceType
+		mscSetting,err := performance_profiles.GetPredictedReplicas(url,appName,appType,requests,limits.CPUCores, limits.MemoryGB)
 
 		profilesDAO := storage.GetPerformanceProfileDAO()
 		profile,_:= profilesDAO.FindProfileByLimits(limits)
-		newTRNConf := types.MSCSetting{Replicas:int(numberReplicas), MSCPerSecond:requests, BootTimeSec:100}
-		profile.MSCSettings = append(profile.MSCSettings,newTRNConf)
+		newMSCSetting := types.MSCSimpleSetting{}
+
+		if err == nil{
+			containerConfig.MSCSetting.Replicas = mscSetting.Replicas
+			containerConfig.MSCSetting.MSCPerSecond = mscSetting.MSCPerSecond.RegBruteForce
+			newMSCSetting = types.MSCSimpleSetting{Replicas:mscSetting.Replicas, MSCPerSecond:requests, BootTimeSec:mscSetting.BootTimeMs/1000}
+
+		}
+		//TODO: What happend if there is no data from Terminos?
+		/* else {
+			numberReplicas := float64(containerConfig.MSCSetting.Replicas) * requests / containerConfig.MSCSetting.MSCPerSecond
+			containerConfig.MSCSetting.Replicas = int(numberReplicas)
+			containerConfig.MSCSetting.MSCPerSecond = requests
+			newMSCSetting = types.MSCSimpleSetting{Replicas:int(numberReplicas), MSCPerSecond:requests, BootTimeSec:100}
+		}*/
+
+		profile.MSCSettings = append(profile.MSCSettings,newMSCSetting)
 		err3 := profilesDAO.UpdateById(profile.ID, profile)
 		if err3 != nil{
 			log.Error("Performance profile not updated")

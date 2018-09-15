@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"github.com/Cloud-Pie/SPDT/types"
+	"net/url"
+	"github.com/Cloud-Pie/SPDT/util"
+	"strconv"
 )
 
 func GetPerformanceProfiles(endpoint string) (types.ServiceProfile, error){
@@ -27,9 +30,14 @@ func GetPerformanceProfiles(endpoint string) (types.ServiceProfile, error){
 	return performanceProfile,err
 }
 
-func GetServicePerformanceProfiles(endpoint string) (types.ServicePerformanceProfile, error){
+func GetServicePerformanceProfiles(endpoint string, appName string, appType string) (types.ServicePerformanceProfile, error){
 
 	servicePerformanceProfile := types.ServicePerformanceProfile{}
+	parameters := make(map[string]string)
+	parameters["apptype"] = appType
+	parameters["appname"] = appName
+	endpoint = util.ParseURL(endpoint, parameters)
+
 	response, err := http.Get(endpoint)
 	if err != nil {
 		return servicePerformanceProfile,err
@@ -47,6 +55,33 @@ func GetServicePerformanceProfiles(endpoint string) (types.ServicePerformancePro
 	return servicePerformanceProfile,err
 }
 
+func GetPredictedReplicas(endpoint string, appName string, appType string, msc float64, cpuCores float64, memGb float64) (types.MSCCompleteSetting, error){
+	mscSetting := types.MSCCompleteSetting{}
+	parameters := make(map[string]string)
+	parameters["apptype"] = appType
+	parameters["appname"] = appName
+	parameters["msc"] = strconv.FormatFloat(msc, 'g', 1, 64)
+	parameters["numcoresutil"] = strconv.FormatFloat(cpuCores, 'g', 1, 64)
+	parameters["numcoreslimit"] = strconv.FormatFloat(cpuCores, 'g', 1, 64)
+	parameters["nummemlimit"] = strconv.FormatFloat(memGb, 'g', 1, 64)
+
+	endpoint = util.ParseURL(endpoint, parameters)
+
+	response, err := http.Get(endpoint)
+	if err != nil {
+		return mscSetting,err
+	}
+	defer response.Body.Close()
+	data, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return mscSetting,err
+	}
+	err = json.Unmarshal(data, &mscSetting)
+	if err != nil {
+		return mscSetting,err
+	}
+	return mscSetting,err
+}
 
 func GetVMsProfiles(endpoint string) ([]types.VmProfile, error){
 	vmList := []types.VmProfile{}
@@ -68,7 +103,19 @@ func GetVMsProfiles(endpoint string) ([]types.VmProfile, error){
 
 func GetAllBootShutDownProfiles(endpoint string, vmType string) ([]types.BootShutDownTime, error){
 	instanceValues := []types.BootShutDownTime{}
-	response, err := http.Get(endpoint)
+
+	q := url.Values{}
+	q.Add("instanceType", vmType)
+	q.Add("region", "")
+	q.Add("appraoch", "avg")
+	q.Add("csp", "")
+
+	req, err := http.NewRequest("GET",endpoint,nil)
+	if err != nil {
+		return instanceValues,err
+	}
+	client := &http.Client{}
+	response, err := client.Do(req)
 	if err != nil {
 		return instanceValues,err
 	}
@@ -85,9 +132,22 @@ func GetAllBootShutDownProfiles(endpoint string, vmType string) ([]types.BootShu
 	return instanceValues,err
 }
 
-func GetBootShutDownProfile(endpoint string, vmType string, numberInstance int) (types.BootShutDownTime, error){
+func GetBootShutDownProfile(endpoint string, vmType string, numberInstance int, csp string, region string) (types.BootShutDownTime, error){
 	instanceValues := types.BootShutDownTime{}
-	response, err := http.Get(endpoint)
+
+	q := url.Values{}
+	q.Add("instanceType", vmType)
+	q.Add("region", region)
+	q.Add("appraoch", "avg")
+	q.Add("csp", csp)
+	q.Add("numInstances", string(numberInstance))
+
+	req, err := http.NewRequest("GET",endpoint,nil)
+	if err != nil {
+		return instanceValues,err
+	}
+	client := &http.Client{}
+	response, err := client.Do(req)
 	if err != nil {
 		return instanceValues,err
 	}

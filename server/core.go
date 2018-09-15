@@ -108,7 +108,15 @@ func ReadSysConfiguration() config.SystemConfiguration {
 func getVMProfiles(){
 	var err error
 	log.Info("Start request VMs Profiles")
-	vmProfiles, err = Pservice.GetVMsProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VMS_PROFILES)
+	//vmProfiles, err = Pservice.GetVMsProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VMS_PROFILES)
+
+	data, err := ioutil.ReadFile("./mock_vms.json")
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+	err = json.Unmarshal(data, &vmProfiles)
+
 	if err != nil {
 		log.Error(err.Error())
 		log.Info("Error in the request to get VMs Profiles")
@@ -125,18 +133,23 @@ func getServiceProfile(){
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
 	storedPerformanceProfiles,_ := serviceProfileDAO.FindAll()
 	if(len(storedPerformanceProfiles)==0) {
+
 		log.Info("Start request Performance Profiles")
-		servicePerformanceProfile, err = Pservice.GetServicePerformanceProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILES)
+
+		endpoint := sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILES
+		servicePerformanceProfile, err = Pservice.GetServicePerformanceProfiles(endpoint,sysConfiguration.ServiceName, sysConfiguration.ServiceType )
+
 		if err != nil {
 			log.Error(err.Error())
+		} else {
+			log.Info("Finish request Performance Profiles")
 		}
-		log.Info("Finish request Performance Profiles")
 
 		//Selects and stores received information about Performance Profiles
 		for _,p := range servicePerformanceProfile.Profiles {
-			mscSettings := []types.MSCSetting{}
+			mscSettings := []types.MSCSimpleSetting{}
 			for _,msc := range p.MSCs {
-				setting := types.MSCSetting {
+				setting := types.MSCSimpleSetting{
 					BootTimeSec: millisecondsToSeconds(msc.BootTimeMs),
 					MSCPerSecond: msc.MSCPerSecond.RegBruteForce,
 					Replicas: msc.Replicas,

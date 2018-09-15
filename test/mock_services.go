@@ -14,7 +14,7 @@ func main () {
 	//Expected forecast json
 	router.GET("/api/forecast", forecast)
 	//Expected profiles json
-	router.GET("/api/profiles", profiles)
+	router.GET("/getRegressionTRNsMongoDBAll/{apptype}/{appname}", profiles)
 	//Expected VMs json
 	router.GET("/api/vms", vms)
 	//Expected Current State json

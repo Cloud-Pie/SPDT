@@ -61,7 +61,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		if deltaLoad == 0 {
 			resourcesConfiguration.VMSet = p.currentState.VMs
 			resourcesConfiguration.Limits = currentContainerLimits
-			resourcesConfiguration.MSCSetting = types.MSCSetting{MSCPerSecond:currentLoadCapacity, Replicas:currentNumberReplicas,}
+			resourcesConfiguration.MSCSetting = types.MSCSimpleSetting{MSCPerSecond:currentLoadCapacity, Replicas:currentNumberReplicas,}
 
 		} else 	{
 			//Candidate option to handle total load with current limits
@@ -315,8 +315,8 @@ func (p DeltaRepackedPolicy) isCurrentlyHomogeneous() (string, bool) {
 		@error
 
 */
-func (p DeltaRepackedPolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.MSCSetting,
-	newLimits types.Limit, profileNewLimits types.MSCSetting, containerResize bool) (TRNProfile, error) {
+func (p DeltaRepackedPolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.MSCSimpleSetting,
+	newLimits types.Limit, profileNewLimits types.MSCSimpleSetting, containerResize bool) (TRNProfile, error) {
 
 	currentNumberReplicas := float64(profileCurrentLimits.Replicas)
 	utilizationCurrent := (currentNumberReplicas * currentLimits.CPUCores)+(currentNumberReplicas * currentLimits.MemoryGB)

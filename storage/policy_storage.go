@@ -29,11 +29,13 @@ const (
 //Connect to the database
 func (p *PolicyDAO) Connect() (*mgo.Database, error) {
 	var err error
+	log.Info("Connecting to Policies db ...")
 	if p.session == nil {
 		p.session,  err = mgo.DialWithInfo(&mgo.DialInfo{
 			Addrs: policyDBHost,
 			Username: os.Getenv("POLICIESDB_USER"),
 			Password: os.Getenv("POLICIESDB_PASS"),
+			Timeout:  30 * time.Second,
 		})
 		if err != nil {
 			return nil, err

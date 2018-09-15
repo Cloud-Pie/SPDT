@@ -256,8 +256,8 @@ func (p TreePolicy)removeVMs(currentVMSet types.VMScale, numberReplicas int, lim
 		@ContainersConfig
 		@error
 */
-func (p TreePolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.MSCSetting,
-	newLimits types.Limit, profileNewLimits types.MSCSetting, containerResize bool) (TRNProfile, error) {
+func (p TreePolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.MSCSimpleSetting,
+	newLimits types.Limit, profileNewLimits types.MSCSimpleSetting, containerResize bool) (TRNProfile, error) {
 
 	currentNumberReplicas := float64(profileCurrentLimits.Replicas)
 	utilizationCurrent := (currentNumberReplicas * currentLimits.CPUCores)+(currentNumberReplicas * currentLimits.MemoryGB)

@@ -1,0 +1,65 @@
+[
+  {
+    "type": "t2.nano",
+    "cpu_cores": 1,
+    "mem_gb": 0.5,
+    "pricing":{
+      "price": 1,
+      "unit": "Hour"
+    }
+  },
+  {
+    "type": "t2.micro",
+    "cpu_cores": 1,
+    "mem_gb": 1,
+      "pricing":{
+        "price": 2,
+        "unit": "Hour"
+    }
+  },
+  {
+    "type": "t2.small",
+    "cpu_cores": 1,
+    "mem_gb": 2,
+    "pricing":{
+      "price": 4,
+      "unit": "Hour"
+    }
+  },
+  {
+    "type": "t2.medium",
+    "cpu_cores": 2,
+    "mem_gb": 4,
+    "pricing":{
+      "price": 8,
+      "unit": "Hour"
+    }
+  },
+  {
+    "type": "t2.large",
+    "cpu_cores": 2,
+    "mem_gb": 8,
+    "pricing":{
+      "price": 16,
+      "unit": "Hour"
+    }
+  },
+  {
+    "type": "t2.xlarge",
+    "cpu_cores": 4,
+    "mem_gb": 16,
+    "pricing":{
+      "price": 32,
+      "unit": "Hour"
+    }
+  },
+  {
+    "type": "t2.2xlarge",
+    "cpu_cores": 8,
+    "mem_gb": 32,
+    "pricing":{
+      "price": 64,
+      "unit": "Hour"
+    }
+  }
+]

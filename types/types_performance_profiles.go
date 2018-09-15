@@ -30,9 +30,9 @@ type Limit struct {
 }
 
 type PerformanceProfile struct {
-	ID          bson.ObjectId `bson:"_id" json:"id"`
-	MSCSettings []MSCSetting  `json:"mscs" bson:"mscs"`
-	Limit       Limit         `json:"limits" bson:"limits"`
+	ID          bson.ObjectId      `bson:"_id" json:"id"`
+	MSCSettings []MSCSimpleSetting `json:"mscs" bson:"mscs"`
+	Limit       Limit              `json:"limits" bson:"limits"`
 }
 
 type ServiceProfile struct {
@@ -42,7 +42,7 @@ type ServiceProfile struct {
 	PerformanceProfiles []PerformanceProfile `json:"performance_profiles" bson:"performance_profiles"`
 }
 
-type MSCSetting struct {
+type MSCSimpleSetting struct {
 	Replicas            int     `json:"replicas" bson:"replicas"`
 	MSCPerSecond        float64 `json:"maximum_service_capacity_per_sec" bson:"maximum_service_capacity_per_sec"`
 	BootTimeSec         float64     `json:"pod_boot_time_sec" bson:"pod_boot_time_sec"`
@@ -62,13 +62,15 @@ type ServicePerformanceProfile struct {
 	ServiceType         string               `json:"ServiceType"`
 	TestAPI         	string               `json:"TestAPI"`
 	Profiles			[] struct {
-								Limits Limit `json:"Limits"`
-								MSCs	[]struct {
-											Replicas      		int     `json:"Replicas"`
-											BootTimeMs         	float64 `json:"Pod_boot_time_ms"`
-											StandDevBootTimeMS 	float64 `json:"Sd_Pod_boot_time_ms"`
-											MSCPerSecond        MaxServiceCapacity `json:"Maximum_service_capacity_per_sec"`
-											MSCPerMinute        MaxServiceCapacity `json:"Maximum_service_capacity_per_min"`
-								} `json:"MSCs"`
+								Limits Limit                 `json:"Limits"`
+								MSCs	[]MSCCompleteSetting `json:"MSCs"`
 	}`json:"Profiles"`
+}
+
+type MSCCompleteSetting struct {
+	Replicas      		int     `json:"Replicas"`
+	BootTimeMs         	float64 `json:"Pod_boot_time_ms"`
+	StandDevBootTimeMS 	float64 `json:"Sd_Pod_boot_time_ms"`
+	MSCPerSecond        MaxServiceCapacity `json:"Maximum_service_capacity_per_sec"`
+	MSCPerMinute        MaxServiceCapacity `json:"Maximum_service_capacity_per_min"`
 }

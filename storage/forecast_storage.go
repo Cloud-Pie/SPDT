@@ -30,11 +30,13 @@ const(
 //Connect to the database
 func (p *ForecastDAO) Connect() (*mgo.Database, error) {
 	var err error
+	log.Info("Connecting to Forecast db ...")
 	if p.session == nil {
 		p.session,  err = mgo.DialWithInfo(&mgo.DialInfo{
 			Addrs: forecastDBHost,
 			Username: os.Getenv("FORECASTDB_USER"),
 			Password: os.Getenv("FORECASTDB_PASS"),
+			Timeout:  30 * time.Second,
 		})
 		if err != nil {
 			return nil, err
