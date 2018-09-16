@@ -1,4 +1,4 @@
-package policies_derivation
+package derivation
 
 import (
 	"github.com/Cloud-Pie/SPDT/types"
@@ -291,8 +291,12 @@ func configurationLoadCapacity(numberReplicas int, limits types.Limit) float64 {
 func setConfiguration(configurations *[]types.ScalingAction, state types.State, timeStart time.Time, timeEnd time.Time, name string, totalServicesBootingTime float64, sysConfiguration config.SystemConfiguration, stateLoadCapacity float64) {
 	nConfigurations := len(*configurations)
 	timeStartBill := timeStart
+	timeEndBill := timeEnd
 	if nConfigurations >= 1 && state.Equal((*configurations)[nConfigurations-1].State) {
 		(*configurations)[nConfigurations-1].TimeEnd = timeEnd
+		timeBillingStarted := (*configurations)[nConfigurations-1].TimeStartBilling
+		timeEndBill = updateEndBillingTime(timeBillingStarted,timeEnd)
+		(*configurations)[nConfigurations-1].TimeEndBilling = timeEndBill
 	} else {
 		//var deltaTime int //time in seconds
 		var finishTimeVMRemoved float64
@@ -320,9 +324,14 @@ func setConfiguration(configurations *[]types.ScalingAction, state types.State, 
 				newVMSet.Merge(vmAdded)
 				state.VMs = newVMSet
 			}
-			hasVMSetChanged := nVMRemoved > 0 || nVMAdded > 0
-			timeStartBill = updateStartBillingTime(lastBilledStartedTime, timeStart, hasVMSetChanged)
+			//timeStartBill = updateStartBillingTime(lastBilledStartedTime, timeStart)
+			timeStartBill = (*configurations)[nConfigurations-1].TimeEndBilling
+		} else {
+			deltaScalingAction := timeEnd.Sub(timeStartBill).Hours()
+			ds := int(math.Ceil(deltaScalingAction))
+			timeEndBill = timeStartBill.Add(time.Duration(ds)*time.Hour)
 		}
+
 		startTime := timeStart.Add(-1 * time.Duration(bootTimeVMAdded) * time.Second)       //Booting/Termination time VM
 		startTime = startTime.Add(-1 * time.Duration(totalServicesBootingTime) * time.Second) //Start time containers
 		state.LaunchTime = startTime
@@ -334,6 +343,7 @@ func setConfiguration(configurations *[]types.ScalingAction, state types.State, 
 				TimeEnd:        timeEnd,
 				Metrics:types.ConfigMetrics{RequestsCapacity:stateLoadCapacity,},
 				TimeStartBilling:timeStartBill,
+				TimeEndBilling:timeEndBill,
 			})
 	}
 }
@@ -502,23 +512,36 @@ func checkBillingPeriod(billingUnit string, nRemovedVMs int, startBillingTime ti
 		case util.SECOND :
 			return true
 		case util.HOUR:
-			delta := startScalingAction.Sub(startBillingTime).Hours() - math.Floor(startScalingAction.Sub(startBillingTime).Hours())
-			if delta > 0.7 && nRemovedVMs > 0 {
+			deltaHours := startScalingAction.Sub(startBillingTime).Hours()
+			delta := deltaHours - math.Floor(deltaHours)
+			if delta == 0 || delta > 0.5 && nRemovedVMs > 0 {
 				return true
 			}
 	}
+	//TODO: change to false and modify how the billing is computed
 	return false
 }
 
-func updateStartBillingTime(lastStartBillingTime time.Time, startScalingAction time.Time, hasVMSetChanged bool) time.Time {
+func updateStartBillingTime(lastStartBillingTime time.Time, startScalingAction time.Time) (time.Time) {
 	startBillingTime := lastStartBillingTime
 	billedPeriod := startScalingAction.Sub(lastStartBillingTime).Hours()
-	if billedPeriod >= 1 && hasVMSetChanged{
+
+	if billedPeriod >= 1{
 		bp := int(math.Floor(billedPeriod))
 		startBillingTime = startBillingTime.Add(time.Duration(bp)* time.Hour)
 	}
 	return startBillingTime
 }
+
+
+func updateEndBillingTime(startBillingTime time.Time, endScalingAction time.Time) (time.Time) {
+	deltaScalingAction := endScalingAction.Sub(startBillingTime).Hours()
+	ds := int(math.Ceil(deltaScalingAction))
+	endBillingTime := startBillingTime.Add(time.Duration(ds)*time.Hour)
+	return endBillingTime
+}
+
+
 
 func computeTransitionTime(vmScale bool, podResize bool) {
 	//TODO

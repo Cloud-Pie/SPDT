@@ -14,8 +14,8 @@ func GetForecast(endpoint string, startTime time.Time, endTime time.Time) (types
 
 	forecast := types.Forecast{}
 	q := url.Values{}
-	q.Add("timestamp-start", startTime.String())
-	q.Add("timestamp-end", endTime.String())
+	q.Add("start_time", startTime.String())
+	q.Add("end_time", endTime.String())
 
 	req, err := http.NewRequest("GET",endpoint,nil)
 	if err != nil {

@@ -1,4 +1,4 @@
-package policies_derivation
+package derivation
 
 import "github.com/Cloud-Pie/SPDT/types"
 type TRNProfile struct {

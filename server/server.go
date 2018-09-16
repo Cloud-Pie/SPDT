@@ -169,7 +169,7 @@ func getRequests(c *gin.Context) {
 	}
 
 	forecastDAO := db.GetForecastDAO()
-	forecastDAO.Connect()
+
 
 	timestamps :=[]time.Time{}
 	forecastedValues :=[]float64{}

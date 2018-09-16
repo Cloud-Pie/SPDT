@@ -150,7 +150,7 @@ function plotVMUnitsPerType(time, vms, textHover) {
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
 
-        yaxis: {title: 'N° VMs', range: [0, 8]},
+        yaxis: {title: 'N° VMs'},
         yaxis2: {
            title: 'Requests/Sec',
            titlefont: {color: '#092e20'},
@@ -241,7 +241,7 @@ function plotContainerUnits(time, replicas, cpuCores, memGB) {
         titlefont: {
            size:18, color: '#092e20'
         },
-        yaxis: {title: 'N° Containers', range: [0, 15]},
+        yaxis: {title: 'N° Containers'},
         yaxis2: {
             title: 'Resources',
             titlefont: {color: 'rgb(148, 103, 189)'},

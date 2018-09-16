@@ -13,11 +13,10 @@ import (
 func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 	for forecast := range forecastChannel {
 		shouldUpdate, newForecast, timeConflict := forecast_processing.UpdateForecast(forecast)
-		if(shouldUpdate) {
+		if shouldUpdate {
 			//Read Configuration File
-			sysConfiguration := ReadSysConfiguration()
-			//Request VM Profiles
-			getVMProfiles()
+			sysConfiguration := readSysConfiguration()
+
 			//Request Performance Profiles
 			getServiceProfile(sysConfiguration)
 

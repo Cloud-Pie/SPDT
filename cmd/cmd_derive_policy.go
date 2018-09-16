@@ -17,7 +17,7 @@ var deriveCmd = &cobra.Command{
 
 func derive (cmd *cobra.Command, args []string) {
 	fmt.Print("called derive")
-	sysConfiguration := server.ReadSysConfiguration()
+	sysConfiguration := server.readSysConfiguration()
 	timeStart := sysConfiguration.ScalingHorizon.StartTime
 	timeEnd := sysConfiguration.ScalingHorizon.EndTime
 	server.StartPolicyDerivation(timeStart,timeEnd)

@@ -33,7 +33,7 @@ type PricingModel struct {
 //The parameter HeterogeneosAllowed is only used if Scaling Method is Horizonzal or Hybrid
 //Max Underprovision is only used if Underprovisioning is allowed
 type PolicySettings struct{
-	ScalingMethod            string  `yaml:"scaling-method"`
+	ScalingMethod            string  `yaml:"vm-scaling-method"`
 	HetereogeneousAllowed    bool    `yaml:"heterogeneous-vms-allowed"`
 	UnderprovisioningAllowed bool    `yaml:"underprovisioning-allowed"`
 	MaxUnderprovisionPercentage        float64 `yaml:"percentage-max-underprovision"`

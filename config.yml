@@ -6,7 +6,7 @@ CSP: AWS
 region: us-east-2
 pricing-model:
   monthly-budget: 12000
-  billing-unit: hour
+  billing-unit: second
 scaling-horizon:
   start-time: 2018-08-25T00:00:00.000Z
   end-time: 2018-08-31T07:00:00.1Z
@@ -28,7 +28,7 @@ scheduler-component:
   api-key:
 preferred-algorithm: naive
 policy-settings:
-  scaling-method: horizontal
+  vm-scaling-method: horizontal
   heterogeneous-vms-allowed: true
   underprovisioning-allowed: false
   percentage-max-underprovision: 20

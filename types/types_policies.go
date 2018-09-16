@@ -168,6 +168,8 @@ type ScalingAction struct {
 	TimeEnd					time.Time			`json:"time_end" bson:"time_end"`
 	Metrics					ConfigMetrics		`json:"metrics" bson:"metrics"`
 	TimeStartBilling		time.Time			`json:"time_start_billing" bson:"time_start_billing"`
+	TimeEndBilling			time.Time			`json:"time_end_billing" bson:"time_end_billing"`
+
 }
 
 

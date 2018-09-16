@@ -23,8 +23,6 @@ import (
 var (
 	FlagsVar = util.ParseFlags()
  	log = logging.MustGetLogger("spdt")
- 	format = logging.MustStringFormatter(
-			`%{color}%{time:15:04:05.000} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`, )
 	policies				[]types.Policy
 	timeWindowSize			time.Duration
 	timeStart				time.Time
@@ -33,23 +31,27 @@ var (
 
 // Main function to start the scaling policy derivation
 func Start(){
-	StyleEntry()
+
+	//Print Tool Name
+	styleEntry()
+
+	//Set up the logs
 	setLogger()
 
 	if FlagsVar.ConfigFile == "" {
-		log.Info("ScalingAction file not specified. Default config.yml is expected.")
+		log.Info("Configuration file not specified. Default config.yml is expected.")
 		FlagsVar.ConfigFile = util.CONFIG_FILE
 	}
 
-	//Read ScalingAction File
-	sysConfiguration := ReadSysConfiguration()
+	//Read Configuration File
+	sysConfiguration := readSysConfiguration()
 	timeStart = sysConfiguration.ScalingHorizon.StartTime
 	timeEnd = sysConfiguration.ScalingHorizon.EndTime
 	timeWindowSize = timeEnd.Sub(timeStart)
 
 	out := make(chan types.Forecast)
 	server := SetUpServer(out)
-	//go updatePolicyDerivation(out)
+	go updatePolicyDerivation(out)
 	//go periodicPolicyDerivation()
 	server.Run(":" + FlagsVar.Port)
 
@@ -70,7 +72,7 @@ func periodicPolicyDerivation() {
 	}
 }
 
-func StyleEntry() {
+func styleEntry() {
 	fmt.Println(`
    _____ ____  ____  ______
   / ___// __ \/ __ \/_  __/
@@ -88,13 +90,15 @@ func setLogger() {
 	file, _ := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	multiOutput := io.MultiWriter(file, os.Stdout)
 	backend2 := logging.NewLogBackend(multiOutput, "", 0)
+	format := logging.MustStringFormatter(
+		`%{color}%{time:15:04:05.000} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`, )
 	backend2Formatter := logging.NewBackendFormatter(backend2, format)
 	logging.SetBackend(backend2Formatter)
 	log.Info("Logs can be accessed in %s", logFile)
 }
 
 //Read the configuration file with the setting to derive the scaling policies
-func ReadSysConfiguration() config.SystemConfiguration {
+func readSysConfiguration() config.SystemConfiguration {
 	//var err error
 	sysConfiguration, err := config.ParseConfigFile(FlagsVar.ConfigFile)
 	if err != nil {
@@ -137,15 +141,14 @@ func getServiceProfile(sysConfiguration config.SystemConfiguration){
 	var servicePerformanceProfile types.ServicePerformanceProfile
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
 	storedPerformanceProfiles,_ := serviceProfileDAO.FindAll()
-	if(len(storedPerformanceProfiles)==0) {
+	if len(storedPerformanceProfiles) == 0 {
 
 		log.Info("Start request Performance Profiles")
-
 		endpoint := sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILES
 		servicePerformanceProfile, err = Pservice.GetServicePerformanceProfiles(endpoint,sysConfiguration.ServiceName, sysConfiguration.ServiceType )
 
 		if err != nil {
-			log.Error(err.Error())
+			log.Error("Error in request Performance Profiles: %s",err.Error())
 		} else {
 			log.Info("Finish request Performance Profiles")
 		}
@@ -167,7 +170,7 @@ func getServiceProfile(sysConfiguration config.SystemConfiguration){
 			}
 			err = serviceProfileDAO.Insert(performanceProfile)
 			if err != nil {
-				log.Error(err.Error())
+				log.Error("Error Storing Performance Profiles: %s",err.Error())
 			}
 		}
 	}

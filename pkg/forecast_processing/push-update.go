@@ -5,38 +5,35 @@ import (
 	"github.com/Cloud-Pie/SPDT/storage"
 	"time"
 	"github.com/op/go-logging"
+	"gopkg.in/mgo.v2/bson"
 )
 
 var log = logging.MustGetLogger("spdt")
 
 func UpdateForecast(forecast types.Forecast) (bool, types.Forecast, time.Time) {
-		forecastDAO := storage.GetForecastDAO()
-		_,err := forecastDAO.Connect()
+	var shouldUpdate bool
+	var timeConflict time.Time
+	var indexTimeConflict int
+	forecastDAO := storage.GetForecastDAO()
+
+	//Compare with the previous forecast if sth changed
+	resultQuery, err := forecastDAO.FindAll() //TODO: Write better query
+	if len(resultQuery) == 1 {
+		oldForecast := resultQuery[0]
+		if shouldUpdate, indexTimeConflict = isConflict(forecast, oldForecast); shouldUpdate {
+			id := resultQuery[0].IDdb
+			forecastDAO.Update(id, forecast)
+			timeConflict = forecast.ForecastedValues[indexTimeConflict].TimeStamp
+			forecast.ForecastedValues = forecast.ForecastedValues[indexTimeConflict:]
+		}
+	} else {
+		//Case when there was not previous forecast
+		forecast.IDdb = bson.NewObjectId()
+		err = forecastDAO.Insert(forecast)
 		if err != nil {
-			log.Fatalf(err.Error())
+			log.Error(err.Error())
 		}
-
-		var shouldUpdate bool
-		var timeConflict time.Time
-		var indexTimeConflict int
-		//Compare with the previous forecast if sth changed
-		resultQuery, err := forecastDAO.FindAll() //TODO: Write better query
-		if len(resultQuery) == 1 {
-			oldForecast := resultQuery[0]
-			if shouldUpdate, indexTimeConflict = isConflict(forecast, oldForecast); shouldUpdate {
-				id := resultQuery[0].IDdb
-				forecastDAO.Update(id, forecast)
-			}
-		} else {
-			//Case when there was not previous forecast
-			err = forecastDAO.Insert(forecast)
-			if err != nil {
-				log.Error(err.Error())
-			}
-		}
-
-		timeConflict = forecast.ForecastedValues[indexTimeConflict].TimeStamp
-		forecast.ForecastedValues = forecast.ForecastedValues[indexTimeConflict:]
+	}
 
 	return shouldUpdate, forecast, timeConflict
 }

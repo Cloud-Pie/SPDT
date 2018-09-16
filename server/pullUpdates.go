@@ -11,7 +11,7 @@ import (
 )
 
 func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
-	sysConfiguration := ReadSysConfiguration()
+	sysConfiguration := readSysConfiguration()
 	timeStart = sysConfiguration.ScalingHorizon.StartTime
 	timeEnd = sysConfiguration.ScalingHorizon.EndTime
 	timeWindowSize = timeEnd.Sub(timeStart)
