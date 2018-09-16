@@ -20,9 +20,16 @@ var (
 	id	string
 )
 
+func init() {
+	deleteCmd.Flags().StringVar(&id, "pId", "", "Policy ID")
+	deleteCmd.Flags().BoolVar(&force,"f", false, "Force the action")
+	deleteCmd.Flags().String("config-file", "config.yml", "Configuration file path")
+}
+
 func delete(cmd *cobra.Command, args []string) {
 	if force {
-		systemConfiguration := server.ReadSysConfiguration()
+		configFile := cmd.Flag("config-file").Value.String()
+		systemConfiguration := server.ReadSysConfigurationFile(configFile)
 		policyDAO := db.GetPolicyDAO(systemConfiguration.ServiceName)
 		err := policyDAO.DeleteById(id)
 		if err != nil {
@@ -34,9 +41,4 @@ func delete(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Println("Are you sure you want to delete this policy?, use the -f flag to force it")
 	}
-}
-
-func init() {
-	deleteCmd.Flags().StringVar(&id, "pId", "", "Policy ID")
-	deleteCmd.Flags().BoolVar(&force,"f", false, "Force the action")
 }

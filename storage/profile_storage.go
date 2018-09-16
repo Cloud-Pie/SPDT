@@ -30,7 +30,7 @@ const (
 //Connect to the database
 func (p *PerformanceProfileDAO) Connect() (*mgo.Database, error) {
 	var err error
-	log.Info("Connecting to Profiles db ...")
+
 	if p.session == nil {
 		p.session,  err = mgo.DialWithInfo(&mgo.DialInfo{
 			Addrs: profilesDBHost,

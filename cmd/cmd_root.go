@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"os"
 	"github.com/spf13/cobra"
+	"github.com/op/go-logging"
 )
 
 var (
 	// VERSION is set during build
 	VERSION string
+	log = logging.MustGetLogger("spdt")
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -33,6 +35,7 @@ func Execute() {
 	RootCmd.AddCommand(deriveCmd)
 	RootCmd.AddCommand(deleteCmd)
 	RootCmd.AddCommand(policiesCmd)
+	RootCmd.AddCommand(invalidateCmd)
 
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)

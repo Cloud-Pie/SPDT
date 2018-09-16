@@ -20,11 +20,20 @@ var policiesCmd = &cobra.Command {
 
 var all bool
 
+func init() {
+	policiesCmd.Flags().String("start-time", "", "Start time of the horizon span")
+	policiesCmd.Flags().String("end-time", "", "End time of the horizon span")
+	policiesCmd.Flags().String("pId", "", "Policy ID")
+	policiesCmd.Flags().BoolVar(&all,"all", false, "Retrieve all stored policies")
+	policiesCmd.Flags().String("config-file", "config.yml", "Configuration file path")
+}
+
 func retrieve (cmd *cobra.Command, args []string) {
 	id := cmd.Flag("pId").Value.String()
 	start := cmd.Flag("start-time").Value.String()
 	end := cmd.Flag("end-time").Value.String()
-	systemConfiguration := server.ReadSysConfiguration()
+	configFile := cmd.Flag("config-file").Value.String()
+	systemConfiguration := server.ReadSysConfigurationFile(configFile)
 	policyDAO := db.GetPolicyDAO(systemConfiguration.ServiceName)
 
 	if id != "" {
@@ -52,12 +61,7 @@ func retrieve (cmd *cobra.Command, args []string) {
 	}
 }
 
-func init() {
-	policiesCmd.Flags().String("start-time", "", "Start time of the horizon span")
-	policiesCmd.Flags().String("end-time", "", "End time of the horizon span")
-	policiesCmd.Flags().String("pId", "", "Policy ID")
-	policiesCmd.Flags().BoolVar(&all,"all", false, "Retrieve all stored policies")
-}
+
 
 func check(e error) {
 	if e != nil {

@@ -32,7 +32,7 @@ const(
 //Connect to the database
 func (p *ForecastDAO) Connect() (*mgo.Database, error) {
 	var err error
-	log.Info("Connecting to Forecast db ...")
+
 	if p.session == nil {
 		p.session,  err = mgo.DialWithInfo(&mgo.DialInfo{
 			Addrs: forecastDBHost,

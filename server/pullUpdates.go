@@ -7,11 +7,13 @@ import (
 	"github.com/Cloud-Pie/SPDT/util"
 	"time"
 	"gopkg.in/mgo.v2/bson"
-	"github.com/Cloud-Pie/SPDT/pkg/schedule"
+	"github.com/Cloud-Pie/SPDT/types"
 )
 
-func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
-	sysConfiguration := ReadSysConfiguration()
+var requestsCapacityPerState types.RequestCapacitySupply
+
+func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time, ConfigFile string) error {
+	sysConfiguration := ReadSysConfigurationFile(ConfigFile)
 	timeStart = sysConfiguration.ScalingHorizon.StartTime
 	timeEnd = sysConfiguration.ScalingHorizon.EndTime
 	timeWindowSize = timeEnd.Sub(timeStart)
@@ -59,30 +61,14 @@ func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
 		log.Info("Finish points of interest search in time serie")
 	}
 
-
 	selectedPolicy,err := setNewPolicy(forecast, poiList,values,times, sysConfiguration)
 
-	log.Info("Start request Scheduler")
-	schedulerURL := sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES
-	err = schedule.TriggerScheduler(selectedPolicy, schedulerURL)
-	if err != nil {
-		log.Error("The scheduler request failed with error %s\n", err)
-	} else {
-		log.Info("Finish request Scheduler")
-	}
+	if err == nil {
+		//Schedule scaling states
+		ScheduleScaling(sysConfiguration, selectedPolicy)
 
-	//TODO:Improve for a better pub/sub system
-	log.Info("Start subscribe to prediction updates")
-	forecastUpdatesURL := sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_SUBSCRIBE_NOTIFICATIONS
-	requestsCapacityPerState := forecast_processing.GetMaxRequestCapacity(selectedPolicy)
-	requestsCapacityPerState.IDPrediction = forecast.IDPrediction
-	requestsCapacityPerState.URL = util.ENDPOINT_RECIVE_NOTIFICATIONS
-	Fservice.PostMaxRequestCapacities(requestsCapacityPerState, forecastUpdatesURL)
-
-	if err != nil {
-		log.Error("The subscription to prediction updates failed with error %s\n", err)
-	} else {
-		log.Info("Finish subscribe to prediction updates")
+		//Subscribe to the notifications
+		SubscribeForecastingUpdates(sysConfiguration, selectedPolicy, forecast.IDPrediction)
 	}
 
 	return err

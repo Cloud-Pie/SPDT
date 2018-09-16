@@ -2,13 +2,10 @@ package server
 
 import (
 	"github.com/Cloud-Pie/SPDT/types"
-	Fservice "github.com/Cloud-Pie/SPDT/rest_clients/forecast"
 	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
 	"time"
 	"github.com/Cloud-Pie/SPDT/storage"
 	"github.com/Cloud-Pie/SPDT/pkg/policy_management"
-	"github.com/Cloud-Pie/SPDT/pkg/schedule"
-	"github.com/Cloud-Pie/SPDT/util"
 )
 
 func updatePolicyDerivation(forecastChannel chan types.Forecast) {
@@ -54,44 +51,19 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 				timeInvalidation = forecast.TimeWindowStart
 			}
 
-
 			err = policyDAO.UpdateById(oldPolicy.ID,oldPolicy)
 			if err != nil {
 				log.Error("The policy could not be updated. Error %s\n", err)
 			}
 
-			log.Info("Start request Scheduler to invalidate states")
-			statesInvalidationURL := sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_INVALIDATE_STATES
-			err = schedule.InvalidateStates(timeInvalidation, statesInvalidationURL)
-			if err != nil {
-				log.Error("The scheduler request failed with error %s\n", err)
-			} else {
-				log.Info("Finish request Scheduler to invalidate states")
+			//Invalidate States
+			err = InvalidateScalingStates(sysConfiguration, timeInvalidation)
+			if err == nil {
+				//Schedule scaling steps
+				ScheduleScaling(sysConfiguration, selectedPolicy)
 			}
-
-			log.Info("Start request Scheduler to create states")
-			schedulerURL := sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_STATES
-			err = schedule.TriggerScheduler(selectedPolicy, schedulerURL)
-			if err != nil {
-				log.Error("The scheduler request failed with error %s\n", err)
-			} else {
-				log.Info("Finish request Scheduler to create states")
-			}
-
-			//TODO:Improve for a better pub/sub system
-			log.Info("Start subscribe to prediction updates")
-			forecastUpdatesURL := sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_SUBSCRIBE_NOTIFICATIONS
-			requestsCapacityPerState := forecast_processing.GetMaxRequestCapacity(selectedPolicy)
-			requestsCapacityPerState.IDPrediction = forecast.IDPrediction
-			requestsCapacityPerState.URL = util.ENDPOINT_RECIVE_NOTIFICATIONS
-			Fservice.PostMaxRequestCapacities(requestsCapacityPerState, forecastUpdatesURL)
-
-			if err != nil {
-				log.Error("The subscription to prediction updates failed with error %s\n", err)
-			} else {
-				log.Info("Finish subscribe to prediction updates")
-			}
-
+			//Subscribe to the notifications
+			SubscribeForecastingUpdates(sysConfiguration, selectedPolicy, forecast.IDPrediction)
 		}
 	}
 }

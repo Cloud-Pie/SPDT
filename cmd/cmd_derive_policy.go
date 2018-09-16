@@ -22,8 +22,9 @@ func init() {
 
 func derive (cmd *cobra.Command, args []string) {
 	fmt.Print("called derive")
-	sysConfiguration := server.ReadSysConfiguration()
+	configFile := cmd.Flag("config-file").Value.String()
+	sysConfiguration := server.ReadSysConfigurationFile(configFile)
 	timeStart := sysConfiguration.ScalingHorizon.StartTime
 	timeEnd := sysConfiguration.ScalingHorizon.EndTime
-	server.StartPolicyDerivation(timeStart,timeEnd)
+	server.StartPolicyDerivation(timeStart,timeEnd,configFile)
 }

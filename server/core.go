@@ -2,6 +2,7 @@ package server
 
 import (
 	Pservice "github.com/Cloud-Pie/SPDT/rest_clients/performance_profiles"
+	Fservice "github.com/Cloud-Pie/SPDT/rest_clients/forecast"
 	"github.com/Cloud-Pie/SPDT/util"
 	"github.com/Cloud-Pie/SPDT/config"
 	"github.com/Cloud-Pie/SPDT/storage"
@@ -18,6 +19,8 @@ import (
 	"sort"
 	"github.com/Cloud-Pie/SPDT/pkg/derivation"
 	"github.com/Cloud-Pie/SPDT/pkg/evaluation"
+	"github.com/Cloud-Pie/SPDT/pkg/schedule"
+	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
 )
 
 var (
@@ -41,7 +44,7 @@ func Start(port string, configFile string) {
 
 	//Read Configuration File
 	ConfigFile = configFile
-	sysConfiguration := ReadSysConfiguration()
+	sysConfiguration := ReadSysConfigurationFile(configFile)
 	timeStart = sysConfiguration.ScalingHorizon.StartTime
 	timeEnd = sysConfiguration.ScalingHorizon.EndTime
 	timeWindowSize = timeEnd.Sub(timeStart)
@@ -58,7 +61,7 @@ func Start(port string, configFile string) {
 //and derive a the correspondent new scaling policy
 func periodicPolicyDerivation() {
 	for {
-		err := StartPolicyDerivation(timeStart,timeEnd)
+		err := StartPolicyDerivation(timeStart,timeEnd, ConfigFile)
 		if err != nil {
 			log.Error("An error has occurred and policies have been not derived. Please try again. Details: %s", err)
 		}else{
@@ -96,6 +99,16 @@ func setLogger() {
 
 //Read the configuration file with the setting to derive the scaling policies
 func ReadSysConfiguration() config.SystemConfiguration {
+	//var err error
+	sysConfiguration, err := config.ParseConfigFile(ConfigFile)
+	if err != nil {
+		log.Errorf("Configuration file could not be processed %s", err)
+	}
+	return sysConfiguration
+}
+
+//Read the configuration file with the setting to derive the scaling policies
+func ReadSysConfigurationFile(ConfigFile string) config.SystemConfiguration {
 	//var err error
 	sysConfiguration, err := config.ParseConfigFile(ConfigFile)
 	if err != nil {
@@ -204,4 +217,42 @@ func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64
 //Utility function to convert from milliseconds to seconds
 func millisecondsToSeconds(m float64) float64{
 	return m/1000
+}
+
+func ScheduleScaling(sysConfiguration config.SystemConfiguration, selectedPolicy types.Policy) {
+	log.Info("Start request Scheduler")
+	schedulerURL := sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES
+	err := schedule.TriggerScheduler(selectedPolicy, schedulerURL)
+	if err != nil {
+		log.Error("The scheduler request failed with error %s\n", err)
+	} else {
+		log.Info("Finish request Scheduler")
+	}
+}
+
+func InvalidateScalingStates(sysConfiguration config.SystemConfiguration, timeInvalidation time.Time) error {
+	log.Info("Start request Scheduler to invalidate states")
+	statesInvalidationURL := sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_INVALIDATE_STATES
+	err := schedule.InvalidateStates(timeInvalidation, statesInvalidationURL)
+	if err != nil {
+		log.Error("The scheduler request failed with error %s\n", err)
+	} else {
+		log.Info("Finish request Scheduler to invalidate states")
+	}
+	return err
+}
+
+func SubscribeForecastingUpdates(sysConfiguration config.SystemConfiguration, selectedPolicy types.Policy, idPrediction string){
+	//TODO:Improve for a better pub/sub system
+	log.Info("Start subscribe to prediction updates")
+	forecastUpdatesURL := sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_SUBSCRIBE_NOTIFICATIONS
+	requestsCapacityPerState := forecast_processing.GetMaxRequestCapacity(selectedPolicy)
+	requestsCapacityPerState.IDPrediction = idPrediction
+	requestsCapacityPerState.URL = util.ENDPOINT_RECIVE_NOTIFICATIONS
+	err := Fservice.PostMaxRequestCapacities(requestsCapacityPerState, forecastUpdatesURL)
+	if err != nil {
+		log.Error("The subscription to prediction updates failed with error %s\n", err)
+	} else {
+		log.Info("Finish subscribe to prediction updates")
+	}
 }
