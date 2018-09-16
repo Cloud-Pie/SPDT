@@ -27,10 +27,11 @@ var (
 	timeWindowSize			time.Duration
 	timeStart				time.Time
 	timeEnd					time.Time
+	ConfigFile				string
 )
 
 // Main function to start the scaling policy derivation
-func Start(){
+func Start(port string, configFile string) {
 
 	//Print Tool Name
 	styleEntry()
@@ -38,13 +39,9 @@ func Start(){
 	//Set up the logs
 	setLogger()
 
-	if FlagsVar.ConfigFile == "" {
-		log.Info("Configuration file not specified. Default config.yml is expected.")
-		FlagsVar.ConfigFile = util.CONFIG_FILE
-	}
-
 	//Read Configuration File
-	sysConfiguration := readSysConfiguration()
+	ConfigFile = configFile
+	sysConfiguration := ReadSysConfiguration()
 	timeStart = sysConfiguration.ScalingHorizon.StartTime
 	timeEnd = sysConfiguration.ScalingHorizon.EndTime
 	timeWindowSize = timeEnd.Sub(timeStart)
@@ -53,7 +50,7 @@ func Start(){
 	server := SetUpServer(out)
 	go updatePolicyDerivation(out)
 	//go periodicPolicyDerivation()
-	server.Run(":" + FlagsVar.Port)
+	server.Run(":" + port)
 
 }
 
@@ -98,9 +95,9 @@ func setLogger() {
 }
 
 //Read the configuration file with the setting to derive the scaling policies
-func readSysConfiguration() config.SystemConfiguration {
+func ReadSysConfiguration() config.SystemConfiguration {
 	//var err error
-	sysConfiguration, err := config.ParseConfigFile(FlagsVar.ConfigFile)
+	sysConfiguration, err := config.ParseConfigFile(ConfigFile)
 	if err != nil {
 		log.Errorf("Configuration file could not be processed %s", err)
 	}
@@ -139,7 +136,7 @@ func getVMProfiles()[]types.VmProfile {
 func getServiceProfile(sysConfiguration config.SystemConfiguration){
 	var err error
 	var servicePerformanceProfile types.ServicePerformanceProfile
-	serviceProfileDAO := storage.GetPerformanceProfileDAO()
+	serviceProfileDAO := storage.GetPerformanceProfileDAO(sysConfiguration.ServiceName)
 	storedPerformanceProfiles,_ := serviceProfileDAO.FindAll()
 	if len(storedPerformanceProfiles) == 0 {
 
@@ -193,7 +190,7 @@ func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64
 		log.Error("Error evaluation policies: %s", err.Error())
 	}else {
 		log.Info("Finish policies evaluation")
-		policyDAO := storage.GetPolicyDAO()
+		policyDAO := storage.GetPolicyDAO(sysConfiguration.ServiceName)
 		for _,p := range policies {
 			err = policyDAO.Insert(p)
 			if err != nil {

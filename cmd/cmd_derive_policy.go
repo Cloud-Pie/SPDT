@@ -15,9 +15,14 @@ var deriveCmd = &cobra.Command{
 	Run: derive,
 }
 
+func init() {
+	deriveCmd.Flags().String("config-file", "config.yml", "Configuration file path")
+	deriveCmd.Flags().String("vm-prices-file","mock_vms.json", "VM prices file path")
+}
+
 func derive (cmd *cobra.Command, args []string) {
 	fmt.Print("called derive")
-	sysConfiguration := server.readSysConfiguration()
+	sysConfiguration := server.ReadSysConfiguration()
 	timeStart := sysConfiguration.ScalingHorizon.StartTime
 	timeEnd := sysConfiguration.ScalingHorizon.EndTime
 	server.StartPolicyDerivation(timeStart,timeEnd)
