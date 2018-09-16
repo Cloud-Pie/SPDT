@@ -3,27 +3,26 @@ package server
 import (
 	Fservice "github.com/Cloud-Pie/SPDT/rest_clients/forecast"
 	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
-	"sort"
 	"github.com/Cloud-Pie/SPDT/storage"
-	"github.com/Cloud-Pie/SPDT/pkg/reconfiguration"
 	"github.com/Cloud-Pie/SPDT/util"
 	"time"
 	"gopkg.in/mgo.v2/bson"
+	"github.com/Cloud-Pie/SPDT/pkg/schedule"
 )
 
 func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
-	ReadSysConfiguration()
+	sysConfiguration := ReadSysConfiguration()
 	timeStart = sysConfiguration.ScalingHorizon.StartTime
 	timeEnd = sysConfiguration.ScalingHorizon.EndTime
 	timeWindowSize = timeEnd.Sub(timeStart)
 
-	//Request VM Profiles
-	getVMProfiles()
 	//Request Performance Profiles
-	getServiceProfile()
+	getServiceProfile(sysConfiguration)
+
 	//Request Forecasting
 	log.Info("Start request Forecasting")
-	forecast,err := Fservice.GetForecast(sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_FORECAST, timeStart, timeEnd)
+	forecastURL := sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_FORECAST
+	forecast,err := Fservice.GetForecast(forecastURL, timeStart, timeEnd)
 	if err != nil {
 		log.Error(err.Error())
 		log.Info("Error in the request to get the forecasting")
@@ -34,7 +33,6 @@ func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
 
 	//Retrieve data access to the database for forecasting
 	forecastDAO := storage.GetForecastDAO()
-
 	//Check if already exist, then update
 	resultQuery,err := forecastDAO.FindOneByTimeWindow(timeStart, timeEnd)
 
@@ -62,15 +60,11 @@ func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
 	}
 
 
-	sort.Slice(vmProfiles, func(i, j int) bool {
-		return vmProfiles[i].Pricing.Price <=  vmProfiles[j].Pricing.Price
-	})
-
-	setNewPolicy(forecast, poiList,values,times)
-
+	selectedPolicy,err := setNewPolicy(forecast, poiList,values,times, sysConfiguration)
 
 	log.Info("Start request Scheduler")
-	err = reconfiguration.TriggerScheduler(selectedPolicy, sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES)
+	schedulerURL := sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES
+	err = schedule.TriggerScheduler(selectedPolicy, schedulerURL)
 	if err != nil {
 		log.Error("The scheduler request failed with error %s\n", err)
 	} else {
@@ -79,11 +73,11 @@ func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
 
 	//TODO:Improve for a better pub/sub system
 	log.Info("Start subscribe to prediction updates")
-	url := sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_SUBSCRIBE_NOTIFICATIONS
+	forecastUpdatesURL := sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_SUBSCRIBE_NOTIFICATIONS
 	requestsCapacityPerState := forecast_processing.GetMaxRequestCapacity(selectedPolicy)
 	requestsCapacityPerState.IDPrediction = forecast.IDPrediction
 	requestsCapacityPerState.URL = util.ENDPOINT_RECIVE_NOTIFICATIONS
-	Fservice.PostMaxRequestCapacities(requestsCapacityPerState, url)
+	Fservice.PostMaxRequestCapacities(requestsCapacityPerState, forecastUpdatesURL)
 
 	if err != nil {
 		log.Error("The subscription to prediction updates failed with error %s\n", err)
@@ -91,5 +85,5 @@ func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
 		log.Info("Finish subscribe to prediction updates")
 	}
 
-	return nil
+	return err
 }

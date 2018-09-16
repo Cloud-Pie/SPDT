@@ -140,15 +140,16 @@ function plotVMUnitsPerType(time, vms, textHover) {
     )
 
    var layout = {
-        title: 'N° Virtual Machines',
+        title: '<b>N° Virtual Machines</b>',
         titlefont: {
-           size:18
+           size:18, color: '#092e20'
         },
+
         autosize:true,
         margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        height: 300,
+
         yaxis: {title: 'N° VMs', range: [0, 8]},
         yaxis2: {
            title: 'Requests/Sec',
@@ -198,7 +199,7 @@ function plotVMUnits(time, vms, textHover) {
         margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        height: 300,
+
         legend: {
             "orientation": "h",
             xanchor: "center",
@@ -236,9 +237,9 @@ function plotContainerUnits(time, replicas, cpuCores, memGB) {
     };
 
     var layout = {
-        title: 'N° Containers',
+        title: '<b>N° Containers</b>',
         titlefont: {
-           size:18
+           size:18, color: '#092e20'
         },
         yaxis: {title: 'N° Containers', range: [0, 15]},
         yaxis2: {
@@ -252,7 +253,7 @@ function plotContainerUnits(time, replicas, cpuCores, memGB) {
         margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        height: 300,
+
         legend: {
             "orientation": "h",
             xanchor: "center",
@@ -282,15 +283,15 @@ function plotCapacity(time, demand, supply, timeSuply){
     };
 
     var layout = {
-        title: 'Workload',
+        title: '<b>Workload</b>',
         titlefont: {
-           size:18
+           size:18, color: '#092e20'
         },
         autosize:true,
         margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        height: 300,
+
         yaxis: {title: 'Requests/Sec'},
         legend: {
             "orientation": "h",
@@ -312,16 +313,16 @@ function plotMem(time, memGB) {
     };
 
     var layout = {
-        title: 'Memory GB',
+        title: '<b>Memory GB</b>',
         titlefont: {
-           size:18
+           size:18, color: '#092e20'
         },
         yaxis: {range: [0, 100]},
         autosize:true,
         margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        height: 300,
+
         legend: {
             "orientation": "h",
             xanchor: "center",
@@ -343,16 +344,16 @@ function plotCPU(time, cpuCores) {
     };
 
     var layout = {
-        title: 'CPU Cores',
+        title: '<b>CPU Cores</b>',
         titlefont: {
-           size:18
+           size:18, color: '#092e20'
         },
         yaxis: {range: [0, 100]},
         autosize:true,
         margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        height: 300,
+
         legend: {
             "orientation": "h",
             xanchor: "center",
@@ -645,7 +646,7 @@ function plotCapacityAll(time, demand, supplyAll,tracesAll){
         margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        height: 200
+
     };
 
     Plotly.newPlot('requestsUnitsAll', data,layout);
@@ -678,7 +679,7 @@ function plotMemAll(time, memGBAll, tracesAll) {
         margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        height: 200
+
     };
 
     Plotly.newPlot('memoryUtilizationAll', data,layout);

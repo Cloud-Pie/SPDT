@@ -1,4 +1,4 @@
-package reconfiguration
+package schedule
 
 import (
 	"github.com/Cloud-Pie/SPDT/types"

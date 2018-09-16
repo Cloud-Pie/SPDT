@@ -3,11 +3,10 @@ package server
 import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
-	"sort"
 	"time"
 	"github.com/Cloud-Pie/SPDT/storage"
 	"github.com/Cloud-Pie/SPDT/pkg/policy_management"
-	"github.com/Cloud-Pie/SPDT/pkg/reconfiguration"
+	"github.com/Cloud-Pie/SPDT/pkg/schedule"
 	"github.com/Cloud-Pie/SPDT/util"
 )
 
@@ -16,11 +15,11 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 		shouldUpdate, newForecast, timeConflict := forecast_processing.UpdateForecast(forecast)
 		if(shouldUpdate) {
 			//Read Configuration File
-			ReadSysConfiguration()
+			sysConfiguration := ReadSysConfiguration()
 			//Request VM Profiles
 			getVMProfiles()
 			//Request Performance Profiles
-			getServiceProfile()
+			getServiceProfile(sysConfiguration)
 
 			log.Info("Start points of interest search in time serie")
 			poiList, values, times, err:= forecast_processing.PointsOfInterest(forecast)
@@ -31,20 +30,16 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 				log.Info("Finish points of interest search in time serie")
 			}
 
-			sort.Slice(vmProfiles, func(i, j int) bool {
-				return vmProfiles[i].Pricing.Price <= vmProfiles[j].Pricing.Price
-			})
-
 			var timeInvalidation time.Time
 			var oldPolicy types.Policy
 			var indexConflict int
-
+			var selectedPolicy types.Policy
 			policyDAO := storage.GetPolicyDAO()
 
 
 			//verify if current time is greater than start window
 			if time.Now().After(forecast.TimeWindowStart) {
-				setNewPolicy(newForecast,poiList,values,times)
+				selectedPolicy, err = setNewPolicy(newForecast,poiList,values,times, sysConfiguration)
 				oldPolicy, indexConflict = policy_management.ConflictTimeOldPolicy(forecast,timeConflict)
 				timeInvalidation = oldPolicy.ScalingActions[indexConflict].TimeEnd
 				selectedPolicy.ScalingActions[0].TimeStart = timeInvalidation
@@ -52,8 +47,8 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 				oldPolicy.ScalingActions = append(oldPolicy.ScalingActions[:indexConflict], selectedPolicy.ScalingActions...)
 
 			}else{
-				//Discart completely old policy and create new one
-				setNewPolicy(forecast,poiList,values,times)
+				//Invalidate completely old policy and create new one
+				selectedPolicy, err = setNewPolicy(forecast,poiList,values,times, sysConfiguration)
 				po, _ := policyDAO.FindOneByTimeWindow(forecast.TimeWindowStart, forecast.TimeWindowEnd)
 				selectedPolicy.ID = po.ID
 				oldPolicy = selectedPolicy
@@ -67,7 +62,8 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 			}
 
 			log.Info("Start request Scheduler to invalidate states")
-			err = reconfiguration.InvalidateStates(timeInvalidation, sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_INVALIDATE_STATES)
+			statesInvalidationURL := sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_INVALIDATE_STATES
+			err = schedule.InvalidateStates(timeInvalidation, statesInvalidationURL)
 			if err != nil {
 				log.Error("The scheduler request failed with error %s\n", err)
 			} else {
@@ -75,7 +71,8 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 			}
 
 			log.Info("Start request Scheduler to create states")
-			err = reconfiguration.TriggerScheduler(selectedPolicy, sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_STATES)
+			schedulerURL := sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_STATES
+			err = schedule.TriggerScheduler(selectedPolicy, schedulerURL)
 			if err != nil {
 				log.Error("The scheduler request failed with error %s\n", err)
 			} else {

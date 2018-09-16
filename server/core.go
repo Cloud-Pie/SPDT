@@ -2,8 +2,6 @@ package server
 
 import (
 	Pservice "github.com/Cloud-Pie/SPDT/rest_clients/performance_profiles"
-	"github.com/Cloud-Pie/SPDT/pkg/policies_derivation"
-	"github.com/Cloud-Pie/SPDT/pkg/policy_evaluation"
 	"github.com/Cloud-Pie/SPDT/util"
 	"github.com/Cloud-Pie/SPDT/config"
 	"github.com/Cloud-Pie/SPDT/storage"
@@ -15,6 +13,11 @@ import (
 	"path/filepath"
 	"io"
 	"gopkg.in/mgo.v2/bson"
+	"io/ioutil"
+	"encoding/json"
+	"sort"
+	"github.com/Cloud-Pie/SPDT/pkg/derivation"
+	"github.com/Cloud-Pie/SPDT/pkg/evaluation"
 )
 
 var (
@@ -22,10 +25,6 @@ var (
  	log = logging.MustGetLogger("spdt")
  	format = logging.MustStringFormatter(
 			`%{color}%{time:15:04:05.000} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`, )
-	sysConfiguration 		config.SystemConfiguration
-	serviceProfiles 		types.ServiceProfile
-	selectedPolicy			types.Policy
-	vmProfiles				[]types.VmProfile
 	policies				[]types.Policy
 	timeWindowSize			time.Duration
 	timeStart				time.Time
@@ -43,7 +42,7 @@ func Start(){
 	}
 
 	//Read ScalingAction File
-	ReadSysConfiguration()
+	sysConfiguration := ReadSysConfiguration()
 	timeStart = sysConfiguration.ScalingHorizon.StartTime
 	timeEnd = sysConfiguration.ScalingHorizon.EndTime
 	timeWindowSize = timeEnd.Sub(timeStart)
@@ -96,8 +95,8 @@ func setLogger() {
 
 //Read the configuration file with the setting to derive the scaling policies
 func ReadSysConfiguration() config.SystemConfiguration {
-	var err error
-	sysConfiguration, err = config.ParseConfigFile(FlagsVar.ConfigFile)
+	//var err error
+	sysConfiguration, err := config.ParseConfigFile(FlagsVar.ConfigFile)
 	if err != nil {
 		log.Errorf("Configuration file could not be processed %s", err)
 	}
@@ -105,8 +104,9 @@ func ReadSysConfiguration() config.SystemConfiguration {
 }
 
 //Fetch the profiles of the available Virtual Machines to generate the scaling policies
-func getVMProfiles(){
+func getVMProfiles()[]types.VmProfile {
 	var err error
+	var vmProfiles	[]types.VmProfile
 	log.Info("Start request VMs Profiles")
 	//vmProfiles, err = Pservice.GetVMsProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VMS_PROFILES)
 
@@ -120,14 +120,19 @@ func getVMProfiles(){
 	if err != nil {
 		log.Error(err.Error())
 		log.Info("Error in the request to get VMs Profiles")
-		return
+		return vmProfiles
 	} else {
 		log.Info("Finish request VMs Profiles")
 	}
+	sort.Slice(vmProfiles, func(i, j int) bool {
+		return vmProfiles[i].Pricing.Price <=  vmProfiles[j].Pricing.Price
+	})
+
+	return vmProfiles
 }
 
 //Fetch the performance profile of the microservice that should be scaled
-func getServiceProfile(){
+func getServiceProfile(sysConfiguration config.SystemConfiguration){
 	var err error
 	var servicePerformanceProfile types.ServicePerformanceProfile
 	serviceProfileDAO := storage.GetPerformanceProfileDAO()
@@ -169,28 +174,31 @@ func getServiceProfile(){
 }
 
 //Start Derivation of a new scaling policy for the specified scaling horizon and correspondent forecast
-func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64, times []time.Time){
+func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64, times []time.Time, sysConfiguration config.SystemConfiguration) (types.Policy, error){
+	//Get VM Profiles
+	vmProfiles := getVMProfiles()
+
 	//Derive Strategies
 	log.Info("Start policies derivation")
-	policies = policies_derivation.Policies(poiList, values, times, vmProfiles, sysConfiguration)
+	policies = derivation.Policies(poiList, values, times, vmProfiles, sysConfiguration)
 	log.Info("Finish policies derivation")
 
 	log.Info("Start policies evaluation")
-	var err error
-	selectedPolicy,err = policy_evaluation.SelectPolicy(&policies, sysConfiguration, vmProfiles, forecast)
+	//var err error
+	selectedPolicy,err := evaluation.SelectPolicy(&policies, sysConfiguration, vmProfiles, forecast)
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("Error evaluation policies: %s", err.Error())
 	}else {
 		log.Info("Finish policies evaluation")
-	}
-
-	policyDAO := storage.GetPolicyDAO()
-	for _,p := range policies {
-		err = policyDAO.Insert(p)
-		if err != nil {
-			log.Error("The policy with ID = %s could not be stored. Error %s\n", p.ID, err)
+		policyDAO := storage.GetPolicyDAO()
+		for _,p := range policies {
+			err = policyDAO.Insert(p)
+			if err != nil {
+				log.Error("The policy with ID = %s could not be stored. Error %s\n", p.ID, err)
+			}
 		}
 	}
+	return  selectedPolicy, err
 }
 
 //Utility function to convert from milliseconds to seconds

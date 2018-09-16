@@ -1,4 +1,4 @@
-package policy_evaluation
+package evaluation
 
 import (
 	"github.com/Cloud-Pie/SPDT/types"

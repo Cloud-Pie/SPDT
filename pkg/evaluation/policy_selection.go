@@ -1,10 +1,10 @@
-package policy_evaluation
+package evaluation
 import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"sort"
 	"errors"
 	"github.com/Cloud-Pie/SPDT/config"
-	misc "github.com/Cloud-Pie/SPDT/pkg/policies_derivation"
+	misc "github.com/Cloud-Pie/SPDT/pkg/derivation"
 	"math"
 )
 
