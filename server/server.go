@@ -69,37 +69,27 @@ func getPolicies(c *gin.Context) {
 	windowTimeEnd := c.DefaultQuery("end","")
 
 	policyDAO := db.GetPolicyDAO()
-	policyDAO.Connect()
 
-	var policies		[]types.Policy
-	var err				error
-
+	policies := []types.Policy{}
 	if windowTimeStart == "" && windowTimeEnd == "" {
-		policies,err = policyDAO.FindAll()
-		if err != nil {
-			c.JSON(http.StatusBadRequest, err.Error())
-		}
+		policies,_ = policyDAO.FindAll()
+
 	} else if windowTimeStart == "" && windowTimeEnd != "" {
-		time, err := time.Parse(util.UTC_TIME_LAYOUT, windowTimeEnd)
-		policies,err = policyDAO.FindByEndTime(time)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, err.Error())
-		}
+		time, _ := time.Parse(util.UTC_TIME_LAYOUT, windowTimeEnd)
+		policies,_ = policyDAO.FindByEndTime(time)
+
 	} else if windowTimeStart != "" && windowTimeEnd == "" {
-		time, err := time.Parse(util.UTC_TIME_LAYOUT, windowTimeStart)
-		policies,err = policyDAO.FindByStartTime(time)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, err.Error())
-		}
+		time, _ := time.Parse(util.UTC_TIME_LAYOUT, windowTimeStart)
+		policies,_ = policyDAO.FindByStartTime(time)
+
 	} else if windowTimeStart != "" && windowTimeEnd != "" {
-		startTime, err := time.Parse(util.UTC_TIME_LAYOUT, windowTimeStart)
-		endTime, err := time.Parse(util.UTC_TIME_LAYOUT, windowTimeEnd)
-		policies,err = policyDAO.FindAllByTimeWindow(startTime,endTime)
-		if err != nil && len(policies)==0{
-			c.JSON(http.StatusOK, policies)
-		} else if err != nil {
-			c.JSON(http.StatusBadRequest, err.Error())
-		}
+		startTime, _ := time.Parse(util.UTC_TIME_LAYOUT, windowTimeStart)
+		endTime, _ := time.Parse(util.UTC_TIME_LAYOUT, windowTimeEnd)
+		policies,_ = policyDAO.FindAllByTimeWindow(startTime,endTime)
+
+	}
+	if len(policies) == 0 {
+		policies = make([]types.Policy,0)
 	}
 	c.JSON(http.StatusOK, policies)
 }

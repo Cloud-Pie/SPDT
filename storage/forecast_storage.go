@@ -83,27 +83,27 @@ func (p *ForecastDAO) FindOneByTimeWindow(startTime time.Time, endTime time.Time
 	var forecast types.Forecast
 	//Search for that retrieves exact time window
 	err := p.db.C(DEFAULT_DB_COLLECTION_FORECAST).
-		Find(bson.M{"window_time_start": bson.M{"$gte":startTime},
-					"window_time_end": bson.M{"$lte":endTime}}).One(&forecast)
+		Find(bson.M{"start_time": bson.M{"$gte":startTime},
+					"end_time": bson.M{"$lte":endTime}}).One(&forecast)
 
 	//If user specified search parameters which are not precise, then search the closest time window
-	if err != nil {
+	/*if err != nil {
 		err = p.db.C(DEFAULT_DB_COLLECTION_FORECAST).
-			Find(bson.M{"window_time_start": bson.M{"$gte":startTime, "$lte":endTime},
-			"window_time_end": bson.M{"$gte":endTime}}).One(&forecast)
+			Find(bson.M{"start_time": bson.M{"$gte":startTime, "$lte":endTime},
+			"end_time": bson.M{"$gte":endTime}}).One(&forecast)
 
 		if err != nil {
 			err = p.db.C(DEFAULT_DB_COLLECTION_FORECAST).
-				Find(bson.M{"window_time_start": bson.M{"$lte":startTime},
-				"window_time_end": bson.M{"$lte":endTime, "$gte":startTime}}).One(&forecast)
+				Find(bson.M{"start_time": bson.M{"$lte":startTime},
+				"end_time": bson.M{"$lte":endTime, "$gte":startTime}}).One(&forecast)
 
 			if err != nil {
 				err = p.db.C(DEFAULT_DB_COLLECTION_FORECAST).
-					Find(bson.M{"window_time_start": bson.M{"$lte":startTime},
-					"window_time_end": bson.M{"$gte":endTime}}).One(&forecast)
+					Find(bson.M{"start_time": bson.M{"$lte":startTime},
+					"end_time": bson.M{"$gte":endTime}}).One(&forecast)
 			}
 		}
-	}
+	}*/
 	return forecast,err
 }
 
