@@ -129,8 +129,8 @@ func invalidatePolicyByID(c *gin.Context) {
 }
 
 func serverCall(c *gin.Context) {
-	StartPolicyDerivation(timeStart,timeEnd)
-	c.JSON(http.StatusOK, policies)
+	StartPolicyDerivation(timeStart,timeEnd,"config.yml")
+	c.JSON(http.StatusOK, requestsCapacityPerState)
 }
 
 //Listener to receive forecasting updates
