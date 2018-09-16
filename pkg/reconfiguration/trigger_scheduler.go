@@ -4,6 +4,7 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"github.com/Cloud-Pie/SPDT/rest_clients/scheduler"
 	"time"
+	"github.com/Cloud-Pie/SPDT/util"
 )
 
 func TriggerScheduler(policy types.Policy, endpoint string)error{
@@ -16,8 +17,10 @@ func TriggerScheduler(policy types.Policy, endpoint string)error{
 	return nil
 }
 
-func InvalidateStates(timestamp time.Time, endpoint string)error{
-	endpoint = endpoint + timestamp.String()
+func InvalidateStates(timestamp time.Time, endpoint string)error {
+	parameters := make(map[string]string)
+	parameters["timestamp"] = timestamp.String()
+	util.ParseURL(endpoint,parameters )
 		err := scheduler.InvalidateStates(endpoint)
 		if err != nil {
 			return err

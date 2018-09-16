@@ -20,7 +20,7 @@ func SetUpServer( fc chan types.Forecast ) *gin.Engine {
 	router.LoadHTMLGlob("ui/*.html")
 	router.POST("/api/policies", serverCall)
 	router.GET("/ui", homeUI)
-	router.PUT("/api/policies", updateForecast)
+	router.PUT("/api/forecast", updateForecast)
 	router.GET("/api/policies/:id", policyByID)
 	router.GET("/api/policies", getPolicies)
 	router.DELETE("/api/policies/:id", deletePolicyByID)
@@ -150,9 +150,6 @@ func serverCall(c *gin.Context) {
 func updateForecast(c *gin.Context) {
 	forecast := &types.Forecast{}
 	c.Bind(forecast)
-	l := len(forecast.ForecastedValues)
-	forecast.TimeWindowStart = forecast.ForecastedValues[0].TimeStamp
-	forecast.TimeWindowEnd = forecast.ForecastedValues[l-1].TimeStamp
 	forecastChannel <- *forecast
 	c.JSON(http.StatusOK,policies)
 }

@@ -22,10 +22,11 @@ type ForecastedValue struct {
 
 /*Set of values received from the Forecasting component*/
 type Forecast struct {
-	ID               bson.ObjectId      `bson:"_id"`
-	ForecastedValues []ForecastedValue	`json:"values"  bson:"forecasted_values"`
-	TimeWindowStart   time.Time	`json:"window_time_start"  bson:"window_time_start"`
-	TimeWindowEnd   time.Time	`json:"window_time_end"  bson:"window_time_end"`
+	IDdb             bson.ObjectId     `bson:"_id"`
+	ForecastedValues []ForecastedValue `json:"values"  bson:"values"`
+	TimeWindowStart  time.Time         `json:"start_time"  bson:"start_time"`
+	TimeWindowEnd    time.Time         `json:"end_time"  bson:"end_time"`
+	IDPrediction     string            `json:"id"  bson:"id_predictions"`
 }
 
 /*ProcessedForecast metadata after processing the time serie*/

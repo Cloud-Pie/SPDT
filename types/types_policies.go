@@ -103,16 +103,15 @@ type State struct {
 }
 
 type RequestCapacitySupply struct {
-	ID                bson.ObjectId         `bson:"_id"`
-	StatesCapacity   []StateLoadCapacity	`json:"requests_supplied"  bson:"requests_supplied"`
-	TimeWindowStart   time.Time				`json:"window_time_start"  bson:"window_time_start"`
-	TimeWindowEnd     time.Time				`json:"window_time_end"  bson:"window_time_end"`
+	IDPrediction      string                `json:"predictions_id"`
+	StatesCapacity   []StateLoadCapacity	`json:"values"`
+	URL				  string				`json:"url"`
 }
 
 /*Represent the number of requests for a time T*/
 type StateLoadCapacity struct {
 	 TimeStamp   time.Time	`json:"timestamp"`
-	 Requests	float64     `json:"max_request_capacity"`
+	 Requests	float64     `json:"requests"`
 }
 
 /*_________________________________________

@@ -37,21 +37,18 @@ func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
 
 	//Check if already exist, then update
 	resultQuery,err := forecastDAO.FindOneByTimeWindow(timeStart, timeEnd)
-	forecast.TimeWindowStart = forecast.ForecastedValues[0].TimeStamp
-	l := len(forecast.ForecastedValues)
-	forecast.TimeWindowEnd = forecast.ForecastedValues[l-1].TimeStamp
 
-	if err != nil && resultQuery.ID == ""{
+	if err != nil && resultQuery.IDdb == ""{
 		//error should be not found
 		//Store received information about forecast
-		forecast.ID = bson.NewObjectId()
+		forecast.IDdb = bson.NewObjectId()
 		err = forecastDAO.Insert(forecast)
 		if err != nil {
 			log.Error(err.Error())
 		}
-	} else if resultQuery.ID != ""{
-		id := resultQuery.ID
-		forecast.ID = id
+	} else if resultQuery.IDdb != ""{
+		id := resultQuery.IDdb
+		forecast.IDdb = id
 		forecastDAO.Update(id, forecast)
 	}
 
@@ -78,6 +75,20 @@ func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
 		log.Error("The scheduler request failed with error %s\n", err)
 	} else {
 		log.Info("Finish request Scheduler")
+	}
+
+	//TODO:Improve for a better pub/sub system
+	log.Info("Start subscribe to prediction updates")
+	url := sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_SUBSCRIBE_NOTIFICATIONS
+	requestsCapacityPerState := forecast_processing.GetMaxRequestCapacity(selectedPolicy)
+	requestsCapacityPerState.IDPrediction = forecast.IDPrediction
+	requestsCapacityPerState.URL = util.ENDPOINT_RECIVE_NOTIFICATIONS
+	Fservice.PostMaxRequestCapacities(requestsCapacityPerState, url)
+
+	if err != nil {
+		log.Error("The subscription to prediction updates failed with error %s\n", err)
+	} else {
+		log.Info("Finish subscribe to prediction updates")
 	}
 
 	return nil

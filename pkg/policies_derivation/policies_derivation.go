@@ -132,7 +132,7 @@ func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.System
 		region := sysConfiguration.Region
 		times, error := performance_profiles.GetBootShutDownProfile(url,list[0].Key, list[0].Value, csp, region)
 		if error != nil {
-			log.Error("Error in bootingTime query", error.Error())
+			log.Error("Error in bootingTime query %s", error.Error())
 		}
 		bootTime = times.BootTime
 	}

@@ -16,11 +16,6 @@ func UpdateForecast(forecast types.Forecast) (bool, types.Forecast, time.Time) {
 			log.Fatalf(err.Error())
 		}
 
-		//Set start - end time window
-		forecast.TimeWindowStart = forecast.ForecastedValues[0].TimeStamp
-		l := len(forecast.ForecastedValues)
-		forecast.TimeWindowEnd = forecast.ForecastedValues[l-1].TimeStamp
-
 		var shouldUpdate bool
 		var timeConflict time.Time
 		var indexTimeConflict int
@@ -29,7 +24,7 @@ func UpdateForecast(forecast types.Forecast) (bool, types.Forecast, time.Time) {
 		if len(resultQuery) == 1 {
 			oldForecast := resultQuery[0]
 			if shouldUpdate, indexTimeConflict = isConflict(forecast, oldForecast); shouldUpdate {
-				id := resultQuery[0].ID
+				id := resultQuery[0].IDdb
 				forecastDAO.Update(id, forecast)
 			}
 		} else {
@@ -62,4 +57,16 @@ func isConflict(current types.Forecast, old types.Forecast) (bool, int) {
 
 	iSsignificantChange = rmse > 1.0
 	return iSsignificantChange, indexTimeConflict
+}
+
+func GetMaxRequestCapacity(policy types.Policy) types.RequestCapacitySupply{
+	var requestCapacitySupply types.RequestCapacitySupply
+	statesLoadCapacity := []types.StateLoadCapacity{}
+	 for _,v := range policy.ScalingActions {
+	 	statesLoadCapacity = append(statesLoadCapacity, types.StateLoadCapacity{Requests:v.Metrics.RequestsCapacity,
+	 																			TimeStamp:v.TimeStart})
+	 }
+	 requestCapacitySupply.StatesCapacity = statesLoadCapacity
+
+	return requestCapacitySupply
 }
