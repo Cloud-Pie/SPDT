@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/Cloud-Pie/SPDT/types"
+	Fservice "github.com/Cloud-Pie/SPDT/rest_clients/forecast"
 	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
 	"time"
 	"github.com/Cloud-Pie/SPDT/storage"
@@ -15,7 +16,7 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 		shouldUpdate, newForecast, timeConflict := forecast_processing.UpdateForecast(forecast)
 		if shouldUpdate {
 			//Read Configuration File
-			sysConfiguration := readSysConfiguration()
+			sysConfiguration := ReadSysConfiguration()
 
 			//Request Performance Profiles
 			getServiceProfile(sysConfiguration)
@@ -33,8 +34,7 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 			var oldPolicy types.Policy
 			var indexConflict int
 			var selectedPolicy types.Policy
-			policyDAO := storage.GetPolicyDAO()
-
+			policyDAO := storage.GetPolicyDAO(sysConfiguration.ServiceName)
 
 			//verify if current time is greater than start window
 			if time.Now().After(forecast.TimeWindowStart) {
@@ -77,6 +77,21 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 			} else {
 				log.Info("Finish request Scheduler to create states")
 			}
+
+			//TODO:Improve for a better pub/sub system
+			log.Info("Start subscribe to prediction updates")
+			forecastUpdatesURL := sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_SUBSCRIBE_NOTIFICATIONS
+			requestsCapacityPerState := forecast_processing.GetMaxRequestCapacity(selectedPolicy)
+			requestsCapacityPerState.IDPrediction = forecast.IDPrediction
+			requestsCapacityPerState.URL = util.ENDPOINT_RECIVE_NOTIFICATIONS
+			Fservice.PostMaxRequestCapacities(requestsCapacityPerState, forecastUpdatesURL)
+
+			if err != nil {
+				log.Error("The subscription to prediction updates failed with error %s\n", err)
+			} else {
+				log.Info("Finish subscribe to prediction updates")
+			}
+
 		}
 	}
 }

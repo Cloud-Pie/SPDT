@@ -2,6 +2,7 @@ package cmd
 
 import (
 	db "github.com/Cloud-Pie/SPDT/storage"
+	"github.com/Cloud-Pie/SPDT/server"
 	"encoding/json"
 	"github.com/spf13/cobra"
 	"fmt"
@@ -23,9 +24,8 @@ func retrieve (cmd *cobra.Command, args []string) {
 	id := cmd.Flag("pId").Value.String()
 	start := cmd.Flag("start-time").Value.String()
 	end := cmd.Flag("end-time").Value.String()
-
-	policyDAO := db.GetPolicyDAO()
-	policyDAO.Connect()
+	systemConfiguration := server.ReadSysConfiguration()
+	policyDAO := db.GetPolicyDAO(systemConfiguration.ServiceName)
 
 	if id != "" {
 		policy,err := policyDAO.FindByID(id)

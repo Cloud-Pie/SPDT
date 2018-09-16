@@ -12,6 +12,7 @@ import (
 type PolicyDAO struct {
 	Server	string
 	Database	string
+	Collection  string
 	db *mgo.Database
 	session *mgo.Session
 }
@@ -48,21 +49,21 @@ func (p *PolicyDAO) Connect() (*mgo.Database, error) {
 //Retrieve all the stored elements
 func (p *PolicyDAO) FindAll() ([]types.Policy, error) {
 	var policies []types.Policy
-	err := p.db.C(DEFAULT_DB_COLLECTION_POLICIES).Find(bson.M{}).All(&policies)
+	err := p.db.C(p.Collection).Find(bson.M{}).All(&policies)
 	return policies, err
 }
 
 //Retrieve the item with the specified ID
 func (p *PolicyDAO) FindByID(id string) (types.Policy, error) {
 	var policies types.Policy
-	err := p.db.C(DEFAULT_DB_COLLECTION_POLICIES).FindId(bson.ObjectIdHex(id)).One(&policies)
+	err := p.db.C(p.Collection).FindId(bson.ObjectIdHex(id)).One(&policies)
 	return policies,err
 }
 
 //Retrieve all policies for start time greater than or equal to time t
 func (p *PolicyDAO) FindByStartTime(time time.Time) ([]types.Policy, error) {
 	var policies []types.Policy
-	err := p.db.C(DEFAULT_DB_COLLECTION_POLICIES).
+	err := p.db.C(p.Collection).
 		Find(bson.M{"window_time_start": bson.M{"$gte":time}}).All(&policies)
 	return policies,err
 }
@@ -70,7 +71,7 @@ func (p *PolicyDAO) FindByStartTime(time time.Time) ([]types.Policy, error) {
 //Retrieve all policies for start time less than or equal to time t
 func (p *PolicyDAO) FindByEndTime(time time.Time) ([]types.Policy, error) {
 	var policies []types.Policy
-	err := p.db.C(DEFAULT_DB_COLLECTION_POLICIES).
+	err := p.db.C(p.Collection).
 		Find(bson.M{"window_time_end": bson.M{"$lte":time}}).All(&policies)
 	return policies,err
 }
@@ -78,7 +79,7 @@ func (p *PolicyDAO) FindByEndTime(time time.Time) ([]types.Policy, error) {
 //Retrieve all policies for start time greater than or equal to time t
 func (p *PolicyDAO) FindAllByTimeWindow(startTime time.Time, endTime time.Time) ([]types.Policy, error) {
 	var policies []types.Policy
-	err := p.db.C(DEFAULT_DB_COLLECTION_POLICIES).
+	err := p.db.C(p.Collection).
 		Find(bson.M{"window_time_start": bson.M{"$gte":startTime},
 					"window_time_end": bson.M{"$lte":endTime}}).All(&policies)
 	return policies,err
@@ -87,7 +88,7 @@ func (p *PolicyDAO) FindAllByTimeWindow(startTime time.Time, endTime time.Time) 
 //Retrieve all policies for start time greater than or equal to time t
 func (p *PolicyDAO) FindOneByTimeWindow(startTime time.Time, endTime time.Time) (types.Policy, error) {
 	var policy types.Policy
-	err := p.db.C(DEFAULT_DB_COLLECTION_POLICIES).
+	err := p.db.C(p.Collection).
 		Find(bson.M{"window_time_start": bson.M{"$eq":startTime},
 		            "window_time_end": bson.M{"$eq":endTime}}).One(&policy)
 	return policy,err
@@ -95,19 +96,19 @@ func (p *PolicyDAO) FindOneByTimeWindow(startTime time.Time, endTime time.Time) 
 
 //Insert a new Performance Profile
 func (p *PolicyDAO) Insert(policies types.Policy) error {
-	err := p.db.C(DEFAULT_DB_COLLECTION_POLICIES).Insert(&policies)
+	err := p.db.C(p.Collection).Insert(&policies)
 	return err
 }
 
 //Delete policy by id
 func (p *PolicyDAO) DeleteById(id string) error {
-	err := p.db.C(DEFAULT_DB_COLLECTION_POLICIES).RemoveId(bson.ObjectIdHex(id))
+	err := p.db.C(p.Collection).RemoveId(bson.ObjectIdHex(id))
 	return err
 }
 
 //Delete policy for the time window
 func (p *PolicyDAO) DeleteOneByTimeWindow(startTime time.Time, endTime time.Time) error {
-	err := p.db.C(DEFAULT_DB_COLLECTION_POLICIES).
+	err := p.db.C(p.Collection).
 		Remove(bson.M{"window_time_start": bson.M{"$eq":startTime},
 		              "window_time_end": bson.M{"$eq":startTime}})
 	return err
@@ -115,20 +116,21 @@ func (p *PolicyDAO) DeleteOneByTimeWindow(startTime time.Time, endTime time.Time
 
 //Update policy by id
 func (p *PolicyDAO) UpdateById(id bson.ObjectId, policy types.Policy) error {
-	err := p.db.C(DEFAULT_DB_COLLECTION_POLICIES).
+	err := p.db.C(p.Collection).
 		Update(bson.M{"_id":id},policy)
 	return err
 }
 
-func GetPolicyDAO() *PolicyDAO{
-	if PolicyDB == nil {
+func GetPolicyDAO(serviceName string) *PolicyDAO{
+	//if PolicyDB == nil {
 		PolicyDB = &PolicyDAO {
 			Database:DEFAULT_DB_POLICIES,
+			Collection:DEFAULT_DB_COLLECTION_POLICIES + "_" + serviceName,
 		}
 		_,err := PolicyDB.Connect()
 		if err != nil {
 			log.Error(err.Error())
 		}
-	}
+	//}
 	return PolicyDB
 }

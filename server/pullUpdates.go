@@ -11,7 +11,7 @@ import (
 )
 
 func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
-	sysConfiguration := readSysConfiguration()
+	sysConfiguration := ReadSysConfiguration()
 	timeStart = sysConfiguration.ScalingHorizon.StartTime
 	timeEnd = sysConfiguration.ScalingHorizon.EndTime
 	timeWindowSize = timeEnd.Sub(timeStart)
@@ -32,7 +32,7 @@ func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time) error {
 	}
 
 	//Retrieve data access to the database for forecasting
-	forecastDAO := storage.GetForecastDAO()
+	forecastDAO := storage.GetForecastDAO(sysConfiguration.ServiceName)
 	//Check if already exist, then update
 	resultQuery,err := forecastDAO.FindOneByTimeWindow(timeStart, timeEnd)
 

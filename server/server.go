@@ -20,24 +20,24 @@ func SetUpServer( fc chan types.Forecast ) *gin.Engine {
 	router.LoadHTMLGlob("ui/*.html")
 	router.POST("/api/policies", serverCall)
 	router.GET("/ui", homeUI)
-	router.PUT("/api/forecast", updateForecast)
-	router.GET("/api/policies/:id", policyByID)
-	router.GET("/api/policies", getPolicies)
-	router.DELETE("/api/policies/:id", deletePolicyByID)
-	router.DELETE("/api/policies", deletePolicyWindow)
-	router.PUT("/api/policies/:id", invalidatePolicyByID)
-	router.GET("/api/forecast", getRequests)
-	router.GET("/api/test", getTRN)
+	router.POST("/api/forecast", updateForecast)
+	router.GET("/api/:service/policies/:id", policyByID)
+	router.GET("/api/:service/policies", getPolicies)
+	router.DELETE("/api/:service/policies/:id", deletePolicyByID)
+	router.DELETE("/api/:service/policies", deletePolicyWindow)
+	router.PUT("/api/:service/policies/:id", invalidatePolicyByID)
+	router.GET("/api/:service/forecast", getForecast)
+
 
 	return router
 }
 
-// This handler will match /api/:id
+// This handler will match /api/:id/:service
 // Retrieves information of a policy with the correspondent :id
 func policyByID(c *gin.Context) {
 	id := c.Param("id")
-
-	policyDAO := db.GetPolicyDAO()
+	serviceName := c.Param("service")
+	policyDAO := db.GetPolicyDAO(serviceName)
 	policyDAO.Connect()
 	policy,err := policyDAO.FindByID(id)
 
@@ -47,13 +47,11 @@ func policyByID(c *gin.Context) {
 	c.JSON(http.StatusOK, policy)
 }
 
-// This handler will match /api/:id
 // Delete policy with the correspondent :id
 func deletePolicyByID(c *gin.Context) {
 	id := c.Param("id")
-
-	policyDAO := db.GetPolicyDAO()
-	policyDAO.Connect()
+	serviceName := c.Param("service")
+	policyDAO := db.GetPolicyDAO(serviceName)
 	err := policyDAO.DeleteById(id)
 
 	if err != nil {
@@ -67,8 +65,8 @@ func deletePolicyByID(c *gin.Context) {
 func getPolicies(c *gin.Context) {
 	windowTimeStart := c.DefaultQuery("start", "")
 	windowTimeEnd := c.DefaultQuery("end","")
-
-	policyDAO := db.GetPolicyDAO()
+	serviceName := c.Param("service")
+	policyDAO := db.GetPolicyDAO(serviceName)
 
 	policies := []types.Policy{}
 	if windowTimeStart == "" && windowTimeEnd == "" {
@@ -99,9 +97,8 @@ func getPolicies(c *gin.Context) {
 func deletePolicyWindow(c *gin.Context) {
 	windowTimeStart := c.DefaultQuery("start", "")
 	windowTimeEnd := c.DefaultQuery("end","")
-
-	policyDAO := db.GetPolicyDAO()
-	policyDAO.Connect()
+	serviceName := c.Param("service")
+	policyDAO := db.GetPolicyDAO(serviceName)
 
 	if windowTimeStart != "" && windowTimeEnd != "" {
 		startTime, err := time.Parse(util.UTC_TIME_LAYOUT, windowTimeStart)
@@ -120,8 +117,8 @@ func deletePolicyWindow(c *gin.Context) {
 // Invalidate policy with the correspondent :id
 func invalidatePolicyByID(c *gin.Context) {
 	id := c.Param("id")
-
-	policyDAO := db.GetPolicyDAO()
+	serviceName := c.Param("service")
+	policyDAO := db.GetPolicyDAO(serviceName)
 	policyDAO.Connect()
 	err := policyDAO.DeleteById(id)
 
@@ -149,16 +146,17 @@ func homeUI(c *gin.Context) {
 	c.HTML(http.StatusOK, "index.html", nil)
 }
 
-func getRequests(c *gin.Context) {
+func getForecast(c *gin.Context) {
 	windowTimeStart := c.DefaultQuery("start", "")
 	windowTimeEnd := c.DefaultQuery("end","")
+	serviceName := c.Param("service")
 
 	type data struct {
 		Timestamp 	[]time.Time
 		Requests 	[]float64
 	}
 
-	forecastDAO := db.GetForecastDAO()
+	forecastDAO := db.GetForecastDAO(serviceName)
 
 
 	timestamps :=[]time.Time{}
@@ -186,13 +184,4 @@ func getRequests(c *gin.Context) {
 	}else {
 		c.JSON(http.StatusBadRequest, "Missing parameters [start,end]")
 	}
-}
-
-func getTRN(c *gin.Context) {
-	dao := db.GetForecastDAO()
-	startTime, _ := time.Parse(util.UTC_TIME_LAYOUT, "2019-08-08T05:24:00.000Z")
-	endTime, _ := time.Parse(util.UTC_TIME_LAYOUT, "2019-08-09T05:25:00.000Z")
-	f, _ := dao.FindOneByTimeWindow(startTime, endTime)
-
-	c.JSON(http.StatusOK, f)
 }

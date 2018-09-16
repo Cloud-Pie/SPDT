@@ -10,12 +10,8 @@ import (
 var log = logging.MustGetLogger("spdt")
 
 func ConflictTimeOldPolicy(forecast types.Forecast, timeConflict time.Time) (types.Policy, int){
-	policyDAO := storage.GetPolicyDAO()
+	policyDAO := storage.GetPolicyDAO(forecast.ServiceName)
 
-	_,err := policyDAO.Connect()
-	if err != nil {
-		log.Error(err.Error())
-	}
 	//Search policyByID created for the time window
 	storedPolicy, err := policyDAO.FindOneByTimeWindow(forecast.TimeWindowStart, forecast.TimeWindowEnd)
 	if err != nil {

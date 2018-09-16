@@ -23,6 +23,7 @@ type ForecastedValue struct {
 /*Set of values received from the Forecasting component*/
 type Forecast struct {
 	IDdb             bson.ObjectId     `bson:"_id"`
+	ServiceName		 string			   `json:"service_name"  bson:"service_name"`
 	ForecastedValues []ForecastedValue `json:"values"  bson:"values"`
 	TimeWindowStart  time.Time         `json:"start_time"  bson:"start_time"`
 	TimeWindowEnd    time.Time         `json:"end_time"  bson:"end_time"`

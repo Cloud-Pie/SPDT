@@ -132,7 +132,7 @@ func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.System
 		region := sysConfiguration.Region
 		times, error := performance_profiles.GetBootShutDownProfile(url,list[0].Key, list[0].Value, csp, region)
 		if error != nil {
-			log.Error("Error in bootingTime query %s", error.Error())
+			//log.Error("Error in bootingTime query %s", error.Error())
 		}
 		bootTime = times.BootTime
 	}
@@ -162,7 +162,7 @@ func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.Sy
 		region := sysConfiguration.Region
 		times, error := performance_profiles.GetBootShutDownProfile(url,list[0].Key, list[0].Value, csp, region)
 		if error != nil {
-			log.Error("Error in terminationTime query %s", error.Error())
+			//log.Error("Error in terminationTime query %s", error.Error())
 		}
 		terminationTime = times.ShutDownTime
 	}
@@ -193,7 +193,7 @@ func maxReplicasCapacityInVM(vmProfile types.VmProfile, resourceLimit types.Limi
 */
 func selectProfileWithLimits(requests float64, limits types.Limit, underProvision bool) types.ContainersConfig {
 	var containerConfig types.ContainersConfig
-	serviceProfileDAO := storage.GetPerformanceProfileDAO()
+	serviceProfileDAO := storage.GetPerformanceProfileDAO(systemConfiguration.ServiceName)
 	overProvisionConfig, err1 := serviceProfileDAO.MatchByLimitsOver(limits.CPUCores, limits.MemoryGB, requests)
 	underProvisionConfig, err2 := serviceProfileDAO.MatchByLimitsUnder(limits.CPUCores, limits.MemoryGB, requests)
 
@@ -209,8 +209,8 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 		appType := systemConfiguration.ServiceType
 		mscSetting,err := performance_profiles.GetPredictedReplicas(url,appName,appType,requests,limits.CPUCores, limits.MemoryGB)
 
-		profilesDAO := storage.GetPerformanceProfileDAO()
-		profile,_:= profilesDAO.FindProfileByLimits(limits)
+
+		profile,_:= serviceProfileDAO.FindProfileByLimits(limits)
 		newMSCSetting := types.MSCSimpleSetting{}
 
 		if err == nil{
@@ -230,7 +230,7 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 		}*/
 
 		profile.MSCSettings = append(profile.MSCSettings,newMSCSetting)
-		err3 := profilesDAO.UpdateById(profile.ID, profile)
+		err3 := serviceProfileDAO.UpdateById(profile.ID, profile)
 		if err3 != nil{
 			log.Error("Performance profile not updated")
 		}
@@ -248,7 +248,7 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 */
 func selectProfile(requests float64,  limits types.Limit, underProvision bool) types.ContainersConfig {
 	var profiles []types.ContainersConfig
-	serviceProfileDAO := storage.GetPerformanceProfileDAO()
+	serviceProfileDAO := storage.GetPerformanceProfileDAO(systemConfiguration.ServiceName)
 	profilesUnder,err1:= serviceProfileDAO.MatchProfileFitLimitsUnder(limits.CPUCores, limits.MemoryGB, requests)
 	profilesOver,err2 := serviceProfileDAO.MatchProfileFitLimitsOver(limits.CPUCores, limits.MemoryGB, requests)
 
@@ -279,7 +279,7 @@ func selectProfile(requests float64,  limits types.Limit, underProvision bool) t
 		@float64	- Max number of request for this containers configuration
 */
 func configurationLoadCapacity(numberReplicas int, limits types.Limit) float64 {
-	serviceProfileDAO := storage.GetPerformanceProfileDAO()
+	serviceProfileDAO := storage.GetPerformanceProfileDAO(systemConfiguration.ServiceName)
 	profile,_ := serviceProfileDAO.FindProfileTRN(limits.CPUCores, limits.MemoryGB, numberReplicas)
 	currentLoadCapacity := profile.MSCSettings[0].MSCPerSecond
 

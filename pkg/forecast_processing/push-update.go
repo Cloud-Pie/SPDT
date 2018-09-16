@@ -14,7 +14,9 @@ func UpdateForecast(forecast types.Forecast) (bool, types.Forecast, time.Time) {
 	var shouldUpdate bool
 	var timeConflict time.Time
 	var indexTimeConflict int
-	forecastDAO := storage.GetForecastDAO()
+	//Read Configuration File
+
+	forecastDAO := storage.GetForecastDAO(forecast.ServiceName)
 
 	//Compare with the previous forecast if sth changed
 	resultQuery, err := forecastDAO.FindAll() //TODO: Write better query

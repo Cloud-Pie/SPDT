@@ -4,6 +4,7 @@ import (
 	db "github.com/Cloud-Pie/SPDT/storage"
 	"github.com/spf13/cobra"
 	"fmt"
+	"github.com/Cloud-Pie/SPDT/server"
 )
 
 // policiesCmd represents the delete policies command
@@ -21,8 +22,8 @@ var (
 
 func delete(cmd *cobra.Command, args []string) {
 	if force {
-		policyDAO := db.GetPolicyDAO()
-		policyDAO.Connect()
+		systemConfiguration := server.ReadSysConfiguration()
+		policyDAO := db.GetPolicyDAO(systemConfiguration.ServiceName)
 		err := policyDAO.DeleteById(id)
 		if err != nil {
 			fmt.Println("Error, policy could not be deleted")
