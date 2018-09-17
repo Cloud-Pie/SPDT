@@ -49,7 +49,7 @@ type Tree struct {
 		[] Policy. List of type Policy
 */
 func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []types.Policy {
-
+	log.Info("Derive policies with %s algorithm", p.algorithm)
 	policies := []types.Policy {}
 	configurations := []types.ScalingAction{}
 	newPolicy := types.Policy{}

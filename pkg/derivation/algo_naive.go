@@ -31,6 +31,7 @@ type NaivePolicy struct {
 		[] Policy. List of type Policy
 */
 func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []types.Policy {
+	log.Info("Derive policies with %s algorithm", p.algorithm)
 	policies := []types.Policy {}
 	newPolicy := types.Policy{}
 	state := types.State{}

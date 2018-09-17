@@ -118,23 +118,17 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 */
 func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.SystemConfiguration) float64 {
 	bootTime := 0.0
-	// If Heterogeneous cluster, take the bigger cluster
-	list := mapToList(vmsScale)
-	sort.Slice(list, func(i, j int) bool {
-		return list[i].Value > list[j].Value
-	})
-
 	//Check in db if already data is stored
 	//Call API
-	if len(list) > 0 {
+	for vmType, n := range vmsScale {
 		url := sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VM_TIMES
 		csp := sysConfiguration.CSP
 		region := sysConfiguration.Region
-		times, error := performance_profiles.GetBootShutDownProfile(url,list[0].Key, list[0].Value, csp, region)
+		times, error := performance_profiles.GetBootShutDownProfile(url,vmType, n, csp, region)
 		if error != nil {
 			//log.Error("Error in bootingTime query %s", error.Error())
 		}
-		bootTime = times.BootTime
+		bootTime += times.BootTime
 	}
 	return bootTime
 }
@@ -149,22 +143,18 @@ func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.System
 */
 func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.SystemConfiguration) float64 {
 	terminationTime := 0.0
-	list := mapToList(vmsScale)
-	sort.Slice(list, func(i, j int) bool {
-		return list[i].Value > list[j].Value
-	})
 
 	//Check in db if already data is stored
 	//Call API
-	if len(list) > 0 {
+	for vmType, n := range vmsScale {
 		url := sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VM_TIMES
 		csp := sysConfiguration.CSP
 		region := sysConfiguration.Region
-		times, error := performance_profiles.GetBootShutDownProfile(url,list[0].Key, list[0].Value, csp, region)
+		times, error := performance_profiles.GetBootShutDownProfile(url,vmType, n, csp, region)
 		if error != nil {
-			//log.Error("Error in terminationTime query %s", error.Error())
+		//	log.Error("Error in terminationTime query %s", error.Error())
 		}
-		terminationTime = times.ShutDownTime
+		terminationTime += times.ShutDownTime
 	}
 	return terminationTime
 }
@@ -177,8 +167,12 @@ func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.Sy
 		@int	Number of replicas
 */
 func maxReplicasCapacityInVM(vmProfile types.VmProfile, resourceLimit types.Limit) int {
-		m := float64(vmProfile.CPUCores) / float64(resourceLimit.CPUCores)
-		n := float64(vmProfile.Memory) / float64(resourceLimit.MemoryGB)
+	//For memory resources, Kubernetes Engine reserves aprox 6% of cores and 25% of Mem
+		cpuCoresAvailable := vmProfile.CPUCores * 0.94
+		memGBAvailable := vmProfile.Memory * 0.75
+
+		m := float64(cpuCoresAvailable) / float64(resourceLimit.CPUCores)
+		n := float64(memGBAvailable) / float64(resourceLimit.MemoryGB)
 		numReplicas := math.Min(n,m)
 		return int(numReplicas)
 }
@@ -235,7 +229,7 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 			log.Error("Performance profile not updated")
 		}
 	}
-
+	//defer serviceProfileDAO.Session.Close()
 	return containerConfig
 }
 
@@ -268,6 +262,7 @@ func selectProfile(requests float64,  limits types.Limit, underProvision bool) t
 	} else if err1 == nil {
 		profiles = profilesUnder
 	}
+	//defer serviceProfileDAO.Session.Close()
 	return profiles[0]
 }
 
@@ -282,7 +277,7 @@ func configurationLoadCapacity(numberReplicas int, limits types.Limit) float64 {
 	serviceProfileDAO := storage.GetPerformanceProfileDAO(systemConfiguration.ServiceName)
 	profile,_ := serviceProfileDAO.FindProfileTRN(limits.CPUCores, limits.MemoryGB, numberReplicas)
 	currentLoadCapacity := profile.MSCSettings[0].MSCPerSecond
-
+	//defer serviceProfileDAO.Session.Close()
 	return currentLoadCapacity
 }
 
@@ -300,12 +295,11 @@ func setConfiguration(configurations *[]types.ScalingAction, state types.State, 
 	} else {
 		//var deltaTime int //time in seconds
 		var finishTimeVMRemoved float64
-		var bootTimeVMAdded float64
-
+		var vmAdded, vmRemoved types.VMScale
 		//Adjust booting times for resources configuration
 		if nConfigurations >= 1 {
 			currentVMSet := (*configurations)[nConfigurations-1].State.VMs
-			vmAdded, vmRemoved := DeltaVMSet(currentVMSet,state.VMs)
+			vmAdded, vmRemoved = DeltaVMSet(currentVMSet,state.VMs)
 			//Adjust previous configuration
 			nVMRemoved := len(vmRemoved)
 			if nVMRemoved > 0 {
@@ -313,10 +307,7 @@ func setConfiguration(configurations *[]types.ScalingAction, state types.State, 
 				previousTimeEnd := (*configurations)[nConfigurations-1].TimeEnd
 				(*configurations)[nConfigurations-1].TimeEnd = previousTimeEnd.Add(time.Duration(finishTimeVMRemoved) * time.Second)
 			}
-			nVMAdded := len(vmAdded)
-			if nVMAdded > 0 {
-				bootTimeVMAdded = computeVMBootingTime(vmAdded, sysConfiguration)
-			}
+
 			lastBilledStartedTime := (*configurations)[nConfigurations-1].TimeStartBilling
 			removeBilledVMs := checkBillingPeriod(sysConfiguration.PricingModel.BillingUnit, nVMRemoved, lastBilledStartedTime,timeStart)
 			if !removeBilledVMs {
@@ -332,8 +323,7 @@ func setConfiguration(configurations *[]types.ScalingAction, state types.State, 
 			timeEndBill = timeStartBill.Add(time.Duration(ds)*time.Hour)
 		}
 
-		startTime := timeStart.Add(-1 * time.Duration(bootTimeVMAdded) * time.Second)       //Booting/Termination time VM
-		startTime = startTime.Add(-1 * time.Duration(totalServicesBootingTime) * time.Second) //Start time containers
+		startTime := computeTransitionTime(vmAdded, true, timeStart, totalServicesBootingTime)
 		state.LaunchTime = startTime
 		state.Name = strconv.Itoa(nConfigurations) + "__" + name + "__" + timeStart.Format(util.TIME_LAYOUT)
 		*configurations = append(*configurations,
@@ -519,7 +509,7 @@ func checkBillingPeriod(billingUnit string, nRemovedVMs int, startBillingTime ti
 			}
 	}
 	//TODO: change to false and modify how the billing is computed
-	return false
+	return true
 }
 
 func updateStartBillingTime(lastStartBillingTime time.Time, startScalingAction time.Time) (time.Time) {
@@ -543,6 +533,19 @@ func updateEndBillingTime(startBillingTime time.Time, endScalingAction time.Time
 
 
 
-func computeTransitionTime(vmScale bool, podResize bool) {
-	//TODO
+func computeTransitionTime(vmAdded types.VMScale, podResize bool, timeStart time.Time, podsBootingTime float64) time.Time{
+	transitionTime := timeStart
+	//Time to boot new VMS
+	nVMAdded := len(vmAdded)
+	if nVMAdded > 0 {
+		bootTimeVMAdded := computeVMBootingTime(vmAdded, systemConfiguration)
+		transitionTime = timeStart.Add(-1 * time.Duration(bootTimeVMAdded) * time.Second)
+	}
+
+	//Time for add new VMS into k8s cluster
+	//60 seconds
+	transitionTime = transitionTime.Add(-1 * time.Duration(60) * time.Second)
+	//Time to boot pods
+	transitionTime = transitionTime.Add(-1 * time.Duration(podsBootingTime) * time.Second)
+	return transitionTime
 }

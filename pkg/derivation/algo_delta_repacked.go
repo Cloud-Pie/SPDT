@@ -34,6 +34,7 @@ type DeltaRepackedPolicy struct {
 		[] Policy. List of type Policy
 */
 func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedForecast) [] types.Policy {
+	log.Info("Derive policies with %s algorithm", p.algorithm)
 	policies := []types.Policy{}
 	newPolicy := types.Policy{}
 	newPolicy.Metrics = types.PolicyMetrics {

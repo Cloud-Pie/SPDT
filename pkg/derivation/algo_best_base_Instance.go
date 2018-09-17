@@ -32,6 +32,7 @@ type BestBaseInstancePolicy struct {
 		[] Policy. List of type Policy
 */
 func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [] types.Policy {
+	log.Info("Derive policies with %s algorithm", p.algorithm)
 	policies := []types.Policy{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
@@ -72,7 +73,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 				if resize {
 					ProfileCurrentLimitsUnder = ProfileNewLimitsUnder
 				}
-				vmSetUnder,err2 := p.FindSuitableVMs(ProfileCurrentLimits.MSCSetting.Replicas, ProfileCurrentLimits.Limits, vmType)
+				vmSetUnder,err2 := p.FindSuitableVMs(ProfileCurrentLimitsUnder.MSCSetting.Replicas, ProfileCurrentLimits.Limits, vmType)
 
 				if err2 !=  nil {
 					vmTypeSuitable = false
