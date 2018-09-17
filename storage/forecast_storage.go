@@ -38,12 +38,13 @@ func (p *ForecastDAO) Connect() (*mgo.Database, error) {
 			Addrs: forecastDBHost,
 			Username: os.Getenv("FORECASTDB_USER"),
 			Password: os.Getenv("FORECASTDB_PASS"),
-			Timeout:  30 * time.Second,
+			Timeout:  60 * time.Second,
 		})
 		if err != nil {
 			return nil, err
 		}
 	}
+	p.session = p.session.Clone()
 	p.db = p.session.DB(p.Database)
 	return p.db,err
 }
@@ -110,7 +111,7 @@ func (p *ForecastDAO) FindOneByTimeWindow(startTime time.Time, endTime time.Time
 }
 
 func GetForecastDAO(serviceName string) *ForecastDAO{
-	//if ForecastDB == nil {
+	if ForecastDB == nil {
 		ForecastDB = &ForecastDAO {
 			Database:DEFAULT_DB_FORECAST,
 			Collection:DEFAULT_DB_COLLECTION_FORECAST + "_" + serviceName,
@@ -119,6 +120,6 @@ func GetForecastDAO(serviceName string) *ForecastDAO{
 		if err != nil {
 			log.Fatalf(err.Error())
 		}
-	//}
+	}
 	return ForecastDB
 }

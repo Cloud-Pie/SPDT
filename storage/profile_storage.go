@@ -10,11 +10,11 @@ import (
 )
 
 type PerformanceProfileDAO struct {
-	Server		string
-	Database	string
-	Collection  string
-	db 			*mgo.Database
-	session *mgo.Session
+	Server     string
+	Database   string
+	Collection string
+	db         *mgo.Database
+	Session    *mgo.Session
 
 }
 
@@ -31,18 +31,19 @@ const (
 func (p *PerformanceProfileDAO) Connect() (*mgo.Database, error) {
 	var err error
 
-	if p.session == nil {
-		p.session,  err = mgo.DialWithInfo(&mgo.DialInfo{
+	if p.Session == nil {
+		p.Session,  err = mgo.DialWithInfo(&mgo.DialInfo{
 			Addrs: profilesDBHost,
 			Username: os.Getenv("PROFILESDB_USER"),
 			Password: os.Getenv("PROFILESDB_PASS"),
-			Timeout:  30 * time.Second,
+			Timeout:  60 * time.Second,
 		})
 		if err != nil {
 			return nil, err
 		}
 	}
-	p.db = p.session.DB(p.Database)
+	p.Session = p.Session.Clone()
+	p.db = p.Session.DB(p.Database)
 	return p.db,err
 }
 
@@ -266,7 +267,7 @@ func (p *PerformanceProfileDAO) FindProfileByLimits(limit types.Limit) (types.Pe
 }
 
 func GetPerformanceProfileDAO(serviceName string) *PerformanceProfileDAO {
-	//if PerformanceProfileDB == nil {
+	if PerformanceProfileDB == nil {
 		PerformanceProfileDB = &PerformanceProfileDAO {
 			Database:DEFAULT_DB_PROFILES,
 			Collection:DEFAULT_DB_COLLECTION_PROFILES + "_" + serviceName,
@@ -275,6 +276,6 @@ func GetPerformanceProfileDAO(serviceName string) *PerformanceProfileDAO {
 		if err != nil {
 			log.Error("Error connecting to Profiles database "+err.Error())
 		}
-	//}
+	}
 	return PerformanceProfileDB
 }

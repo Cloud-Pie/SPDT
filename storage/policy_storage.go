@@ -36,12 +36,13 @@ func (p *PolicyDAO) Connect() (*mgo.Database, error) {
 			Addrs: policyDBHost,
 			Username: os.Getenv("POLICIESDB_USER"),
 			Password: os.Getenv("POLICIESDB_PASS"),
-			Timeout:  30 * time.Second,
+			Timeout:  60 * time.Second,
 		})
 		if err != nil {
 			return nil, err
 		}
 	}
+	p.session = p.session.Clone()
 	p.db = p.session.DB(p.Database)
 	return p.db,err
 }
@@ -122,7 +123,7 @@ func (p *PolicyDAO) UpdateById(id bson.ObjectId, policy types.Policy) error {
 }
 
 func GetPolicyDAO(serviceName string) *PolicyDAO{
-	//if PolicyDB == nil {
+	if PolicyDB == nil {
 		PolicyDB = &PolicyDAO {
 			Database:DEFAULT_DB_POLICIES,
 			Collection:DEFAULT_DB_COLLECTION_POLICIES + "_" + serviceName,
@@ -131,6 +132,6 @@ func GetPolicyDAO(serviceName string) *PolicyDAO{
 		if err != nil {
 			log.Error(err.Error())
 		}
-	//}
+	}
 	return PolicyDB
 }
