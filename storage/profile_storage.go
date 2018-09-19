@@ -210,6 +210,27 @@ func (p *PerformanceProfileDAO) MatchProfileFitLimitsOver(cores float64, memory 
 }
 
 /*
+	Bring limits for which are profiles available
+	in:
+		@cores float64
+		@memory float64
+	out:
+		@ContainersConfig []types.ContainersConfig
+		@error
+*/
+func (p *PerformanceProfileDAO) FindAllUnderLimits(cores float64, memory float64) ([]types.PerformanceProfile, error) {
+	var result []types.PerformanceProfile
+	query := []bson.M{
+		bson.M{ "$match" : bson.M{"limits.cpu_cores" : bson.M{"$lt": cores}, "limits.mem_gb" : bson.M{"$lt":memory}}},
+		}
+	err := p.db.C(p.Collection).Pipe(query).All(&result)
+	if len(result) == 0 {
+		return result, errors.New("No result found")
+	}
+	return result, err
+}
+
+/*
 	Matches the profiles  which fit into the specified limits and that provide a MSCPerSecond less than
 	than the number of requests needed
 	in:

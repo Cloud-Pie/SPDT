@@ -111,7 +111,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 					rConfigDeltaLoad.VMSet = vmSetDeltaLoad
 
 					if containerResizeEnabled {
-						profileNewLimits := selectProfile(totalLoad, vmLimits, false)
+						profileNewLimits,_ := selectProfile(totalLoad, vmLimits, false)
 						//Candidate option to handle total load with new limits
 						resize := shouldResizeContainer(profileCurrentLimits, profileNewLimits)
 						if resize {
@@ -140,7 +140,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 				rConfigDeltaLoad.VMSet = vmSetDeltaLoad
 
 				if containerResizeEnabled {
-					profileNewLimits := selectProfile(totalLoad, vmLimits, false)
+					profileNewLimits,_ := selectProfile(totalLoad, vmLimits, false)
 					//Candidate option to handle total load with new limits
 					resize := shouldResizeContainer(profileCurrentLimits, profileNewLimits)
 					if resize {

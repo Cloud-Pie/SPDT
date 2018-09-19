@@ -147,6 +147,7 @@ type ConfigMetrics struct {
 	RequestsCapacity float64 `json:"requests_capacity" bson:"requests_capacity"`
 	CPUUtilization   float64 `json:"cpu_utilization" bson:"cpu_utilization"`
 	MemoryUtilization float64 `json:"mem_utilization" bson:"mem_utilization"`
+	ShadowTimeSec			float64				`json:"shadow_time" bson:"shadow_time"`
 }
 
 type PolicyMetrics struct {
@@ -169,7 +170,6 @@ type ScalingAction struct {
 	Metrics					ConfigMetrics		`json:"metrics" bson:"metrics"`
 	TimeStartBilling		time.Time			`json:"time_start_billing" bson:"time_start_billing"`
 	TimeEndBilling			time.Time			`json:"time_end_billing" bson:"time_end_billing"`
-
 }
 
 

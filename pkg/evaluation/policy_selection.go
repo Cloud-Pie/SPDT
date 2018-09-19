@@ -144,10 +144,20 @@ func computeMetricsScalingActions (scalingActions *[]types.ScalingAction, mapVMP
 			totalCPUCores += mapVMProfiles[k].CPUCores * float64(v)
 			totalMemGB += mapVMProfiles[k].Memory * float64(v)
 		}
-		percentageMemUtilization := serviceToScale.Memory * float64(serviceToScale.Scale) * 100.0 / totalMemGB
-		(*scalingActions)[i].Metrics.MemoryUtilization = percentageMemUtilization
-		percentageCPUUtilization := serviceToScale.CPU * float64(serviceToScale.Scale)  * 100.0 / totalCPUCores
-		(*scalingActions)[i].Metrics.CPUUtilization = percentageCPUUtilization
+		if totalMemGB > 0 {
+			percentageMemUtilization := serviceToScale.Memory * float64(serviceToScale.Scale) * 100.0 / totalMemGB
+			(*scalingActions)[i].Metrics.MemoryUtilization = percentageMemUtilization
+		}
+		if totalCPUCores > 0 {
+			percentageCPUUtilization := serviceToScale.CPU * float64(serviceToScale.Scale)  * 100.0 / totalCPUCores
+			(*scalingActions)[i].Metrics.CPUUtilization = percentageCPUUtilization
+		}
+
+		if i >= 1 {
+			previousStateEndTime := (*scalingActions)[i-1].TimeEnd
+			(*scalingActions)[i].Metrics.ShadowTimeSec = previousStateEndTime.Sub((*scalingActions)[i].TimeStart).Seconds()
+		}
+
 	}
 	return numberContainerScalingActions, numberVMScalingActions, vmTypes
 }

@@ -126,7 +126,7 @@ func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.System
 		region := sysConfiguration.Region
 		times, error := performance_profiles.GetBootShutDownProfile(url,vmType, n, csp, region)
 		if error != nil {
-			//log.Error("Error in bootingTime query %s", error.Error())
+			log.Error("Error in bootingTime query %s", error.Error())
 		}
 		bootTime += times.BootTime
 	}
@@ -152,7 +152,7 @@ func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.Sy
 		region := sysConfiguration.Region
 		times, error := performance_profiles.GetBootShutDownProfile(url,vmType, n, csp, region)
 		if error != nil {
-		//	log.Error("Error in terminationTime query %s", error.Error())
+			log.Error("Error in terminationTime query %s", error.Error())
 		}
 		terminationTime += times.ShutDownTime
 	}
@@ -214,14 +214,12 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 			newMSCSetting.MSCPerSecond = mscSetting.MSCPerSecond.RegBruteForce
 			newMSCSetting.BootTimeSec = mscSetting.BootTimeMs / 1000
 
-		}
-		//TODO: What happend if there is no data from Terminos?
-		/* else {
+		} else {
 			numberReplicas := float64(containerConfig.MSCSetting.Replicas) * requests / containerConfig.MSCSetting.MSCPerSecond
 			containerConfig.MSCSetting.Replicas = int(numberReplicas)
 			containerConfig.MSCSetting.MSCPerSecond = requests
 			newMSCSetting = types.MSCSimpleSetting{Replicas:int(numberReplicas), MSCPerSecond:requests, BootTimeSec:100}
-		}*/
+		}
 
 		profile.MSCSettings = append(profile.MSCSettings,newMSCSetting)
 		err3 := serviceProfileDAO.UpdateById(profile.ID, profile)
@@ -240,8 +238,9 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 	out:
 		@ContainersConfig	- configuration with number of replicas and limits that best fit for the number of requests
 */
-func selectProfile(requests float64,  limits types.Limit, underProvision bool) types.ContainersConfig {
+func selectProfile(requests float64,  limits types.Limit, underProvision bool) (types.ContainersConfig, error){
 	var profiles []types.ContainersConfig
+	var profile  types.ContainersConfig
 	serviceProfileDAO := storage.GetPerformanceProfileDAO(systemConfiguration.ServiceName)
 	profilesUnder,err1:= serviceProfileDAO.MatchProfileFitLimitsUnder(limits.CPUCores, limits.MemoryGB, requests)
 	profilesOver,err2 := serviceProfileDAO.MatchProfileFitLimitsOver(limits.CPUCores, limits.MemoryGB, requests)
@@ -263,7 +262,13 @@ func selectProfile(requests float64,  limits types.Limit, underProvision bool) t
 		profiles = profilesUnder
 	}
 	//defer serviceProfileDAO.Session.Close()
-	return profiles[0]
+
+	if len(profiles) > 0{
+		profile = profiles[0]
+		return profile, nil
+	} else {
+		return profile, errors.New("No profile found")
+	}
 }
 
 /* Select the service profile for any limit resources that satisfies the number of requests
@@ -294,18 +299,32 @@ func setConfiguration(configurations *[]types.ScalingAction, state types.State, 
 		(*configurations)[nConfigurations-1].TimeEndBilling = timeEndBill
 	} else {
 		//var deltaTime int //time in seconds
-		var finishTimeVMRemoved float64
+		var shutdownVMDuration float64
+		var startTransitionTime time.Time
 		var vmAdded, vmRemoved types.VMScale
 		//Adjust booting times for resources configuration
 		if nConfigurations >= 1 {
 			currentVMSet := (*configurations)[nConfigurations-1].State.VMs
 			vmAdded, vmRemoved = DeltaVMSet(currentVMSet,state.VMs)
-			//Adjust previous configuration
+			//Adjust configuration times
 			nVMRemoved := len(vmRemoved)
-			if nVMRemoved > 0 {
-				finishTimeVMRemoved = computeVMTerminationTime(vmRemoved, sysConfiguration)
+			nVMAdded := len(vmAdded)
+
+			//case 1: There is a reconfiguration of all the VMs, therefore there is an overlapping time
+			if nVMRemoved > 0 && nVMAdded > 0 {
+				shutdownVMDuration = computeVMTerminationTime(vmRemoved, sysConfiguration)
 				previousTimeEnd := (*configurations)[nConfigurations-1].TimeEnd
-				(*configurations)[nConfigurations-1].TimeEnd = previousTimeEnd.Add(time.Duration(finishTimeVMRemoved) * time.Second)
+				(*configurations)[nConfigurations-1].TimeEnd = previousTimeEnd.Add(time.Duration(shutdownVMDuration) * time.Second)
+
+				startTransitionTime = computeScaleOutTransitionTime(vmAdded, true, timeStart, totalServicesBootingTime)
+			} else if nVMRemoved > 0 && nVMAdded == 0 {
+				//case 2:  Scale in,
+				shutdownVMDuration = computeVMTerminationTime(vmRemoved, sysConfiguration)
+				startTransitionTime = timeStart.Add(-1 * time.Duration(shutdownVMDuration) * time.Second)
+
+			} else {
+				//case 3: Scale out
+				startTransitionTime = computeScaleOutTransitionTime(vmAdded, true, timeStart, totalServicesBootingTime)
 			}
 
 			lastBilledStartedTime := (*configurations)[nConfigurations-1].TimeStartBilling
@@ -321,10 +340,12 @@ func setConfiguration(configurations *[]types.ScalingAction, state types.State, 
 			deltaScalingAction := timeEnd.Sub(timeStartBill).Hours()
 			ds := int(math.Ceil(deltaScalingAction))
 			timeEndBill = timeStartBill.Add(time.Duration(ds)*time.Hour)
+
+			startTransitionTime = computeScaleOutTransitionTime(vmAdded, true, timeStart, totalServicesBootingTime)
 		}
 
-		startTime := computeTransitionTime(vmAdded, true, timeStart, totalServicesBootingTime)
-		state.LaunchTime = startTime
+
+		state.LaunchTime = startTransitionTime
 		state.Name = strconv.Itoa(nConfigurations) + "__" + name + "__" + timeStart.Format(util.TIME_LAYOUT)
 		*configurations = append(*configurations,
 			types.ScalingAction {
@@ -533,18 +554,17 @@ func updateEndBillingTime(startBillingTime time.Time, endScalingAction time.Time
 
 
 
-func computeTransitionTime(vmAdded types.VMScale, podResize bool, timeStart time.Time, podsBootingTime float64) time.Time{
+func computeScaleOutTransitionTime(vmAdded types.VMScale, podResize bool, timeStart time.Time, podsBootingTime float64) time.Time{
 	transitionTime := timeStart
 	//Time to boot new VMS
 	nVMAdded := len(vmAdded)
 	if nVMAdded > 0 {
 		bootTimeVMAdded := computeVMBootingTime(vmAdded, systemConfiguration)
 		transitionTime = timeStart.Add(-1 * time.Duration(bootTimeVMAdded) * time.Second)
+		//Time for add new VMS into k8s cluster
+		//60 seconds
+		transitionTime = transitionTime.Add(-1 * time.Duration(60) * time.Second)
 	}
-
-	//Time for add new VMS into k8s cluster
-	//60 seconds
-	transitionTime = transitionTime.Add(-1 * time.Duration(60) * time.Second)
 	//Time to boot pods
 	transitionTime = transitionTime.Add(-1 * time.Duration(podsBootingTime) * time.Second)
 	return transitionTime

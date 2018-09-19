@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"github.com/Cloud-Pie/SPDT/util"
 	"errors"
+	"github.com/Cloud-Pie/SPDT/storage"
 )
 
 /*
@@ -38,101 +39,21 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
 
-
 	//Loops all the VM types and derive a policy using a single VMType
 	for vmType, vm := range p.mapVMProfiles {
-		vmTypeSuitable := true
 		vmLimits := types.Limit{ MemoryGB:vm.Memory, CPUCores:vm.CPUCores}
-		newPolicy := types.Policy{}
-		newPolicy.Metrics = types.PolicyMetrics {
-			StartTimeDerivation:time.Now(),
+		//Container limits that fit into the VM type
+		allLimits,_ := storage.GetPerformanceProfileDAO(p.sysConfiguration.ServiceName).FindAllUnderLimits(vm.CPUCores, vm.Memory)
+		for _, li := range allLimits {
+			vmTypeSuitable, newPolicy := p.deriveCandidatePolicy(processedForecast.CriticalIntervals,containerResizeEnabled, li.Limit, vmLimits, vmType, underProvisionAllowed, percentageUnderProvision )
+			if vmTypeSuitable {
+				policies = append(policies, newPolicy)
+			}
 		}
-		configurations := []types.ScalingAction{}
-		for _, it := range processedForecast.CriticalIntervals {
-			serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
-			currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
-			ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
-
-			if containerResizeEnabled {
-				ProfileNewLimits := selectProfile(it.Requests, vmLimits, false)
-				resize := shouldResizeContainer(ProfileCurrentLimits, ProfileNewLimits)
-				if resize {
-					ProfileCurrentLimits = ProfileNewLimits
-				}
-			}
-
-			vmSet,err := p.FindSuitableVMs(ProfileCurrentLimits.MSCSetting.Replicas, ProfileCurrentLimits.Limits, vmType)
-			if err !=  nil {
-				vmTypeSuitable = false
-			}
-
-			if underProvisionAllowed {
-				ProfileCurrentLimitsUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-				ProfileNewLimitsUnder := selectProfile(it.Requests, vmLimits, underProvisionAllowed)
-				resize := shouldResizeContainer(ProfileCurrentLimitsUnder, ProfileNewLimitsUnder)
-				if resize {
-					ProfileCurrentLimitsUnder = ProfileNewLimitsUnder
-				}
-				vmSetUnder,err2 := p.FindSuitableVMs(ProfileCurrentLimitsUnder.MSCSetting.Replicas, ProfileCurrentLimits.Limits, vmType)
-
-				if err2 !=  nil {
-					vmTypeSuitable = false
-					// No VMset fits for the containers set
-					break
-				}
-				vmTypeSuitable = true
-				if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.MSCSetting.MSCPerSecond, percentageUnderProvision) &&
-					vmSetUnder.Cost(p.mapVMProfiles) < vmSet.Cost(p.mapVMProfiles) {
-
-					vmSet = vmSetUnder
-					ProfileCurrentLimits = ProfileCurrentLimitsUnder
-				}
-			}
-
-			newNumServiceReplicas := ProfileCurrentLimits.MSCSetting.Replicas
-			stateLoadCapacity := ProfileCurrentLimits.MSCSetting.MSCPerSecond
-			totalServicesBootingTime := ProfileCurrentLimits.MSCSetting.BootTimeSec
-			limits := ProfileCurrentLimits.Limits
-
-			services :=  make(map[string]types.ServiceInfo)
-			services[ p.sysConfiguration.ServiceName] = types.ServiceInfo {
-				Scale:  newNumServiceReplicas,
-				CPU:    limits.CPUCores,
-				Memory: limits.MemoryGB,
-			}
-
-			state := types.State{}
-			state.Services = services
-			state.VMs = vmSet
-			timeStart := it.TimeStart
-			timeEnd := it.TimeEnd
-			setConfiguration(&configurations,state,timeStart,timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
-			p.currentState = state
-		}
-
-		if !vmTypeSuitable {
-			//Try with other VM type
-			break
-		}
-
-		numConfigurations := len(configurations)
-		if numConfigurations > 0 {
-			//Add new policy
-			parameters := make(map[string]string)
-			parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL
-			parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(false)
-			parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
-			parameters[types.ISRESIZEPODS] = strconv.FormatBool(containerResizeEnabled)
-			newPolicy.ScalingActions = configurations
-			newPolicy.Algorithm = p.algorithm
-			newPolicy.ID = bson.NewObjectId()
-			newPolicy.Status = types.DISCARTED	//State by default
-			newPolicy.Parameters = parameters
-			newPolicy.Metrics.NumberScalingActions = numConfigurations
-			newPolicy.Metrics.FinishTimeDerivation = time.Now()
-			newPolicy.Metrics.DerivationDuration = newPolicy.Metrics.FinishTimeDerivation.Sub(newPolicy.Metrics.StartTimeDerivation).Seconds()
-			newPolicy.TimeWindowStart = configurations[0].TimeStart
-			newPolicy.TimeWindowEnd = configurations[numConfigurations -1].TimeEnd
+		serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
+		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
+		vmTypeSuitable, newPolicy := p.deriveCandidatePolicy(processedForecast.CriticalIntervals,true, currentContainerLimits, vmLimits, vmType, underProvisionAllowed, percentageUnderProvision )
+		if vmTypeSuitable {
 			policies = append(policies, newPolicy)
 		}
 	}
@@ -158,4 +79,91 @@ func (p BestBaseInstancePolicy) FindSuitableVMs(numberReplicas int, resourcesLim
 		return vmScale,errors.New("No suitable VM set found")
 	}
 	return vmScale,err
+}
+
+func (p BestBaseInstancePolicy) deriveCandidatePolicy(criticalIntervals []types.CriticalInterval, containerResizeEnabled bool, containerLimits types.Limit, vmLimits types.Limit, vmType string, underProvisionAllowed bool,percentageUnderProvision float64 ) (bool, types.Policy) {
+	vmTypeSuitable := true
+	scalingSteps := []types.ScalingAction{}
+	newPolicy := types.Policy{}
+	newPolicy.Metrics = types.PolicyMetrics {
+		StartTimeDerivation:time.Now(),
+	}
+
+	for _, it := range criticalIntervals {
+		servicePerformanceProfile := selectProfileWithLimits(it.Requests, containerLimits, false)
+		if containerResizeEnabled {
+			profileWithNewLimits,_ := selectProfile(it.Requests, vmLimits, false)
+			resize := shouldResizeContainer(servicePerformanceProfile, profileWithNewLimits)
+			if resize {
+				servicePerformanceProfile = profileWithNewLimits
+			}
+		}
+
+		vmSet,err := p.FindSuitableVMs(servicePerformanceProfile.MSCSetting.Replicas, servicePerformanceProfile.Limits, vmType)
+		if err !=  nil {
+			vmTypeSuitable = false
+		}
+
+		if underProvisionAllowed {
+			profileCurrentLimitsUnderProvision := selectProfileWithLimits(it.Requests, containerLimits, underProvisionAllowed)
+			profileWitNewLimitsUnderProvision,_ := selectProfile(it.Requests, vmLimits, underProvisionAllowed)
+			resize := shouldResizeContainer(profileCurrentLimitsUnderProvision, profileWitNewLimitsUnderProvision)
+			if resize {
+				profileCurrentLimitsUnderProvision = profileWitNewLimitsUnderProvision
+			}
+			vmSetUnder,err2 := p.FindSuitableVMs(profileCurrentLimitsUnderProvision.MSCSetting.Replicas, servicePerformanceProfile.Limits, vmType)
+
+			if err2 !=  nil {
+				vmTypeSuitable = false
+				break
+			}
+			vmTypeSuitable = true
+			if isUnderProvisionInRange(it.Requests, profileCurrentLimitsUnderProvision.MSCSetting.MSCPerSecond, percentageUnderProvision) &&
+				vmSetUnder.Cost(p.mapVMProfiles) < vmSet.Cost(p.mapVMProfiles) {
+				vmSet = vmSetUnder
+				servicePerformanceProfile = profileCurrentLimitsUnderProvision
+			}
+		}
+
+		newNumServiceReplicas := servicePerformanceProfile.MSCSetting.Replicas
+		stateLoadCapacity := servicePerformanceProfile.MSCSetting.MSCPerSecond
+		totalServicesBootingTime := servicePerformanceProfile.MSCSetting.BootTimeSec
+		limits := servicePerformanceProfile.Limits
+
+		services :=  make(map[string]types.ServiceInfo)
+		services[ p.sysConfiguration.ServiceName] = types.ServiceInfo {
+			Scale:  newNumServiceReplicas,
+			CPU:    limits.CPUCores,
+			Memory: limits.MemoryGB,
+		}
+
+		state := types.State{}
+		state.Services = services
+		state.VMs = vmSet
+		timeStart := it.TimeStart
+		timeEnd := it.TimeEnd
+		setConfiguration(&scalingSteps,state,timeStart,timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
+		p.currentState = state
+	}
+
+	numScalingSteps := len(scalingSteps)
+	if vmTypeSuitable && numScalingSteps > 0 {
+		//Add new policy
+		parameters := make(map[string]string)
+		parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL
+		parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(false)
+		parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
+		parameters[types.ISRESIZEPODS] = strconv.FormatBool(containerResizeEnabled)
+		newPolicy.ScalingActions = scalingSteps
+		newPolicy.Algorithm = p.algorithm
+		newPolicy.ID = bson.NewObjectId()
+		newPolicy.Status = types.DISCARTED	//State by default
+		newPolicy.Parameters = parameters
+		newPolicy.Metrics.NumberScalingActions = numScalingSteps
+		newPolicy.Metrics.FinishTimeDerivation = time.Now()
+		newPolicy.Metrics.DerivationDuration = newPolicy.Metrics.FinishTimeDerivation.Sub(newPolicy.Metrics.StartTimeDerivation).Seconds()
+		newPolicy.TimeWindowStart = scalingSteps[0].TimeStart
+		newPolicy.TimeWindowEnd = scalingSteps[numScalingSteps-1].TimeEnd
+	}
+	return vmTypeSuitable, newPolicy
 }

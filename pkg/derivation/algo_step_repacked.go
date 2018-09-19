@@ -52,7 +52,7 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 		ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
 
 		if containerResizeEnabled {
-			ProfileNewLimits := selectProfile(it.Requests, vmLimits, false)
+			ProfileNewLimits,_ := selectProfile(it.Requests, vmLimits, false)
 			resize := shouldResizeContainer(ProfileCurrentLimits, ProfileNewLimits)
 			if resize {
 				ProfileCurrentLimits = ProfileNewLimits
@@ -63,7 +63,7 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 
 		if underProvisionAllowed {
 			ProfileCurrentLimitsUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-			ProfileNewLimitsUnder := selectProfile(it.Requests, vmLimits, underProvisionAllowed)
+			ProfileNewLimitsUnder,_ := selectProfile(it.Requests, vmLimits, underProvisionAllowed)
 			resize := shouldResizeContainer(ProfileCurrentLimitsUnder, ProfileNewLimitsUnder)
 			if resize {
 				ProfileCurrentLimitsUnder = ProfileNewLimitsUnder
