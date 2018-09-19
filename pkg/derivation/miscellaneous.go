@@ -167,6 +167,9 @@ func MapKeystoString(keys map[string] bool)string {
 	for k,_ := range keys {
 		vmTypes += k + ","
 	}
-	vmTypes = vmTypes[:len(vmTypes)-1]
+	nkeys := len(vmTypes)
+	if nkeys > 0 {
+		vmTypes = vmTypes[:nkeys-1]
+	}
 	return  vmTypes
 }

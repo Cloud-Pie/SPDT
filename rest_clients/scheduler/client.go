@@ -17,8 +17,9 @@ func CreateState(state types.State, endpoint string) error {
 }
 
 
-func CurrentState(endpoint string) (types.State, error) {
+func InfraCurrentState(endpoint string) (types.State, error) {
 	currentState := types.State{}
+	infrastructureState := types.InfrastractureState{}
 	response, err := http.Get(endpoint)
 	if err != nil {
 		return currentState, err
@@ -29,10 +30,11 @@ func CurrentState(endpoint string) (types.State, error) {
 	if err != nil {
 		return  currentState, err
 	}
-	err = json.Unmarshal(data, &currentState)
+	err = json.Unmarshal(data, &infrastructureState)
 	if err != nil {
 		return  currentState, err
 	}
+	currentState = infrastructureState.ActiveState
 	return  currentState, err
 }
 

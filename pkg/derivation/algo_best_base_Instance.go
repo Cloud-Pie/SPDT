@@ -142,7 +142,7 @@ func (p BestBaseInstancePolicy) deriveCandidatePolicy(criticalIntervals []types.
 		state.VMs = vmSet
 		timeStart := it.TimeStart
 		timeEnd := it.TimeEnd
-		setConfiguration(&scalingSteps,state,timeStart,timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
+		setConfiguration(&scalingSteps,state,timeStart,timeEnd, totalServicesBootingTime, stateLoadCapacity)
 		p.currentState = state
 	}
 

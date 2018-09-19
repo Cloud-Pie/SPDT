@@ -8,11 +8,12 @@ import (
 	"math"
 	"sort"
 	"github.com/Cloud-Pie/SPDT/rest_clients/performance_profiles"
-	"strconv"
 	"github.com/op/go-logging"
 	"github.com/Cloud-Pie/SPDT/storage"
 	"github.com/Cloud-Pie/SPDT/config"
 	"errors"
+	"github.com/cnf/structhash"
+	"strings"
 )
 
 var log = logging.MustGetLogger("spdt")
@@ -43,9 +44,13 @@ type TimeWindowDerivation interface {
 func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedVMProfiles []types.VmProfile, sysConfiguration config.SystemConfiguration) []types.Policy {
 	var policies []types.Policy
 	systemConfiguration = sysConfiguration
-	currentState,err := scheduler.CurrentState(sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_CURRENT_STATE)
+
+	log.Info("Request current state" )
+	currentState,err := scheduler.InfraCurrentState(sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_CURRENT_STATE)
 	if err != nil {
 		log.Error("Error to get current state %s", err.Error() )
+	} else {
+		log.Info("Finish request for current state" )
 	}
 
 	timeWindows := SmallStepOverProvision{PoIList:poiList}
@@ -288,7 +293,7 @@ func configurationLoadCapacity(numberReplicas int, limits types.Limit) float64 {
 
 /* Utility method to set up each scaling configuration
 */
-func setConfiguration(configurations *[]types.ScalingAction, state types.State, timeStart time.Time, timeEnd time.Time, name string, totalServicesBootingTime float64, sysConfiguration config.SystemConfiguration, stateLoadCapacity float64) {
+func setConfiguration(configurations *[]types.ScalingAction, state types.State, timeStart time.Time, timeEnd time.Time, totalServicesBootingTime float64, stateLoadCapacity float64) {
 	nConfigurations := len(*configurations)
 	timeStartBill := timeStart
 	timeEndBill := timeEnd
@@ -312,14 +317,14 @@ func setConfiguration(configurations *[]types.ScalingAction, state types.State, 
 
 			//case 1: There is a reconfiguration of all the VMs, therefore there is an overlapping time
 			if nVMRemoved > 0 && nVMAdded > 0 {
-				shutdownVMDuration = computeVMTerminationTime(vmRemoved, sysConfiguration)
+				shutdownVMDuration = computeVMTerminationTime(vmRemoved, systemConfiguration)
 				previousTimeEnd := (*configurations)[nConfigurations-1].TimeEnd
 				(*configurations)[nConfigurations-1].TimeEnd = previousTimeEnd.Add(time.Duration(shutdownVMDuration) * time.Second)
 
 				startTransitionTime = computeScaleOutTransitionTime(vmAdded, true, timeStart, totalServicesBootingTime)
 			} else if nVMRemoved > 0 && nVMAdded == 0 {
 				//case 2:  Scale in,
-				shutdownVMDuration = computeVMTerminationTime(vmRemoved, sysConfiguration)
+				shutdownVMDuration = computeVMTerminationTime(vmRemoved, systemConfiguration)
 				startTransitionTime = timeStart.Add(-1 * time.Duration(shutdownVMDuration) * time.Second)
 
 			} else {
@@ -328,7 +333,7 @@ func setConfiguration(configurations *[]types.ScalingAction, state types.State, 
 			}
 
 			lastBilledStartedTime := (*configurations)[nConfigurations-1].TimeStartBilling
-			removeBilledVMs := checkBillingPeriod(sysConfiguration.PricingModel.BillingUnit, nVMRemoved, lastBilledStartedTime,timeStart)
+			removeBilledVMs := checkBillingPeriod(systemConfiguration.PricingModel.BillingUnit, nVMRemoved, lastBilledStartedTime,timeStart)
 			if !removeBilledVMs {
 				newVMSet := currentVMSet
 				newVMSet.Merge(vmAdded)
@@ -346,7 +351,8 @@ func setConfiguration(configurations *[]types.ScalingAction, state types.State, 
 
 
 		state.LaunchTime = startTransitionTime
-		state.Name = strconv.Itoa(nConfigurations) + "__" + name + "__" + timeStart.Format(util.TIME_LAYOUT)
+		name,_ := structhash.Hash(state, 1)
+		state.Name = strings.Replace(name, "v1_", "", -1)
 		*configurations = append(*configurations,
 			types.ScalingAction {
 				State:          state,

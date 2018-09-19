@@ -72,9 +72,9 @@ func (vmSet VMScale) Equal(vmSet2 VMScale) bool {
 }
 
 type ServiceInfo struct {
-	Scale 	int			`json:"Scale"`
-	CPU 	float64		`json:"CPU"`
-	Memory	float64		`json:"Memory"`
+	Scale 	int			`json:"Replicas"`
+	CPU 	float64		`json:"Cpu_cores"`
+	Memory	float64		`json:"Mem_gb"`
 }
 
 /*_________________________________________
@@ -100,6 +100,7 @@ type State struct {
 	Services   Service   `json:"Services"`
 	Name       string    `json:"Name"`
 	VMs        VMScale   `json:"VMs"`
+	ExpectedStart time.Time `json:"ExpectedTime"`
 }
 
 type RequestCapacitySupply struct {
@@ -138,6 +139,12 @@ func (currentState State) Equal(candidateState State) bool {
 		}
 	}
 	return true
+}
+
+type InfrastractureState struct {
+	ActiveState				State	`json:"active" bson:"active"`
+	LastDeployedState		State	`json:"lastDeployed" bson:"lastDeployed"`
+	isStateTrue				bool	`json:"isStateTrue" bson:"isStateTrue"`
 }
 
 type ConfigMetrics struct {

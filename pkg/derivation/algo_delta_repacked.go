@@ -174,7 +174,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		timeEnd := it.TimeEnd
 		totalServicesBootingTime := resourcesConfiguration.MSCSetting.BootTimeSec
 		stateLoadCapacity := resourcesConfiguration.MSCSetting.MSCPerSecond
-		setConfiguration(&configurations,state,timeStart,timeEnd,p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration,stateLoadCapacity)
+		setConfiguration(&configurations,state,timeStart,timeEnd, totalServicesBootingTime,stateLoadCapacity)
 		//Update current state
 		p.currentState = state
 	}

@@ -37,8 +37,6 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
-	//serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
-	//currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
 	vm := p.mapVMProfiles[p.currentVMType()]
 	cores := vm.CPUCores
 	mem := vm.Memory
@@ -94,7 +92,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 			//update state before next iteration
 			timeStart := it.TimeStart
 			timeEnd := it.TimeEnd
-			setConfiguration(&configurations, state, timeStart, timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
+			setConfiguration(&configurations, state, timeStart, timeEnd, totalServicesBootingTime, stateLoadCapacity)
 			p.currentState = state
 		}
 		parameters := make(map[string]string)

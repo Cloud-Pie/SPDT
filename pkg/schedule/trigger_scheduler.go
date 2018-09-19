@@ -19,8 +19,8 @@ func TriggerScheduler(policy types.Policy, endpoint string)error{
 
 func InvalidateStates(timestamp time.Time, endpoint string)error {
 	parameters := make(map[string]string)
-	parameters["timestamp"] = timestamp.String()
-	util.ParseURL(endpoint,parameters )
+	parameters["timestamp"] = timestamp.Format(util.UTC_TIME_LAYOUT)
+	endpoint = util.ParseURL(endpoint,parameters )
 		err := scheduler.InvalidateStates(endpoint)
 		if err != nil {
 			return err

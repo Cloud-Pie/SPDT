@@ -96,7 +96,7 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 
 		timeStart := it.TimeStart
 		timeEnd := it.TimeEnd
-		setConfiguration(&configurations,state,timeStart,timeEnd, p.sysConfiguration.ServiceName, totalServicesBootingTime, p.sysConfiguration, stateLoadCapacity)
+		setConfiguration(&configurations,state,timeStart,timeEnd, totalServicesBootingTime, stateLoadCapacity)
 		p.currentState = state
 	}
 
