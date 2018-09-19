@@ -91,29 +91,32 @@
                         <div id="menuSearch" class="tab-pane fade">
                             <div class="row">
                                 <!-- CANDIDATES -->
-                                <div class="col-md-3" id="candidatesDiv">
-
-                                    <div class="container-fluid">
-                                            <div class="row div-overflow fixed-top150">
-                                                <h4>Policy Candidates</h4>
-                                                <table class="table table-hover" id="tCandidates">
-                                                    <thead>
+                                <div class="sidecand" id="candidatesDiv">
+                                    <section>
+                                        <h4>Policy Candidates</h4>
+                                        <div class="tbl-header">
+                                            <table>
+                                                <thead>
                                                     <tr>
                                                         <th>Policy ID</th>
                                                         <th>Algorithm</th>
                                                         <th>Cost</th>
                                                         <th>Status</th>
                                                     </tr>
-                                                    </thead>
-                                                    <tbody id="tBodyCandidates"></tbody>
-                                                </table>
-                                                <button type="button" class="btn btn-default" onclick="clickedCompareAll()">Compare all</button>
-                                            </div>
-                                    </div>
+                                                </thead>
+                                            </table>
+                                        </div>
+                                        <div class="tbl-content">
+                                            <table class="table-hover" id="tCandidates">
+                                                <tbody id="tBodyCandidates"></tbody>
+                                            </table>
+                                        </div>
 
+                                        <button type="button" class="btn btn-default" onclick="clickedCompareAll()">Compare all</button>
+                                    </section>
                                 </div>
                                 <!-- END CANDIDATES -->
-                                <div class="col-md-8 col-md-offset-1">
+                                <div class="plots">
                                     <div class="container-fluid">
                                     <!--SEARCH-->
                                     <div class="row">

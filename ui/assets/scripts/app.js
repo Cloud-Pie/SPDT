@@ -1,9 +1,8 @@
-const policiesEndpoint = 'http://localhost:8083/api/policies/'
-const forecastRequestsEndpoint = 'http://localhost:8083/api/forecast?'
+const policiesEndpoint = 'http://localhost:8083/api/primeapp/policies'
+const forecastRequestsEndpoint = 'http://localhost:8083/api/primeapp/forecast?'
 
 var allPolicies
 var requestDemand
-var timeLine
 
 function getVirtualUnits(data){
 
@@ -52,9 +51,9 @@ function getVirtualUnits(data){
         labelsTypesVmSet.push(vmLabels)
         services = conf.State.Services
         for (var key in services) {
-            replicas.push(services[key].Scale)
-            cpuCores.push(services[key].CPU)
-            memGB.push(services[key].Memory)
+            replicas.push(services[key].Replicas)
+            cpuCores.push(services[key].Cpu_cores)
+            memGB.push(services[key].Mem_gb)
         }
         TRN.push(conf.metrics.requests_capacity)
         utilizationCpuCores.push(conf.metrics.cpu_utilization)
@@ -88,9 +87,9 @@ function getVirtualUnits(data){
     labelsTypesVmSet.push(vmLabels)
     services = lastConf.State.Services
     for (var key in services) {
-        replicas.push(services[key].Scale)
-        cpuCores.push(services[key].CPU)
-        memGB.push(services[key].Memory)
+        replicas.push(services[key].Replicas)
+        cpuCores.push(services[key].Cpu_cores)
+        memGB.push(services[key].Mem_gb)
     }
     TRN.push(lastConf.metrics.requests_capacity)
     utilizationCpuCores.push(lastConf.metrics.cpu_utilization)
@@ -370,7 +369,7 @@ function searchByID(policyId) {
         policyId = document.getElementById("searchpolicyid").value;
     }
 
-    requestURL=policiesEndpoint+policyId
+    requestURL=policiesEndpoint+ "/" +policyId
     var units
     fetch(requestURL)
         .then((response) => response.json())
@@ -433,11 +432,12 @@ function searchByTimestamp() {
         .join('&')
 
     requestURL = forecastRequestsEndpoint + query
+    policiesRequest = policiesEndpoint +"?" + query
     fetch(requestURL)
         .then((response) => response.json())
         .then(function (data){
             requestDemand = data.Requests
-            fetch(policiesEndpoint)
+            fetch(policiesRequest)
                 .then((response) => response.json())
                 .then(function (data){
                     allPolicies = data
@@ -472,7 +472,7 @@ function fillCandidateTable(policyCandidates) {
         }
 
         $("#tCandidates > tbody").append("<tr>" +
-            "<td>"+policyCandidates[i].id+"</td>" +
+            "<td width=\"50%\">"+policyCandidates[i].id+"</td>" +
             "<td>"+policyCandidates[i].algorithm+"</td>" +
             "<td>"+policyCandidates[i].metrics.cost+"</td>" +
             "<td> <span class='label "+ label+" '>" +policyCandidates[i].status+ "</span> </td>" +
@@ -582,9 +582,9 @@ function getVirtualUnitsAll(policies) {
             }
             services = conf.State.Services
             for (var key in services) {
-                replicas.push(services[key].Scale)
-                utilizationCpuCores.push(services[key].CPU * services[key].Scale)
-                utilizationMemGB.push(services[key].Memory * services[key].Scale)
+                replicas.push(services[key].Replicas)
+                utilizationCpuCores.push(services[key].Cpu_cores * services[key].Replicas)
+                utilizationMemGB.push(services[key].Mem_gb * services[key].Replicas)
             }
             TRN.push(conf.metrics.requests_capacity)
         })

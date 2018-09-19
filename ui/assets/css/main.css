@@ -21,7 +21,10 @@ html {
 
 body {
   background-color: #F3F5F8;
-  font-family: "Source Sans Pro", sans-serif;
+  background: -webkit-linear-gradient(left, #25c481, #25b7c4);
+  background: linear-gradient(to right, #25c481, #25b7c4);
+  /*font-family: "Source Sans Pro", sans-serif;*/
+  font-family: 'Roboto', sans-serif;
   font-size: 12px;
   color: #676a6d; }
 
@@ -672,11 +675,13 @@ fieldset[disabled] .btn {
   -moz-border-radius: 3px;
   border-radius: 3px;
    border: 1px solid #DCE6EB;
+  background-color: rgba(255,255,255,0.5);
   margin-bottom: 30px; }
   .panel .panel-heading,
   .panel .panel-body,
   .panel .panel-footer {
     background-color: #ffffff;
+    background-color: rgba(255,255,255,0.3);
     padding-left: 5px;
     padding-right: 5px; }
   .panel .panel-heading {
@@ -775,6 +780,78 @@ fieldset[disabled] .btn {
   font-weight: bold
 }
 
+
+
+/*
+h1{
+  font-size: 30px;
+  color: #fff;
+  text-transform: uppercase;
+  font-weight: 300;
+  text-align: center;
+  margin-bottom: 15px;
+}*/
+table{
+  width:100%;
+  table-layout: fixed;
+}
+.tbl-header{
+  background-color: rgba(255,255,255,0.3);
+}
+.tbl-content{
+  height:350px;
+  overflow-y:auto;
+  margin-top: 0px;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+th{
+  padding: 20px 15px;
+  text-align: left;
+  font-weight: 500;
+  font-size: 12px;
+  color: #000000;
+  text-transform: uppercase;
+}
+td{
+  padding: 12px;
+  text-align: left;
+  vertical-align:middle;
+  font-weight: 300;
+  font-size: 12px;
+  color: #000000;
+  border-bottom: solid 1px rgba(255,255,255,0.1);
+}
+
+
+.plots {
+  margin-left: 420px; /* Same width as the sidebar + left position in px */
+}
+
+
+.sidecand {
+  width: 390px;
+  position: fixed;
+  top: 120px;
+  z-index: 1;
+  left: 10px;
+  overflow-x: hidden;
+  padding: 8px 0;
+}
+
+
+/* for custom scrollbar for webkit browser*/
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+}
+::-webkit-scrollbar-thumb {
+  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+}
+
+
 /********************
  * ELEMENTS
  ********************/
@@ -794,7 +871,7 @@ fieldset[disabled] .btn {
   border-radius: 3px;
   padding: 10px;
   margin-bottom: 10px;
-  background-color: #ffffff;
+  background-color: rgba(255,255,255,0.5);
   border: 1px solid #DCE6EB; }
   .metric .icon {
     -webkit-border-radius: 50%;
@@ -815,10 +892,10 @@ fieldset[disabled] .btn {
     text-align: right; }
   .metric .number {
     display: block;
-    font-size: 10px;
+    font-size: 15px;
     font-weight: 200; }
   .metric .title {
-    font-size: 10px; }
+    font-size: 12px; }
 
 ul.activity-list > li {
   padding: 25px 0; }
