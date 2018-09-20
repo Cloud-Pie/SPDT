@@ -8,7 +8,6 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"math"
 	"github.com/Cloud-Pie/SPDT/util"
-	"github.com/Cloud-Pie/SPDT/storage"
 )
 
 /*
@@ -21,7 +20,6 @@ type NaivePolicy struct {
 	currentState	types.State			 //Current State
 	mapVMProfiles   map[string]types.VmProfile
 	sysConfiguration	config.SystemConfiguration
-
 }
 
 /* Derive a list of policies using the Naive approach
@@ -37,84 +35,78 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
-	vm := p.mapVMProfiles[p.currentVMType()]
-	cores := vm.CPUCores
-	mem := vm.Memory
-	allLimits,_ := storage.GetPerformanceProfileDAO(p.sysConfiguration.ServiceName).FindAllUnderLimits(cores, mem)
-	for _, li := range allLimits {
-		currentContainerLimits := li.Limit
+	serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
+	currentContainerLimits := types.Limit{CPUCores:serviceToScale.CPU, MemoryGB:serviceToScale.Memory}
 
-		newPolicy := types.Policy{}
-		state := types.State{}
-		newPolicy.Metrics = types.PolicyMetrics {
-			StartTimeDerivation:time.Now(),
-		}
-
-		configurations := []types.ScalingAction{}
-
-		for _, it := range processedForecast.CriticalIntervals {
-			var resourceLimits types.Limit
-
-			//Select the performance profile that fits better
-			containerConfigOver := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
-			newNumServiceReplicas := containerConfigOver.MSCSetting.Replicas
-			vmSet := p.FindSuitableVMs(newNumServiceReplicas, containerConfigOver.Limits)
-			costOver := vmSet.Cost(p.mapVMProfiles)
-			stateLoadCapacity := containerConfigOver.MSCSetting.MSCPerSecond
-			totalServicesBootingTime := containerConfigOver.MSCSetting.BootTimeSec
-			resourceLimits = containerConfigOver.Limits
-
-			if underProvisionAllowed {
-				containerConfigUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-				vmSetUnder := p.FindSuitableVMs(containerConfigUnder.MSCSetting.Replicas, containerConfigUnder.Limits)
-				costUnder := vmSetUnder.Cost(p.mapVMProfiles)
-				//Update values if the configuration that leads to under provisioning is cheaper
-				if costUnder < costOver && isUnderProvisionInRange(it.Requests, containerConfigUnder.MSCSetting.MSCPerSecond, percentageUnderProvision) {
-					vmSet = vmSetUnder
-					newNumServiceReplicas = containerConfigUnder.MSCSetting.Replicas
-					stateLoadCapacity = containerConfigUnder.MSCSetting.MSCPerSecond
-					totalServicesBootingTime = containerConfigUnder.MSCSetting.BootTimeSec
-					resourceLimits = containerConfigUnder.Limits
-				}
-			}
-
-			services := make(map[string]types.ServiceInfo)
-			services[p.sysConfiguration.ServiceName] = types.ServiceInfo{
-				Scale:  newNumServiceReplicas,
-				CPU:    resourceLimits.CPUCores,
-				Memory: resourceLimits.MemoryGB,
-			}
-			state = types.State{
-				Services: services,
-				VMs:      vmSet,
-			}
-
-			//update state before next iteration
-			timeStart := it.TimeStart
-			timeEnd := it.TimeEnd
-			setConfiguration(&configurations, state, timeStart, timeEnd, totalServicesBootingTime, stateLoadCapacity)
-			p.currentState = state
-		}
-		parameters := make(map[string]string)
-		parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL
-		parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(false)
-		parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
-		parameters[types.ISRESIZEPODS] = strconv.FormatBool(false)
-		//Add new policy
-		numConfigurations := len(configurations)
-		newPolicy.ScalingActions = configurations
-		newPolicy.Algorithm = p.algorithm
-		newPolicy.ID = bson.NewObjectId()
-		newPolicy.Status = types.DISCARTED //State by default
-		newPolicy.Parameters = parameters
-		newPolicy.Metrics.NumberScalingActions = numConfigurations
-		newPolicy.Metrics.FinishTimeDerivation = time.Now()
-		newPolicy.Metrics.DerivationDuration = newPolicy.Metrics.FinishTimeDerivation.Sub(newPolicy.Metrics.StartTimeDerivation).Seconds()
-		newPolicy.TimeWindowStart = configurations[0].TimeStart
-		newPolicy.TimeWindowEnd = configurations[numConfigurations-1].TimeEnd
-		policies = append(policies, newPolicy)
-
+	newPolicy := types.Policy{}
+	state := types.State{}
+	newPolicy.Metrics = types.PolicyMetrics {
+		StartTimeDerivation:time.Now(),
 	}
+
+	configurations := []types.ScalingStep{}
+	for _, it := range processedForecast.CriticalIntervals {
+		var resourceLimits types.Limit
+		//Select the performance profile that fits better
+		containerConfigOver := selectProfileByLimits(it.Requests, currentContainerLimits, false)
+		newNumServiceReplicas := containerConfigOver.MSCSetting.Replicas
+		vmSet := p.FindSuitableVMs(newNumServiceReplicas, containerConfigOver.Limits)
+		costOver := vmSet.Cost(p.mapVMProfiles)
+		stateLoadCapacity := containerConfigOver.MSCSetting.MSCPerSecond
+		totalServicesBootingTime := containerConfigOver.MSCSetting.BootTimeSec
+		resourceLimits = containerConfigOver.Limits
+
+		if underProvisionAllowed {
+			containerConfigUnder := selectProfileByLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
+			vmSetUnder := p.FindSuitableVMs(containerConfigUnder.MSCSetting.Replicas, containerConfigUnder.Limits)
+			costUnder := vmSetUnder.Cost(p.mapVMProfiles)
+			//Update values if the configuration that leads to under provisioning is cheaper
+			if costUnder < costOver && isUnderProvisionInRange(it.Requests, containerConfigUnder.MSCSetting.MSCPerSecond, percentageUnderProvision) {
+				vmSet = vmSetUnder
+				newNumServiceReplicas = containerConfigUnder.MSCSetting.Replicas
+				stateLoadCapacity = containerConfigUnder.MSCSetting.MSCPerSecond
+				totalServicesBootingTime = containerConfigUnder.MSCSetting.BootTimeSec
+				resourceLimits = containerConfigUnder.Limits
+			}
+		}
+
+		services := make(map[string]types.ServiceInfo)
+		services[p.sysConfiguration.ServiceName] = types.ServiceInfo{
+			Scale:  newNumServiceReplicas,
+			CPU:    resourceLimits.CPUCores,
+			Memory: resourceLimits.MemoryGB,
+		}
+		state = types.State{
+			Services: services,
+			VMs:      vmSet,
+		}
+
+		//update state before next iteration
+		timeStart := it.TimeStart
+		timeEnd := it.TimeEnd
+		setScalingSteps(&configurations, state, timeStart, timeEnd, totalServicesBootingTime, stateLoadCapacity)
+		p.currentState = state
+	}
+
+	parameters := make(map[string]string)
+	parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL
+	parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(false)
+	parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
+	parameters[types.ISRESIZEPODS] = strconv.FormatBool(false)
+	//Add new policy
+	numConfigurations := len(configurations)
+	newPolicy.ScalingActions = configurations
+	newPolicy.Algorithm = p.algorithm
+	newPolicy.ID = bson.NewObjectId()
+	newPolicy.Status = types.DISCARTED //State by default
+	newPolicy.Parameters = parameters
+	newPolicy.Metrics.NumberScalingActions = numConfigurations
+	newPolicy.Metrics.FinishTimeDerivation = time.Now()
+	newPolicy.Metrics.DerivationDuration = newPolicy.Metrics.FinishTimeDerivation.Sub(newPolicy.Metrics.StartTimeDerivation).Seconds()
+	newPolicy.TimeWindowStart = configurations[0].TimeStart
+	newPolicy.TimeWindowEnd = configurations[numConfigurations-1].TimeEnd
+	policies = append(policies, newPolicy)
+
 	return policies
 }
 
@@ -142,10 +134,14 @@ func (p NaivePolicy) FindSuitableVMs(numberReplicas int, limits types.Limit) typ
 		String with the name of the current VM type
 */
 func (p NaivePolicy) currentVMType() string {
-	//Assumption for p approach: There is only 1 vm Type in current state
+	//It selects teh VM with more resources in case there is more than onw vm type
 	var vmType string
-	for k := range p.currentState.VMs {
-		vmType = k
+	memGB := 0.0
+	for k,_ := range p.currentState.VMs {
+		if p.mapVMProfiles[k].Memory > memGB {
+			vmType = k
+			memGB =  p.mapVMProfiles[k].Memory
+		}
 	}
 	if len(p.currentState.VMs) > 1 {
 		log.Warning("Current config has more than one VM type, type %s was selected to continue", vmType)

@@ -51,7 +51,7 @@ type Tree struct {
 func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []types.Policy {
 	log.Info("Derive policies with %s algorithm", p.algorithm)
 	policies := []types.Policy {}
-	configurations := []types.ScalingAction{}
+	configurations := []types.ScalingStep{}
 	newPolicy := types.Policy{}
 	newPolicy.Metrics = types.PolicyMetrics {
 		StartTimeDerivation:time.Now(),
@@ -72,7 +72,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 		serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
 		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
 		currentNumberReplicas := serviceToScale.Scale
-		currentLoadCapacity := configurationLoadCapacity(currentNumberReplicas, currentContainerLimits)
+		currentLoadCapacity := getStateLoadCapacity(currentNumberReplicas, currentContainerLimits)
 		deltaLoad := totalLoad - currentLoadCapacity
 
 		if deltaLoad == 0 {
@@ -82,7 +82,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 			stateLoadCapacity = currentLoadCapacity
 		} else {
 			//Alternative configuration
-			ProfileCurrentLimits := selectProfileWithLimits(totalLoad, currentContainerLimits, false)
+			ProfileCurrentLimits := selectProfileByLimits(totalLoad, currentContainerLimits, false)
 			newNumServiceReplicas = ProfileCurrentLimits.MSCSetting.Replicas
 			resourceLimits  = ProfileCurrentLimits.Limits
 			stateLoadCapacity = ProfileCurrentLimits.MSCSetting.MSCPerSecond
@@ -100,7 +100,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 					vmSet = p.FindSuitableVMs(deltaNumberReplicas, ProfileCurrentLimits.Limits)
 
 					if underProvisionAllowed {
-						ProfileCurrentLimitsUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
+						ProfileCurrentLimitsUnder := selectProfileByLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
 						vmSetUnder := p.FindSuitableVMs(ProfileCurrentLimits.MSCSetting.Replicas, ProfileCurrentLimits.Limits)
 
 						if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.MSCSetting.MSCPerSecond, percentageUnderProvision) &&
@@ -137,7 +137,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 		state.VMs = vmSet
 		timeStart := it.TimeStart
 		timeEnd := it.TimeEnd
-		setConfiguration(&configurations,state,timeStart,timeEnd, totalServicesBootingTime, stateLoadCapacity)
+		setScalingSteps(&configurations,state,timeStart,timeEnd, totalServicesBootingTime, stateLoadCapacity)
 		p.currentState = state
 	}
 
@@ -170,18 +170,14 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 	@VMScale with the suggested number of VMs for that type
 */
 func (p TreePolicy) FindSuitableVMs(numberReplicas int, limits types.Limit) types.VMScale {
-
-	heterogeneousAllowed := p.sysConfiguration.PolicySettings.HetereogeneousAllowed
 	vmSet, _ := buildHomogeneousVMSet(numberReplicas,limits, p.mapVMProfiles)
-
-	if heterogeneousAllowed {
-		hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, limits, p.mapVMProfiles)
-		costi := hetVMSet.Cost(p.mapVMProfiles)
-		costj := vmSet.Cost(p.mapVMProfiles)
-		if costi < costj {
-			vmSet = hetVMSet
-		}
+	hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, limits, p.mapVMProfiles)
+	costi := hetVMSet.Cost(p.mapVMProfiles)
+	costj := vmSet.Cost(p.mapVMProfiles)
+	if costi < costj {
+		vmSet = hetVMSet
 	}
+
 	return vmSet
 }
 

@@ -40,7 +40,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 	newPolicy.Metrics = types.PolicyMetrics {
 		StartTimeDerivation:time.Now(),
 	}
-	configurations := []types.ScalingAction{}
+	configurations := []types.ScalingStep{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
@@ -55,7 +55,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
 		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
 		currentNumberReplicas := serviceToScale.Scale
-		currentLoadCapacity := configurationLoadCapacity(currentNumberReplicas,currentContainerLimits)
+		currentLoadCapacity := getStateLoadCapacity(currentNumberReplicas,currentContainerLimits)
 
 		deltaLoad := totalLoad - currentLoadCapacity
 
@@ -66,7 +66,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 
 		} else 	{
 			//Candidate option to handle total load with current limits
-			profileCurrentLimits := selectProfileWithLimits(totalLoad, currentContainerLimits, false)
+			profileCurrentLimits := selectProfileByLimits(totalLoad, currentContainerLimits, false)
 
 			vmSetTLoad := p.FindSuitableVMs(profileCurrentLimits.MSCSetting.Replicas, profileCurrentLimits.Limits)
 			resourceConfigTLoad := types.ContainersConfig {
@@ -94,7 +94,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 					vmSetDeltaLoad := p.FindSuitableVMs(deltaNumberReplicas,profileCurrentLimits.Limits)
 
 					if underProvisionAllowed {
-						ProfileCurrentLimitsUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
+						ProfileCurrentLimitsUnder := selectProfileByLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
 						vmSetUnder := p.FindSuitableVMs(profileCurrentLimits.MSCSetting.Replicas, profileCurrentLimits.Limits)
 
 						if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.MSCSetting.MSCPerSecond, percentageUnderProvision) &&
@@ -111,7 +111,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 					rConfigDeltaLoad.VMSet = vmSetDeltaLoad
 
 					if containerResizeEnabled {
-						profileNewLimits,_ := selectProfile(totalLoad, vmLimits, false)
+						profileNewLimits,_ := selectProfileUnderVMLimits(totalLoad, vmLimits, false)
 						//Candidate option to handle total load with new limits
 						resize := shouldResizeContainer(profileCurrentLimits, profileNewLimits)
 						if resize {
@@ -140,7 +140,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 				rConfigDeltaLoad.VMSet = vmSetDeltaLoad
 
 				if containerResizeEnabled {
-					profileNewLimits,_ := selectProfile(totalLoad, vmLimits, false)
+					profileNewLimits,_ := selectProfileUnderVMLimits(totalLoad, vmLimits, false)
 					//Candidate option to handle total load with new limits
 					resize := shouldResizeContainer(profileCurrentLimits, profileNewLimits)
 					if resize {
@@ -174,7 +174,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		timeEnd := it.TimeEnd
 		totalServicesBootingTime := resourcesConfiguration.MSCSetting.BootTimeSec
 		stateLoadCapacity := resourcesConfiguration.MSCSetting.MSCPerSecond
-		setConfiguration(&configurations,state,timeStart,timeEnd, totalServicesBootingTime,stateLoadCapacity)
+		setScalingSteps(&configurations,state,timeStart,timeEnd, totalServicesBootingTime,stateLoadCapacity)
 		//Update current state
 		p.currentState = state
 	}
@@ -182,7 +182,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		//Add new policy
 		parameters := make(map[string]string)
 		parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL
-		parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(p.sysConfiguration.PolicySettings.HetereogeneousAllowed)
+		parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(true)
 		parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
 		parameters[types.ISRESIZEPODS] = strconv.FormatBool(false)
 		numConfigurations := len(configurations)
@@ -209,17 +209,12 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 	@VMScale with the suggested number of VMs
 */
 func (p DeltaRepackedPolicy) FindSuitableVMs(numberReplicas int, resourceLimits types.Limit) types.VMScale {
-	//currentVMType, isHomogeneous := p.isCurrentlyHomogeneous()
-	heterogeneousAllowed := p.sysConfiguration.PolicySettings.HetereogeneousAllowed
 	vmSet, _ := buildHomogeneousVMSet(numberReplicas,resourceLimits, p.mapVMProfiles)
-
-	if heterogeneousAllowed {
-		hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, resourceLimits, p.mapVMProfiles)
-		costi := hetVMSet.Cost(p.mapVMProfiles)
-		costj := vmSet.Cost(p.mapVMProfiles)
-		if costi < costj {
-			vmSet = hetVMSet
-		}
+	hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, resourceLimits, p.mapVMProfiles)
+	costi := hetVMSet.Cost(p.mapVMProfiles)
+	costj := vmSet.Cost(p.mapVMProfiles)
+	if costi < costj {
+		vmSet = hetVMSet
 	}
 	return vmSet
 }

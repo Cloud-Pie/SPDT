@@ -83,16 +83,16 @@ func (p BestBaseInstancePolicy) FindSuitableVMs(numberReplicas int, resourcesLim
 
 func (p BestBaseInstancePolicy) deriveCandidatePolicy(criticalIntervals []types.CriticalInterval, containerResizeEnabled bool, containerLimits types.Limit, vmLimits types.Limit, vmType string, underProvisionAllowed bool,percentageUnderProvision float64 ) (bool, types.Policy) {
 	vmTypeSuitable := true
-	scalingSteps := []types.ScalingAction{}
+	scalingSteps := []types.ScalingStep{}
 	newPolicy := types.Policy{}
 	newPolicy.Metrics = types.PolicyMetrics {
 		StartTimeDerivation:time.Now(),
 	}
 
 	for _, it := range criticalIntervals {
-		servicePerformanceProfile := selectProfileWithLimits(it.Requests, containerLimits, false)
+		servicePerformanceProfile := selectProfileByLimits(it.Requests, containerLimits, false)
 		if containerResizeEnabled {
-			profileWithNewLimits,_ := selectProfile(it.Requests, vmLimits, false)
+			profileWithNewLimits,_ := selectProfileUnderVMLimits(it.Requests, vmLimits, false)
 			resize := shouldResizeContainer(servicePerformanceProfile, profileWithNewLimits)
 			if resize {
 				servicePerformanceProfile = profileWithNewLimits
@@ -105,8 +105,8 @@ func (p BestBaseInstancePolicy) deriveCandidatePolicy(criticalIntervals []types.
 		}
 
 		if underProvisionAllowed {
-			profileCurrentLimitsUnderProvision := selectProfileWithLimits(it.Requests, containerLimits, underProvisionAllowed)
-			profileWitNewLimitsUnderProvision,_ := selectProfile(it.Requests, vmLimits, underProvisionAllowed)
+			profileCurrentLimitsUnderProvision := selectProfileByLimits(it.Requests, containerLimits, underProvisionAllowed)
+			profileWitNewLimitsUnderProvision,_ := selectProfileUnderVMLimits(it.Requests, vmLimits, underProvisionAllowed)
 			resize := shouldResizeContainer(profileCurrentLimitsUnderProvision, profileWitNewLimitsUnderProvision)
 			if resize {
 				profileCurrentLimitsUnderProvision = profileWitNewLimitsUnderProvision
@@ -142,7 +142,7 @@ func (p BestBaseInstancePolicy) deriveCandidatePolicy(criticalIntervals []types.
 		state.VMs = vmSet
 		timeStart := it.TimeStart
 		timeEnd := it.TimeEnd
-		setConfiguration(&scalingSteps,state,timeStart,timeEnd, totalServicesBootingTime, stateLoadCapacity)
+		setScalingSteps(&scalingSteps,state,timeStart,timeEnd, totalServicesBootingTime, stateLoadCapacity)
 		p.currentState = state
 	}
 

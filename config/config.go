@@ -34,7 +34,6 @@ type PricingModel struct {
 //Max Underprovision is only used if Underprovisioning is allowed
 type PolicySettings struct{
 	ScalingMethod            string  `yaml:"vm-scaling-method"`
-	HetereogeneousAllowed    bool    `yaml:"heterogeneous-vms-allowed"`
 	UnderprovisioningAllowed bool    `yaml:"underprovisioning-allowed"`
 	MaxUnderprovisionPercentage        float64 `yaml:"percentage-max-underprovision"`
 	PodsResizeAllowed        bool    `yaml:"pods-resize-allowed"`
