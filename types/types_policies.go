@@ -170,7 +170,7 @@ type PolicyMetrics struct {
 }
 
 /*Resource configuration*/
-type ScalingAction struct {
+type ScalingStep struct {
 	State					State			    `json:"State" bson:"State"`
 	TimeStart 				time.Time			`json:"time_start" bson:"time_start"`
 	TimeEnd					time.Time			`json:"time_end" bson:"time_end"`
@@ -205,7 +205,7 @@ type Policy struct {
 	Metrics         PolicyMetrics     `json:"metrics" bson:"metrics"`
 	Status          string            `json:"status" bson:"status"`
 	Parameters      map[string]string `json:"parameters" bson:"parameters"`
-	ScalingActions  []ScalingAction   `json:"scaling_actions" bson:"scaling_actions"`
+	ScalingActions  []ScalingStep     `json:"scaling_actions" bson:"scaling_actions"`
 	TimeWindowStart time.Time         `json:"window_time_start"  bson:"window_time_start"`
 	TimeWindowEnd   time.Time         `json:"window_time_end"  bson:"window_time_end"`
 

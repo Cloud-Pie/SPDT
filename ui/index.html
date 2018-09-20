@@ -93,12 +93,12 @@
                                 <!-- CANDIDATES -->
                                 <div class="sidecand" id="candidatesDiv">
                                     <section>
-                                        <h4>Policy Candidates</h4>
+                                        <h4><b>Policy Candidates</b></h4>
                                         <div class="tbl-header">
                                             <table>
                                                 <thead>
                                                     <tr>
-                                                        <th>Policy ID</th>
+                                                        <th width="40%">Policy ID</th>
                                                         <th>Algorithm</th>
                                                         <th>Cost</th>
                                                         <th>Status</th>
@@ -177,7 +177,7 @@
                                                             <span class="icon"><i class="fa fa-upload"></i></span>
                                                             <p>
                                                                 <span class="number"><label id="overid"></label></span>
-                                                                <span class="title">% Overprovision</span>
+                                                                <span class="title">Overprovision</span>
                                                             </p>
                                                         </div>
                                                     </div>
@@ -186,7 +186,7 @@
                                                             <span class="icon"><i class="fa fa-download"></i></span>
                                                             <p>
                                                                 <span class="number"><label id="underid"> </label></span>
-                                                                <span class="title">% Underprovision</span>
+                                                                <span class="title">Underprovision</span>
                                                             </p>
                                                         </div>
                                                     </div>
@@ -567,37 +567,6 @@
     <script src="ui/assets/scripts/highlight.pack.js"></script>
     <script>hljs.initHighlightingOnLoad();</script>
 
-    <script type="text/javascript">
-        $(function () {
-            $('#datetimepicker6').datetimepicker();
-            $('#datetimepicker7').datetimepicker({
-                useCurrent: false //Important! See issue #1075
-            });
-            $("#datetimepicker6").on("dp.change", function (e) {
-                $('#datetimepicker7').data("DateTimePicker").minDate(e.date);
-            });
-            $("#datetimepicker7").on("dp.change", function (e) {
-                $('#datetimepicker6').data("DateTimePicker").maxDate(e.date);
-            });
-        });
-    </script>
-
-    <script type="text/javascript">
-        function selectedRow(){
-            var index, table = document.getElementById("tCandidates")
-            for (var i= 1; i< table.rows.length; i++) {
-                table.rows[i].onclick = function() {
-                    if(typeof index !== "undefined") {
-                        table.rows[index].classList.toggle("selected-row")
-                    }
-                    index = this.rowIndex;
-                    this.classList.toggle("selected-row")
-                }
-            }
-            console.log(index)
-        }
-        selectedRow()
-    </script>
     <script>
         showNoResultsPanel()
     </script>

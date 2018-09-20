@@ -225,6 +225,7 @@ function plotContainerUnits(time, replicas, cpuCores, memGB) {
         type: 'scatter',
         name: 'CPU cores',
         yaxis: 'y2',
+        line: {shape: 'hv'}
     };
 
     var trace3 = {
@@ -233,6 +234,7 @@ function plotContainerUnits(time, replicas, cpuCores, memGB) {
         type: 'scatter',
         name: 'Mem GB',
         yaxis: 'y2',
+        line: {shape: 'hv'}
     };
 
     var layout = {
@@ -876,6 +878,9 @@ function showSinglePolicyPanels() {
     }
     var x = document.getElementById("candidatesDiv");
     x.style.display = "block";
+
+    var m = document.getElementById("metricsDiv");
+    m.style.display = "block";
 }
 
 function showMultiplePolicyPanels() {

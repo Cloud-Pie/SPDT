@@ -126,8 +126,7 @@ $(document).ready(function() {
 		});
 	}
 
-
-    /*-----------------------------------/
+	/*-----------------------------------/
 /*	TABLE SCROLLING
 /*----------------------------------*/
 
@@ -136,8 +135,37 @@ $(document).ready(function() {
         $('.tbl-header').css({'padding-right':scrollWidth});
     }).resize();
 
+    /*-----------------------------------/
+/*	TABLE EVENT
+/*----------------------------------*/
+    $(window).on("load", function (){
+        var index, table = document.getElementById("tCandidates")
+        for (var i= 1; i< table.rows.length; i++) {
+            table.rows[i].onclick = function() {
+                if(typeof index !== "undefined") {
+                    table.rows[index].classList.toggle("selected-row")
+                }
+                index = this.rowIndex;
+                this.classList.toggle("selected-row")
+            }
+        }
+    });
 
-
+    /*-----------------------------------/
+/*	DATES VALIDATION
+/*----------------------------------*/
+    $(window).on("load",function () {
+        $('#datetimepicker6').datetimepicker();
+        $('#datetimepicker7').datetimepicker({
+            useCurrent: false
+        });
+        $("#datetimepicker6").on("dp.change", function (e) {
+            $('#datetimepicker7').data("DateTimePicker").minDate(e.date);
+        });
+        $("#datetimepicker7").on("dp.change", function (e) {
+            $('#datetimepicker6').data("DateTimePicker").maxDate(e.date);
+        });
+    });
 
     /*-----------------------------------/
     /*	TODO LIST
