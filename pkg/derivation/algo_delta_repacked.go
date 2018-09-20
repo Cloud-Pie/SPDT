@@ -9,7 +9,6 @@ import (
 	"github.com/Cloud-Pie/SPDT/config"
 	"strconv"
 	"github.com/Cloud-Pie/SPDT/util"
-	"github.com/Cloud-Pie/SPDT/storage"
 )
 
 /*
@@ -338,27 +337,6 @@ func(p DeltaRepackedPolicy) shouldRepackVMSet(currentOption types.ContainersConf
 	return types.ContainersConfig{}, false
 }
 
-func (p DeltaRepackedPolicy) searchConfigOptionByContainerResize(currentVMSet types.VMScale, totalLoad float64) (types.ContainersConfig, bool){
-	biggestType := biggestVMTypeInSet(currentVMSet, p.mapVMProfiles)
-	biggestVM := p.mapVMProfiles[biggestType]
-	allLimits,_ := storage.GetPerformanceProfileDAO(p.sysConfiguration.ServiceName).FindAllUnderLimits(biggestVM.CPUCores, biggestVM.Memory)
-	optionFound := false
-	configurationOptionFound := types.ContainersConfig{}
-	for _, li := range allLimits {
-		configurationOption := selectProfileByLimits(totalLoad, li.Limit, false)
-		replicas := configurationOption.MSCSetting.Replicas
-		//Update the vm Profiles with the capacity for replicas with given limits
-		computeVMsCapacity(li.Limit, &p.mapVMProfiles)
-		currentConfigurationReplicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
-		if currentConfigurationReplicasCapacity >= replicas {
-			configurationOptionFound = configurationOption
-			optionFound = true
-			break
-		}
-	}
-	return configurationOptionFound, optionFound
-}
-
 func (p DeltaRepackedPolicy) onlyScaleOutContainers(currentVMSet types.VMScale, totalLoad float64, currentContainerLimits types.Limit) (types.ContainersConfig, bool){
 	containersResourceConfig :=  types.ContainersConfig{}
 	onlyScaleContainers := false
@@ -377,7 +355,7 @@ func (p DeltaRepackedPolicy) onlyScaleOutContainers(currentVMSet types.VMScale, 
 		onlyScaleContainers = true
 	} else {
 		//case 2: Search for an option changing containers limits (container hybrid scaling) but VMS remain the same
-		configurationOptionFound, optionFound := p.searchConfigOptionByContainerResize(currentVMSet, totalLoad)
+		configurationOptionFound, optionFound := findConfigOptionByContainerResize(currentVMSet,totalLoad, p.mapVMProfiles)
 		if optionFound {
 			containersResourceConfig.VMSet = p.currentState.VMs
 			containersResourceConfig.Limits = configurationOptionFound.Limits

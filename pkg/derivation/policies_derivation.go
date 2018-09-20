@@ -564,8 +564,17 @@ func updateEndBillingTime(startBillingTime time.Time, endScalingAction time.Time
 }
 
 
-
-func computeScaleOutTransitionTime(vmAdded types.VMScale, podResize bool, timeStart time.Time, podsBootingTime float64) time.Time{
+/*
+	Calculate base on the expected start time for the new state, when the launch should start
+	in:
+		@vmAdded types.VMScale
+							- map of VM that were added
+		@timeStart time.Time
+							- time when the desired state should start
+	out:
+		@time.Time	- Time when the launch should start
+*/
+func computeScaleOutTransitionTime(vmAdded types.VMScale, podResize bool, timeStart time.Time, podsBootingTime float64) time.Time {
 	transitionTime := timeStart
 	//Time to boot new VMS
 	nVMAdded := len(vmAdded)
@@ -579,4 +588,38 @@ func computeScaleOutTransitionTime(vmAdded types.VMScale, podResize bool, timeSt
 	//Time to boot pods
 	transitionTime = transitionTime.Add(-1 * time.Duration(podsBootingTime) * time.Second)
 	return transitionTime
+}
+
+
+/*
+	Try to find a containers configuration (num replicas, limit constraints) that fits in the current VM set and meet the load requirement
+	in:
+		@currentVMSet types.VMScale
+							- map of VM of the current state
+		@totalLoad float
+							- load in terms of requests
+		@mapVMProfiles map[string]types.VmProfile
+							- map with the profiles of vms available
+	out:
+		@time.Time	- Time when the launch should start
+*/
+func findConfigOptionByContainerResize(currentVMSet types.VMScale, totalLoad float64, mapVMProfiles map[string]types.VmProfile) (types.ContainersConfig, bool){
+	biggestType := biggestVMTypeInSet(currentVMSet, mapVMProfiles)
+	biggestVM := mapVMProfiles[biggestType]
+	allLimits,_ := storage.GetPerformanceProfileDAO(systemConfiguration.ServiceName).FindAllUnderLimits(biggestVM.CPUCores, biggestVM.Memory)
+	optionFound := false
+	configurationOptionFound := types.ContainersConfig{}
+	for _, li := range allLimits {
+		configurationOption := selectProfileByLimits(totalLoad, li.Limit, false)
+		replicas := configurationOption.MSCSetting.Replicas
+		//Update the vm Profiles with the capacity for replicas with given limits
+		computeVMsCapacity(li.Limit, &mapVMProfiles)
+		currentConfigurationReplicasCapacity := currentVMSet.ReplicasCapacity(mapVMProfiles)
+		if currentConfigurationReplicasCapacity >= replicas {
+			configurationOptionFound = configurationOption
+			optionFound = true
+			break
+		}
+	}
+	return configurationOptionFound, optionFound
 }

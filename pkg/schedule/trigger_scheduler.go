@@ -55,8 +55,7 @@ func memGBTobytes(value float64) int64 {
 
 
 func memBytesToGB(value int64) float64 {
-	mem := value / 1000000000
-	memFloat := float64(mem)
+	memFloat := float64(value) / 1000000000
 	return memFloat
 }
 

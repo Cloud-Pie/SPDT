@@ -96,11 +96,10 @@ func (conf1 ServiceInfo) Equal(conf2 ServiceInfo) bool {
 
 /*State is the metadata of the state expected to scale to*/
 type State struct {
-	LaunchTime time.Time `json:"ISODate"`
-	Services   Service   `json:"Services"`
-	Name       string    `json:"Name"`
-	VMs        VMScale   `json:"VMs"`
-	ExpectedStart time.Time `json:"ExpectedTime"`
+	LaunchTime    time.Time `json:"ISODate"`
+	Services      Service   `json:"Services"`
+	Hash          string    `json:"Hash"`
+	VMs           VMScale   `json:"VMs"`
 }
 
 type RequestCapacitySupply struct {
@@ -141,11 +140,7 @@ func (currentState State) Equal(candidateState State) bool {
 	return true
 }
 
-type InfrastractureState struct {
-	ActiveState				State	`json:"active" bson:"active"`
-	LastDeployedState		State	`json:"lastDeployed" bson:"lastDeployed"`
-	isStateTrue				bool	`json:"isStateTrue" bson:"isStateTrue"`
-}
+
 
 type ConfigMetrics struct {
 	Cost             float64 `json:"cost" bson:"cost"`

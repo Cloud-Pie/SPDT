@@ -81,46 +81,55 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 			stateLoadCapacity = currentLoadCapacity
 		} else {
 			//Alternative configuration to handle the total load
-			ProfileCurrentLimits := selectProfileByLimits(totalLoad, currentContainerLimits, false)
-			newNumServiceReplicas = ProfileCurrentLimits.MSCSetting.Replicas
-			resourceLimits  = ProfileCurrentLimits.Limits
-			stateLoadCapacity = ProfileCurrentLimits.MSCSetting.MSCPerSecond
-			totalServicesBootingTime = ProfileCurrentLimits.MSCSetting.BootTimeSec
+			profileCurrentLimits := selectProfileByLimits(totalLoad, currentContainerLimits, false)
+			newNumServiceReplicas = profileCurrentLimits.MSCSetting.Replicas
+			resourceLimits  = profileCurrentLimits.Limits
+			stateLoadCapacity = profileCurrentLimits.MSCSetting.MSCPerSecond
+			totalServicesBootingTime = profileCurrentLimits.MSCSetting.BootTimeSec
 
 			if deltaLoad > 0 {
-				computeCapacity(&p.sortedVMProfiles, ProfileCurrentLimits.Limits, &p.mapVMProfiles)
+				computeCapacity(&p.sortedVMProfiles, profileCurrentLimits.Limits, &p.mapVMProfiles)
 				currentReplicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
-				if currentReplicasCapacity >= ProfileCurrentLimits.MSCSetting.Replicas {
-					//case 1: Increases number of replicas but VMS remain the same
+				if currentReplicasCapacity >= profileCurrentLimits.MSCSetting.Replicas {
+					//case 1: Increases number of replicas with the current limit resources but VMS remain the same
 					vmSet = p.currentState.VMs
 				} else {
-					//case 2: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.
-					deltaNumberReplicas := newNumServiceReplicas - currentNumberReplicas
-					vmSet = p.FindSuitableVMs(deltaNumberReplicas, ProfileCurrentLimits.Limits)
+					//search for a different profile that fit into the current VM set and handle total load
+					profileNewLimits, candidateFound := findConfigOptionByContainerResize(p.currentState.VMs, totalLoad, p.mapVMProfiles)
+					if candidateFound {
+						//case 2: Change the configuration of limit resources for the containers but VMS remain the same
+						vmSet = p.currentState.VMs
+						profileCurrentLimits = profileNewLimits
+					}else{
+						//case 3: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.
+						//Keep the current resource limits for the containers
+						deltaNumberReplicas := newNumServiceReplicas - currentNumberReplicas
+						vmSet = p.FindSuitableVMs(deltaNumberReplicas, profileCurrentLimits.Limits)
 
-					if underProvisionAllowed {
-						ProfileCurrentLimitsUnder := selectProfileByLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-						vmSetUnder := p.FindSuitableVMs(ProfileCurrentLimits.MSCSetting.Replicas, ProfileCurrentLimits.Limits)
+						if underProvisionAllowed {
+							ProfileCurrentLimitsUnder := selectProfileByLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
+							vmSetUnder := p.FindSuitableVMs(profileCurrentLimits.MSCSetting.Replicas, profileCurrentLimits.Limits)
 
-						if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.MSCSetting.MSCPerSecond, percentageUnderProvision) &&
-							vmSetUnder.Cost(p.mapVMProfiles) < vmSet.Cost(p.mapVMProfiles) {
-							vmSet = vmSetUnder
-							ProfileCurrentLimits = ProfileCurrentLimitsUnder
+							if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.MSCSetting.MSCPerSecond, percentageUnderProvision) &&
+								vmSetUnder.Cost(p.mapVMProfiles) < vmSet.Cost(p.mapVMProfiles) {
+								vmSet = vmSetUnder
+								profileCurrentLimits = ProfileCurrentLimitsUnder
 
+							}
 						}
+						//Merge the current configuration with configuration for the new replicas
+						vmSet.Merge(p.currentState.VMs)
 					}
-					//Merge the current configuration with configuration for the new replicas
-					vmSet.Merge(p.currentState.VMs)
 				}
 
-				newNumServiceReplicas = ProfileCurrentLimits.MSCSetting.Replicas
-				resourceLimits  = ProfileCurrentLimits.Limits
-				stateLoadCapacity = ProfileCurrentLimits.MSCSetting.MSCPerSecond
-				totalServicesBootingTime = ProfileCurrentLimits.MSCSetting.BootTimeSec
+				newNumServiceReplicas = profileCurrentLimits.MSCSetting.Replicas
+				resourceLimits  = profileCurrentLimits.Limits
+				stateLoadCapacity = profileCurrentLimits.MSCSetting.MSCPerSecond
+				totalServicesBootingTime = profileCurrentLimits.MSCSetting.BootTimeSec
 
 			} else {
 				//delta load is negative, some resources should be terminated
-				deltaReplicas := currentNumberReplicas - ProfileCurrentLimits.MSCSetting.Replicas
+				deltaReplicas := currentNumberReplicas - profileCurrentLimits.MSCSetting.Replicas
 				vmSet = p.removeVMs(p.currentState.VMs, deltaReplicas, currentContainerLimits)
 			}
 		}

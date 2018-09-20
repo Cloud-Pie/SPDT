@@ -184,21 +184,27 @@ func getServiceProfile(sysConfiguration config.SystemConfiguration){
 			}
 		}
 	}
+
+	//defer serviceProfileDAO.Session.Close()
 }
 
 //Start Derivation of a new scaling policy for the specified scaling horizon and correspondent forecast
 func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64, times []time.Time, sysConfiguration config.SystemConfiguration) (types.Policy, error){
 	//Get VM Profiles
 	vmProfiles := getVMProfiles()
-
+	var err error
+	var selectedPolicy types.Policy
 	//Derive Strategies
 	log.Info("Start policies derivation")
-	policies = derivation.Policies(poiList, values, times, vmProfiles, sysConfiguration)
+	policies,err = derivation.Policies(poiList, values, times, vmProfiles, sysConfiguration)
+	if err != nil {
+		return selectedPolicy, err
+	}
 	log.Info("Finish policies derivation")
 
 	log.Info("Start policies evaluation")
 	//var err error
-	selectedPolicy,err := evaluation.SelectPolicy(&policies, sysConfiguration, vmProfiles, forecast)
+	selectedPolicy,err = evaluation.SelectPolicy(&policies, sysConfiguration, vmProfiles, forecast)
 	if err != nil {
 		log.Error("Error evaluation policies: %s", err.Error())
 	}else {

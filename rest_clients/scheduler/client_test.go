@@ -25,7 +25,7 @@ func TestCreateState(t *testing.T) {
 				Scale: 10,
 			},
 		},
-		Name:    "test from SPDT",
+		Hash: "test from SPDT",
 		VMs: []types.VmScale{
 			{
 				Type:  "myvm1",
