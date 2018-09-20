@@ -4,7 +4,7 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"github.com/Cloud-Pie/SPDT/util"
 	"time"
-	"github.com/Cloud-Pie/SPDT/rest_clients/scheduler"
+	"github.com/Cloud-Pie/SPDT/pkg/schedule"
 	"math"
 	"sort"
 	"github.com/Cloud-Pie/SPDT/rest_clients/performance_profiles"
@@ -47,7 +47,8 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 	systemConfiguration = sysConfiguration
 
 	log.Info("Request current state" )
-	currentState,err := scheduler.InfraCurrentState(sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_CURRENT_STATE)
+	currentState,err := schedule.RetrieveCurrentState(sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_CURRENT_STATE)
+
 	if err != nil {
 		log.Error("Error to get current state %s", err.Error() )
 	} else {
@@ -356,7 +357,7 @@ func setScalingSteps(scalingSteps *[]types.ScalingStep, state types.State, timeS
 
 		state.LaunchTime = startTransitionTime
 		name,_ := structhash.Hash(state, 1)
-		state.Name = strings.Replace(name, "v1_", "", -1)
+		state.Hash = strings.Replace(name, "v1_", "", -1)
 		*scalingSteps = append(*scalingSteps,
 			types.ScalingStep{
 				State:          state,

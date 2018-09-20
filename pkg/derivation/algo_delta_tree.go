@@ -57,7 +57,6 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 		StartTimeDerivation:time.Now(),
 	}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
-	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
 
 	for _, it := range processedForecast.CriticalIntervals {
@@ -81,7 +80,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 			resourceLimits  = currentContainerLimits
 			stateLoadCapacity = currentLoadCapacity
 		} else {
-			//Alternative configuration
+			//Alternative configuration to handle the total load
 			ProfileCurrentLimits := selectProfileByLimits(totalLoad, currentContainerLimits, false)
 			newNumServiceReplicas = ProfileCurrentLimits.MSCSetting.Replicas
 			resourceLimits  = ProfileCurrentLimits.Limits
@@ -120,6 +119,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 				totalServicesBootingTime = ProfileCurrentLimits.MSCSetting.BootTimeSec
 
 			} else {
+				//delta load is negative, some resources should be terminated
 				deltaReplicas := currentNumberReplicas - ProfileCurrentLimits.MSCSetting.Replicas
 				vmSet = p.removeVMs(p.currentState.VMs, deltaReplicas, currentContainerLimits)
 			}
@@ -146,7 +146,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 	parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL
 	parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(true)
 	parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
-	parameters[types.ISRESIZEPODS] = strconv.FormatBool(containerResizeEnabled)
+	parameters[types.ISRESIZEPODS] = strconv.FormatBool(false)
 	numConfigurations := len(configurations)
 	newPolicy.ScalingActions = configurations
 	newPolicy.Algorithm = p.algorithm

@@ -9,6 +9,7 @@ import (
 	"github.com/Cloud-Pie/SPDT/config"
 	"strconv"
 	"github.com/Cloud-Pie/SPDT/util"
+	"github.com/Cloud-Pie/SPDT/storage"
 )
 
 /*
@@ -42,10 +43,8 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 	}
 	configurations := []types.ScalingStep{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
-	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
-	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
-	biggestVM := p.sortedVMProfiles[len(p.sortedVMProfiles)-1]
-	vmLimits := types.Limit{ MemoryGB:biggestVM.Memory, CPUCores:biggestVM.CPUCores}
+	//containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
+	//percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
 
 	for i, it := range processedForecast.CriticalIntervals {
 		resourcesConfiguration := types.ContainersConfig{}
@@ -56,68 +55,46 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
 		currentNumberReplicas := serviceToScale.Scale
 		currentLoadCapacity := getStateLoadCapacity(currentNumberReplicas,currentContainerLimits)
-
 		deltaLoad := totalLoad - currentLoadCapacity
 
 		if deltaLoad == 0 {
+			//case 0: Keep current resource configuration
 			resourcesConfiguration.VMSet = p.currentState.VMs
 			resourcesConfiguration.Limits = currentContainerLimits
 			resourcesConfiguration.MSCSetting = types.MSCSimpleSetting{MSCPerSecond:currentLoadCapacity, Replicas:currentNumberReplicas,}
-
 		} else 	{
-			//Candidate option to handle total load with current limits
-			profileCurrentLimits := selectProfileByLimits(totalLoad, currentContainerLimits, false)
-
-			vmSetTLoad := p.FindSuitableVMs(profileCurrentLimits.MSCSetting.Replicas, profileCurrentLimits.Limits)
-			resourceConfigTLoad := types.ContainersConfig {
-				Limits:     profileCurrentLimits.Limits,
-				MSCSetting: profileCurrentLimits.MSCSetting,
-				VMSet:      vmSetTLoad,
-			}
-
-			rConfigDeltaLoad := types.ContainersConfig {}
-
 			if deltaLoad > 0 {
-				//Need to increase resources
-				computeVMsCapacity(profileCurrentLimits.Limits, &p.mapVMProfiles)
-				currentReplicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
-				//Validate if the current configuration is able to handle the new replicas
-				//Using the current Resource Limits configuration for the containers
-				if currentReplicasCapacity > profileCurrentLimits.MSCSetting.Replicas {
-					//case 1: Increases number of replicas but VMS remain the same
+				//case 1: Need to increase resources
+				//Candidate option to handle total load with current limits
+				var onlyScaleContainers bool
+				profileCurrentLimits, onlyScaleContainers := p.onlyScaleOutContainers(p.currentState.VMs, totalLoad, currentContainerLimits)
+				if onlyScaleContainers {
+					//case 1: Only scale containers but keep the same VM set
 					resourcesConfiguration.VMSet = p.currentState.VMs
 					resourcesConfiguration.Limits = profileCurrentLimits.Limits
-					resourcesConfiguration.MSCSetting = profileCurrentLimits.MSCSetting
+					resourcesConfiguration.MSCSetting = types.MSCSimpleSetting{MSCPerSecond:profileCurrentLimits.MSCSetting.MSCPerSecond,
+																				Replicas:profileCurrentLimits.MSCSetting.Replicas,}
 				} else {
-					//case 2: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.
+					//case 2: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing
+					//The replicas have the current limits configuration
 					deltaNumberReplicas := profileCurrentLimits.MSCSetting.Replicas - currentNumberReplicas
 					vmSetDeltaLoad := p.FindSuitableVMs(deltaNumberReplicas,profileCurrentLimits.Limits)
-
-					if underProvisionAllowed {
-						ProfileCurrentLimitsUnder := selectProfileByLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-						vmSetUnder := p.FindSuitableVMs(profileCurrentLimits.MSCSetting.Replicas, profileCurrentLimits.Limits)
-
-						if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.MSCSetting.MSCPerSecond, percentageUnderProvision) &&
-							vmSetUnder.Cost(p.mapVMProfiles) < vmSetDeltaLoad.Cost(p.mapVMProfiles) {
-							vmSetDeltaLoad = vmSetUnder
-							profileCurrentLimits = ProfileCurrentLimitsUnder
-						}
-					}
 					//Merge the current configuration with configuration for the new replicas
 					vmSetDeltaLoad.Merge(p.currentState.VMs)
-
-					rConfigDeltaLoad.Limits = profileCurrentLimits.Limits
-					rConfigDeltaLoad.MSCSetting = profileCurrentLimits.MSCSetting
-					rConfigDeltaLoad.VMSet = vmSetDeltaLoad
-
-					if containerResizeEnabled {
-						profileNewLimits,_ := selectProfileUnderVMLimits(totalLoad, vmLimits, false)
-						//Candidate option to handle total load with new limits
-						resize := shouldResizeContainer(profileCurrentLimits, profileNewLimits)
-						if resize {
-							profileCurrentLimits = profileNewLimits
-						}
+					rConfigDeltaLoad := types.ContainersConfig {
+						Limits:     profileCurrentLimits.Limits,
+						MSCSetting: profileCurrentLimits.MSCSetting,
+						VMSet:      vmSetDeltaLoad,
 					}
+
+					//Find VM a new VM set that possibly changes the current one
+					vmSetTLoad := p.FindSuitableVMs(profileCurrentLimits.MSCSetting.Replicas, profileCurrentLimits.Limits)
+					resourceConfigTLoad := types.ContainersConfig {
+						Limits:     profileCurrentLimits.Limits,
+						MSCSetting: profileCurrentLimits.MSCSetting,
+						VMSet:      vmSetTLoad,
+					}
+
 					//Test if reconfigure the complete VM set for the totalLoad is better
 					//Validate if a complete migration is better
 					if newConfig,ok := p.shouldRepackVMSet(rConfigDeltaLoad, resourceConfigTLoad,i,processedForecast.CriticalIntervals); ok {
@@ -126,36 +103,35 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 						resourcesConfiguration = rConfigDeltaLoad
 					}
 				}
-
 			} else if deltaLoad < 0 {
-				//Need to decrease resources
-				deltaLoad *= -1
-				deltaNumberReplicas := currentNumberReplicas - profileCurrentLimits.MSCSetting.Replicas
+					//case 2: Need to decrease resources
+					deltaLoad *= -1
+					profileCurrentLimits := selectProfileByLimits(totalLoad, currentContainerLimits, false)
+					deltaNumberReplicas := currentNumberReplicas - profileCurrentLimits.MSCSetting.Replicas
 
-				//Build new VM set releasing resources used by extra container replicas
-				vmSetDeltaLoad := p.releaseResources(deltaNumberReplicas,p.currentState.VMs)
+					//Build new VM set releasing resources used by extra container replicas
+					vmSetDeltaLoad := p.releaseResources(deltaNumberReplicas,p.currentState.VMs)
+					rConfigDeltaLoad := types.ContainersConfig {
+						Limits:     profileCurrentLimits.Limits,
+						MSCSetting: profileCurrentLimits.MSCSetting,
+						VMSet:      vmSetDeltaLoad,
+					}
 
-				rConfigDeltaLoad.Limits = profileCurrentLimits.Limits
-				rConfigDeltaLoad.MSCSetting = profileCurrentLimits.MSCSetting
-				rConfigDeltaLoad.VMSet = vmSetDeltaLoad
+					//Find VM a new VM set that possibly changes the current one
+					vmSetTLoad := p.FindSuitableVMs(profileCurrentLimits.MSCSetting.Replicas, profileCurrentLimits.Limits)
+					resourceConfigTLoad := types.ContainersConfig {
+						Limits:     profileCurrentLimits.Limits,
+						MSCSetting: profileCurrentLimits.MSCSetting,
+						VMSet:      vmSetTLoad,
+					}
 
-				if containerResizeEnabled {
-					profileNewLimits,_ := selectProfileUnderVMLimits(totalLoad, vmLimits, false)
-					//Candidate option to handle total load with new limits
-					resize := shouldResizeContainer(profileCurrentLimits, profileNewLimits)
-					if resize {
-						profileCurrentLimits = profileNewLimits
+					//Validate if a complete migration is better
+					if newConfig,ok := p.shouldRepackVMSet(rConfigDeltaLoad, resourceConfigTLoad,i,processedForecast.CriticalIntervals); ok {
+						resourcesConfiguration = newConfig
+					} else {
+						resourcesConfiguration = rConfigDeltaLoad
 					}
 				}
-
-				//Test if reconfigure the complete VM set for the totalLoad is better
-				//Validate if a complete migration is better
-				if newConfig,ok := p.shouldRepackVMSet(rConfigDeltaLoad, resourceConfigTLoad,i,processedForecast.CriticalIntervals); ok {
-					resourcesConfiguration = newConfig
-				} else {
-					resourcesConfiguration = rConfigDeltaLoad
-				}
-			}
 		}
 		services := make(map[string]types.ServiceInfo)
 		services[p.sysConfiguration.ServiceName] = types.ServiceInfo {
@@ -284,20 +260,6 @@ func(p DeltaRepackedPolicy) calculateReconfigurationCost(newSet types.VMScale) f
 	return deletedVMS.Cost(p.mapVMProfiles) * float64(reconfigTime)
 }
 
-//Return the VM type used by the current Homogeneous VM cluster
-func (p DeltaRepackedPolicy) isCurrentlyHomogeneous() (string, bool) {
-	//Assumption for p approach: There is only 1 vm Type in current state
-	var vmType string
-	isHomogeneous := true
-	for k,_ := range p.currentState.VMs {
-		vmType = k
-	}
-	if len(p.currentState.VMs) > 1 {
-		isHomogeneous = false
-	}
-	return vmType, isHomogeneous
-}
-
 /*
 	in:
 		@currentLimits
@@ -374,4 +336,55 @@ func(p DeltaRepackedPolicy) shouldRepackVMSet(currentOption types.ContainersConf
 		}
 	}
 	return types.ContainersConfig{}, false
+}
+
+func (p DeltaRepackedPolicy) searchConfigOptionByContainerResize(currentVMSet types.VMScale, totalLoad float64) (types.ContainersConfig, bool){
+	biggestType := biggestVMTypeInSet(currentVMSet, p.mapVMProfiles)
+	biggestVM := p.mapVMProfiles[biggestType]
+	allLimits,_ := storage.GetPerformanceProfileDAO(p.sysConfiguration.ServiceName).FindAllUnderLimits(biggestVM.CPUCores, biggestVM.Memory)
+	optionFound := false
+	configurationOptionFound := types.ContainersConfig{}
+	for _, li := range allLimits {
+		configurationOption := selectProfileByLimits(totalLoad, li.Limit, false)
+		replicas := configurationOption.MSCSetting.Replicas
+		//Update the vm Profiles with the capacity for replicas with given limits
+		computeVMsCapacity(li.Limit, &p.mapVMProfiles)
+		currentConfigurationReplicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
+		if currentConfigurationReplicasCapacity >= replicas {
+			configurationOptionFound = configurationOption
+			optionFound = true
+			break
+		}
+	}
+	return configurationOptionFound, optionFound
+}
+
+func (p DeltaRepackedPolicy) onlyScaleOutContainers(currentVMSet types.VMScale, totalLoad float64, currentContainerLimits types.Limit) (types.ContainersConfig, bool){
+	containersResourceConfig :=  types.ContainersConfig{}
+	onlyScaleContainers := false
+
+	//Search the number of replicas with current resource limits for the total load
+	profileCurrentLimits := selectProfileByLimits(totalLoad, currentContainerLimits, false)
+	computeVMsCapacity(currentContainerLimits, &p.mapVMProfiles)
+	currentReplicasCapacity := currentVMSet.ReplicasCapacity(p.mapVMProfiles)
+
+	containersResourceConfig.VMSet = p.currentState.VMs
+	containersResourceConfig.Limits = profileCurrentLimits.Limits
+	containersResourceConfig.MSCSetting = profileCurrentLimits.MSCSetting
+
+	if currentReplicasCapacity > profileCurrentLimits.MSCSetting.Replicas {
+		//case 1: Increases number of replicas but VMS remain the same
+		onlyScaleContainers = true
+	} else {
+		//case 2: Search for an option changing containers limits (container hybrid scaling) but VMS remain the same
+		configurationOptionFound, optionFound := p.searchConfigOptionByContainerResize(currentVMSet, totalLoad)
+		if optionFound {
+			containersResourceConfig.VMSet = p.currentState.VMs
+			containersResourceConfig.Limits = configurationOptionFound.Limits
+			containersResourceConfig.MSCSetting = configurationOptionFound.MSCSetting
+			onlyScaleContainers = true
+		}
+	}
+
+	return containersResourceConfig, onlyScaleContainers
 }

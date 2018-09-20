@@ -173,3 +173,21 @@ func MapKeystoString(keys map[string] bool)string {
 	}
 	return  vmTypes
 }
+
+/*
+	out:
+		String with the name of the current VM type
+*/
+func biggestVMTypeInSet(vmSet types.VMScale, mapVMProfiles map[string]types.VmProfile) string {
+	//It selects teh VM with more resources in case there is more than onw vm type
+	var vmType string
+	memGB := 0.0
+	for k,_ := range vmSet {
+		if mapVMProfiles[k].Memory > memGB {
+			vmType = k
+			memGB =  mapVMProfiles[k].Memory
+		}
+	}
+
+	return vmType
+}
