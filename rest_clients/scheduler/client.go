@@ -6,20 +6,40 @@ import (
 	"net/http"
 	"bytes"
 	"io/ioutil"
+	"time"
+	"github.com/Cloud-Pie/SPDT/util"
 )
 
+type StateToSchedule struct {
+	LaunchTime time.Time 						`json:"ISODate"`
+	Services   map[string]ServiceToSchedule     `json:"Services"`
+	Name       string    						`json:"Name"`
+	VMs        types.VMScale   					`json:"VMs"`
+	ExpectedStart time.Time 					`json:"ExpectedTime"`
+}
 
+type ServiceToSchedule struct {
+	Scale 	int			`json:"Replicas"`
+	CPU 	string		`json:"Cpu"`
+	Memory	int64		`json:"Memory"`
+}
 
-func CreateState(state types.State, endpoint string) error {
-	jsonValue, _ := json.Marshal(state)
+type InfrastructureState struct {
+	ActiveState				StateToSchedule	`json:"active" bson:"active"`
+	LastDeployedState		StateToSchedule	`json:"lastDeployed" bson:"lastDeployed"`
+	isStateTrue				bool	`json:"isStateTrue" bson:"isStateTrue"`
+}
+
+func CreateState(stateToSchedule StateToSchedule, endpoint string) error {
+	jsonValue, _ := json.Marshal(stateToSchedule)
 	_, err := http.Post(endpoint, "application/json", bytes.NewBuffer(jsonValue))
 	return err
 }
 
 
-func InfraCurrentState(endpoint string) (types.State, error) {
-	currentState := types.State{}
-	infrastructureState := types.InfrastractureState{}
+func InfraCurrentState(endpoint string) (StateToSchedule, error) {
+	currentState := StateToSchedule{}
+	infrastructureState := InfrastructureState{}
 	response, err := http.Get(endpoint)
 	if err != nil {
 		return currentState, err
@@ -38,7 +58,10 @@ func InfraCurrentState(endpoint string) (types.State, error) {
 	return  currentState, err
 }
 
-func InvalidateStates(endpoint string) (error) {
+func InvalidateStates(timestamp time.Time,endpoint string) (error) {
+	parameters := make(map[string]string)
+	parameters["timestamp"] = timestamp.Format(util.UTC_TIME_LAYOUT)
+	endpoint = util.ParseURL(endpoint,parameters )
 	response, err := http.Get(endpoint)
 	if err != nil {
 		return  err
