@@ -18,6 +18,7 @@ import (
 
 var log = logging.MustGetLogger("spdt")
 var systemConfiguration config.SystemConfiguration
+var initialState types.State
 
 //Interface for strategies of how to scale
 type PolicyDerivation interface {
@@ -41,7 +42,7 @@ type TimeWindowDerivation interface {
 	out:
 		@[]types.Policy
 */
-func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedVMProfiles []types.VmProfile, sysConfiguration config.SystemConfiguration) []types.Policy {
+func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedVMProfiles []types.VmProfile, sysConfiguration config.SystemConfiguration) ([]types.Policy, error) {
 	var policies []types.Policy
 	systemConfiguration = sysConfiguration
 
@@ -52,10 +53,13 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 	} else {
 		log.Info("Finish request for current state" )
 	}
+	if currentState.Services[systemConfiguration.ServiceName].Scale == 0 {
+		return policies, errors.New("Service "+ systemConfiguration.ServiceName +" is not deployed")
+	}
 
 	timeWindows := SmallStepOverProvision{PoIList:poiList}
 	processedForecast := timeWindows.WindowDerivation(values,times)
-
+	initialState = currentState
 	mapVMProfiles := VMListToMap(sortedVMProfiles)
 
 	switch sysConfiguration.PreferredAlgorithm {
@@ -71,7 +75,7 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 
 	case util.SMALL_STEP_ALGORITHM:
 		sstep := StepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows,
-									mapVMProfiles:mapVMProfiles ,sysConfiguration: sysConfiguration, currentState:currentState}
+									mapVMProfiles:mapVMProfiles, sortedVMProfiles:sortedVMProfiles, sysConfiguration: sysConfiguration, currentState:currentState}
 		policies = sstep.CreatePolicies(processedForecast)
 
 	case util.SEARCH_TREE_ALGORITHM:
@@ -111,7 +115,7 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 		policies5 := tree.CreatePolicies(processedForecast)
 		policies = append(policies, policies5...)
 	}
-	return policies
+	return policies, err
 }
 
 /* Compute the booting time that will take a set of VMS
@@ -190,7 +194,7 @@ func maxReplicasCapacityInVM(vmProfile types.VmProfile, resourceLimit types.Limi
 	out:
 		@ContainersConfig	- configuration with number of replicas and limits that best fit for the number of requests
 */
-func selectProfileWithLimits(requests float64, limits types.Limit, underProvision bool) types.ContainersConfig {
+func selectProfileByLimits(requests float64, limits types.Limit, underProvision bool) types.ContainersConfig {
 	var containerConfig types.ContainersConfig
 	serviceProfileDAO := storage.GetPerformanceProfileDAO(systemConfiguration.ServiceName)
 	overProvisionConfig, err1 := serviceProfileDAO.MatchByLimitsOver(limits.CPUCores, limits.MemoryGB, requests)
@@ -243,7 +247,7 @@ func selectProfileWithLimits(requests float64, limits types.Limit, underProvisio
 	out:
 		@ContainersConfig	- configuration with number of replicas and limits that best fit for the number of requests
 */
-func selectProfile(requests float64,  limits types.Limit, underProvision bool) (types.ContainersConfig, error){
+func selectProfileUnderVMLimits(requests float64,  limits types.Limit, underProvision bool) (types.ContainersConfig, error){
 	var profiles []types.ContainersConfig
 	var profile  types.ContainersConfig
 	serviceProfileDAO := storage.GetPerformanceProfileDAO(systemConfiguration.ServiceName)
@@ -283,78 +287,78 @@ func selectProfile(requests float64,  limits types.Limit, underProvision bool) (
 	out:
 		@float64	- Max number of request for this containers configuration
 */
-func configurationLoadCapacity(numberReplicas int, limits types.Limit) float64 {
+func getStateLoadCapacity(numberReplicas int, limits types.Limit) float64 {
+	currentLoadCapacity := 0.0
 	serviceProfileDAO := storage.GetPerformanceProfileDAO(systemConfiguration.ServiceName)
 	profile,_ := serviceProfileDAO.FindProfileTRN(limits.CPUCores, limits.MemoryGB, numberReplicas)
-	currentLoadCapacity := profile.MSCSettings[0].MSCPerSecond
+	if len(profile.MSCSettings) > 0 {
+		currentLoadCapacity = profile.MSCSettings[0].MSCPerSecond
+	}
 	//defer serviceProfileDAO.Session.Close()
 	return currentLoadCapacity
 }
 
 /* Utility method to set up each scaling configuration
 */
-func setConfiguration(configurations *[]types.ScalingAction, state types.State, timeStart time.Time, timeEnd time.Time, totalServicesBootingTime float64, stateLoadCapacity float64) {
-	nConfigurations := len(*configurations)
+func setScalingSteps(scalingSteps *[]types.ScalingStep, state types.State, timeStart time.Time, timeEnd time.Time, totalServicesBootingTime float64, stateLoadCapacity float64) {
+	nScalingSteps := len(*scalingSteps)
 	timeStartBill := timeStart
 	timeEndBill := timeEnd
-	if nConfigurations >= 1 && state.Equal((*configurations)[nConfigurations-1].State) {
-		(*configurations)[nConfigurations-1].TimeEnd = timeEnd
-		timeBillingStarted := (*configurations)[nConfigurations-1].TimeStartBilling
+	if nScalingSteps >= 1 && state.Equal((*scalingSteps)[nScalingSteps-1].State) {
+		(*scalingSteps)[nScalingSteps-1].TimeEnd = timeEnd
+		timeBillingStarted := (*scalingSteps)[nScalingSteps-1].TimeStartBilling
 		timeEndBill = updateEndBillingTime(timeBillingStarted,timeEnd)
-		(*configurations)[nConfigurations-1].TimeEndBilling = timeEndBill
+		(*scalingSteps)[nScalingSteps-1].TimeEndBilling = timeEndBill
 	} else {
 		//var deltaTime int //time in seconds
 		var shutdownVMDuration float64
 		var startTransitionTime time.Time
-		var vmAdded, vmRemoved types.VMScale
-		//Adjust booting times for resources configuration
-		if nConfigurations >= 1 {
-			currentVMSet := (*configurations)[nConfigurations-1].State.VMs
-			vmAdded, vmRemoved = DeltaVMSet(currentVMSet,state.VMs)
-			//Adjust configuration times
-			nVMRemoved := len(vmRemoved)
-			nVMAdded := len(vmAdded)
-
-			//case 1: There is a reconfiguration of all the VMs, therefore there is an overlapping time
-			if nVMRemoved > 0 && nVMAdded > 0 {
-				shutdownVMDuration = computeVMTerminationTime(vmRemoved, systemConfiguration)
-				previousTimeEnd := (*configurations)[nConfigurations-1].TimeEnd
-				(*configurations)[nConfigurations-1].TimeEnd = previousTimeEnd.Add(time.Duration(shutdownVMDuration) * time.Second)
-
-				startTransitionTime = computeScaleOutTransitionTime(vmAdded, true, timeStart, totalServicesBootingTime)
-			} else if nVMRemoved > 0 && nVMAdded == 0 {
-				//case 2:  Scale in,
-				shutdownVMDuration = computeVMTerminationTime(vmRemoved, systemConfiguration)
-				startTransitionTime = timeStart.Add(-1 * time.Duration(shutdownVMDuration) * time.Second)
-
-			} else {
-				//case 3: Scale out
-				startTransitionTime = computeScaleOutTransitionTime(vmAdded, true, timeStart, totalServicesBootingTime)
-			}
-
-			lastBilledStartedTime := (*configurations)[nConfigurations-1].TimeStartBilling
+		var currentVMSet types.VMScale
+		if nScalingSteps >= 1 {
+			currentVMSet = (*scalingSteps)[nScalingSteps-1].State.VMs
+			/*lastBilledStartedTime := (*scalingSteps)[nScalingSteps-1].TimeStartBilling
 			removeBilledVMs := checkBillingPeriod(systemConfiguration.PricingModel.BillingUnit, nVMRemoved, lastBilledStartedTime,timeStart)
 			if !removeBilledVMs {
 				newVMSet := currentVMSet
 				newVMSet.Merge(vmAdded)
 				state.VMs = newVMSet
-			}
+			}*/
 			//timeStartBill = updateStartBillingTime(lastBilledStartedTime, timeStart)
-			timeStartBill = (*configurations)[nConfigurations-1].TimeEndBilling
+			timeStartBill = (*scalingSteps)[nScalingSteps-1].TimeEndBilling
 		} else {
 			deltaScalingAction := timeEnd.Sub(timeStartBill).Hours()
 			ds := int(math.Ceil(deltaScalingAction))
 			timeEndBill = timeStartBill.Add(time.Duration(ds)*time.Hour)
 
-			startTransitionTime = computeScaleOutTransitionTime(vmAdded, true, timeStart, totalServicesBootingTime)
+			currentVMSet = initialState.VMs
 		}
 
+		vmAdded, vmRemoved := DeltaVMSet(currentVMSet,state.VMs)
+		nVMRemoved := len(vmRemoved)
+		nVMAdded := len(vmAdded)
+
+		if nVMRemoved > 0 && nVMAdded > 0 && nScalingSteps >= 1 {
+			//case 1: There is an overlaping of configurations
+			shutdownVMDuration = computeVMTerminationTime(vmRemoved, systemConfiguration)
+			previousTimeEnd := (*scalingSteps)[nScalingSteps-1].TimeEnd
+			(*scalingSteps)[nScalingSteps-1].TimeEnd = previousTimeEnd.Add(time.Duration(shutdownVMDuration) * time.Second)
+
+			startTransitionTime = computeScaleOutTransitionTime(vmAdded, true, timeStart, totalServicesBootingTime)
+		} else if nVMRemoved > 0 && nVMAdded == 0 {
+			//case 2:  Scale in,
+			shutdownVMDuration = computeVMTerminationTime(vmRemoved, systemConfiguration)
+			startTransitionTime = timeStart.Add(-1 * time.Duration(shutdownVMDuration) * time.Second)
+
+		} else if (nVMRemoved == 0 && nVMAdded > 0) || ( nVMRemoved == 0 && nVMAdded == 0 ) {
+			//case 3: Scale out
+			startTransitionTime = computeScaleOutTransitionTime(vmAdded, true, timeStart, totalServicesBootingTime)
+		}
 
 		state.LaunchTime = startTransitionTime
 		name,_ := structhash.Hash(state, 1)
 		state.Name = strings.Replace(name, "v1_", "", -1)
-		*configurations = append(*configurations,
-			types.ScalingAction {
+		*scalingSteps = append(*scalingSteps,
+			types.ScalingStep{
 				State:          state,
 				TimeStart:      timeStart,
 				TimeEnd:        timeEnd,

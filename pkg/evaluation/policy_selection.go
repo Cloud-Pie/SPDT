@@ -39,7 +39,8 @@ func SelectPolicy(policies *[]types.Policy, sysConfig config.SystemConfiguration
 
 	//Calculate Metrics of the policies
 	for i := range *policies {
-		over, under := computeMetricsCapacity(&(*policies)[i].ScalingActions,forecast.ForecastedValues)
+		nForecast := len(forecast.ForecastedValues)
+		over, under := computeMetricsCapacity(&(*policies)[i].ScalingActions,forecast.ForecastedValues, nForecast)
 		(*policies)[i].Metrics.OverProvision = math.Ceil(over*100)/100
 		(*policies)[i].Metrics.UnderProvision = math.Ceil(under*100)/100
 
@@ -65,19 +66,20 @@ func SelectPolicy(policies *[]types.Policy, sysConfig config.SystemConfiguration
 
 
 //Calculate overprovisioning and underprovisioning of a state
-func computeMetricsCapacity(configurations *[]types.ScalingAction, forecast []types.ForecastedValue) (float64, float64){
+func computeMetricsCapacity(configurations *[]types.ScalingStep, forecast []types.ForecastedValue, nForecastedValues int) (float64, float64){
 	var avgOver float64
 	var avgUnder float64
 	fi := 0
 	totalOver := 0.0
 	totalUnder := 0.0
 	numConfigurations := float64(len(*configurations))
+
 	for i,_ := range *configurations {
 		confOver := 0.0
 		confUnder := 0.0
 		numSamplesOver := 0.0
 		numSamplesUnder := 0.0
-		for  (*configurations)[i].TimeEnd.After(forecast[fi].TimeStamp){
+		for  fi < nForecastedValues && (*configurations)[i].TimeEnd.After(forecast[fi].TimeStamp) {
 			deltaLoad := (*configurations)[i].Metrics.RequestsCapacity - forecast[fi].Requests
 			if deltaLoad > 0 {
 				confOver += deltaLoad*100.0/ forecast[fi].Requests
@@ -104,7 +106,7 @@ func computeMetricsCapacity(configurations *[]types.ScalingAction, forecast []ty
 
 /*Compute number of scaling steps per VM and containers
  in:
-	@scalingActions *[]types.ScalingAction
+	@scalingActions *[]types.ScalingStep
 				- List of scaling actions or configurations
 	@sysConfig config.SystemConfiguration
 				- Configuration specified by the user in the config file
@@ -117,7 +119,7 @@ out:
 		- Map with the vm types used in the scaling actions
 */
 
-func computeMetricsScalingActions (scalingActions *[]types.ScalingAction, mapVMProfiles map[string] types.VmProfile,  sysConfiguration config.SystemConfiguration) (int,int, map[string]bool) {
+func computeMetricsScalingActions (scalingActions *[]types.ScalingStep, mapVMProfiles map[string] types.VmProfile,  sysConfiguration config.SystemConfiguration) (int,int, map[string]bool) {
 	numberVMScalingActions := 0
 	numberContainerScalingActions := 1
 	numberScalingActions := len(*scalingActions)

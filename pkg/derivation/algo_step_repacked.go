@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"errors"
 	"github.com/Cloud-Pie/SPDT/util"
+	"github.com/Cloud-Pie/SPDT/storage"
 )
 
 /*
@@ -34,90 +35,95 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 	log.Info("Derive policies with %s algorithm", p.algorithm)
 	policies := []types.Policy{}
 	//Compute results for cluster of each type
-	newPolicy := types.Policy{}
-	newPolicy.Metrics = types.PolicyMetrics {
-		StartTimeDerivation:time.Now(),
-	}
-	configurations := []types.ScalingAction{}
+
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
 	biggestVM := p.sortedVMProfiles[len(p.sortedVMProfiles)-1]
 	vmLimits := types.Limit{ MemoryGB:biggestVM.Memory, CPUCores:biggestVM.CPUCores}
 
+	allLimits,_ := storage.GetPerformanceProfileDAO(p.sysConfiguration.ServiceName).FindAllUnderLimits(biggestVM.CPUCores, biggestVM.Memory)
+	for _, li := range allLimits {
+		newPolicy := types.Policy{}
+		newPolicy.Metrics = types.PolicyMetrics {
+			StartTimeDerivation:time.Now(),
+		}
+		scalingSteps := []types.ScalingStep{}
 
-	for _, it := range processedForecast.CriticalIntervals {
-		serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
-		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
-		ProfileCurrentLimits := selectProfileWithLimits(it.Requests, currentContainerLimits, false)
+		for _, it := range processedForecast.CriticalIntervals {
+			//serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
+			//currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
+			currentContainerLimits := li.Limit
+			ProfileCurrentLimits := selectProfileByLimits(it.Requests, currentContainerLimits, false)
 
-		if containerResizeEnabled {
-			ProfileNewLimits,_ := selectProfile(it.Requests, vmLimits, false)
-			resize := shouldResizeContainer(ProfileCurrentLimits, ProfileNewLimits)
-			if resize {
-				ProfileCurrentLimits = ProfileNewLimits
+			if containerResizeEnabled {
+				ProfileNewLimits,_ := selectProfileUnderVMLimits(it.Requests, vmLimits, false)
+				resize := shouldResizeContainer(ProfileCurrentLimits, ProfileNewLimits)
+				if resize {
+					ProfileCurrentLimits = ProfileNewLimits
+				}
 			}
+
+			vmSet,_ := p.FindSuitableVMs(ProfileCurrentLimits.MSCSetting.Replicas, ProfileCurrentLimits.Limits)
+
+			if underProvisionAllowed {
+				ProfileCurrentLimitsUnder := selectProfileByLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
+				ProfileNewLimitsUnder,_ := selectProfileUnderVMLimits(it.Requests, vmLimits, underProvisionAllowed)
+				resize := shouldResizeContainer(ProfileCurrentLimitsUnder, ProfileNewLimitsUnder)
+				if resize {
+					ProfileCurrentLimitsUnder = ProfileNewLimitsUnder
+				}
+				vmSetUnder,_ := p.FindSuitableVMs(ProfileCurrentLimits.MSCSetting.Replicas, ProfileCurrentLimits.Limits)
+
+				if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.MSCSetting.MSCPerSecond, percentageUnderProvision) &&
+					vmSetUnder.Cost(p.mapVMProfiles) < vmSet.Cost(p.mapVMProfiles) {
+
+					vmSet = vmSetUnder
+					ProfileCurrentLimits = ProfileCurrentLimitsUnder
+				}
+			}
+
+			newNumServiceReplicas := ProfileCurrentLimits.MSCSetting.Replicas
+			stateLoadCapacity := ProfileCurrentLimits.MSCSetting.MSCPerSecond
+			totalServicesBootingTime := ProfileCurrentLimits.MSCSetting.BootTimeSec
+			limits := ProfileCurrentLimits.Limits
+
+			services := make(map[string]types.ServiceInfo)
+			services[ p.sysConfiguration.ServiceName] = types.ServiceInfo {
+				Scale:  newNumServiceReplicas,
+				CPU:    limits.CPUCores,
+				Memory: limits.MemoryGB,
+			}
+
+			state := types.State{}
+			state.Services = services
+			state.VMs = vmSet
+
+			timeStart := it.TimeStart
+			timeEnd := it.TimeEnd
+			setScalingSteps(&scalingSteps,state,timeStart,timeEnd, totalServicesBootingTime, stateLoadCapacity)
+			p.currentState = state
 		}
 
-		vmSet,_ := p.FindSuitableVMs(ProfileCurrentLimits.MSCSetting.Replicas, ProfileCurrentLimits.Limits)
-
-		if underProvisionAllowed {
-			ProfileCurrentLimitsUnder := selectProfileWithLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-			ProfileNewLimitsUnder,_ := selectProfile(it.Requests, vmLimits, underProvisionAllowed)
-			resize := shouldResizeContainer(ProfileCurrentLimitsUnder, ProfileNewLimitsUnder)
-			if resize {
-				ProfileCurrentLimitsUnder = ProfileNewLimitsUnder
-			}
-			vmSetUnder,_ := p.FindSuitableVMs(ProfileCurrentLimits.MSCSetting.Replicas, ProfileCurrentLimits.Limits)
-
-			if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.MSCSetting.MSCPerSecond, percentageUnderProvision) &&
-				vmSetUnder.Cost(p.mapVMProfiles) < vmSet.Cost(p.mapVMProfiles) {
-
-				vmSet = vmSetUnder
-				ProfileCurrentLimits = ProfileCurrentLimitsUnder
-			}
+			//Add new policy
+			parameters := make(map[string]string)
+			parameters[types.METHOD] =  util.SCALE_METHOD_HORIZONTAL
+			parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(true)
+			parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
+			parameters[types.ISRESIZEPODS] = strconv.FormatBool(containerResizeEnabled)
+			numConfigurations := len(scalingSteps)
+			newPolicy.ScalingActions = scalingSteps
+			newPolicy.Algorithm = p.algorithm
+			newPolicy.ID = bson.NewObjectId()
+			newPolicy.Status = types.DISCARTED	//State by default
+			newPolicy.Parameters = parameters
+			newPolicy.Metrics.NumberScalingActions = numConfigurations
+			newPolicy.Metrics.FinishTimeDerivation = time.Now()
+			newPolicy.TimeWindowStart = scalingSteps[0].TimeStart
+			newPolicy.TimeWindowEnd = scalingSteps[numConfigurations -1].TimeEnd
+			policies = append(policies, newPolicy)
 		}
-
-		newNumServiceReplicas := ProfileCurrentLimits.MSCSetting.Replicas
-		stateLoadCapacity := ProfileCurrentLimits.MSCSetting.MSCPerSecond
-		totalServicesBootingTime := ProfileCurrentLimits.MSCSetting.BootTimeSec
-		limits := ProfileCurrentLimits.Limits
-
-		services := make(map[string]types.ServiceInfo)
-		services[ p.sysConfiguration.ServiceName] = types.ServiceInfo {
-			Scale:  newNumServiceReplicas,
-			CPU:    limits.CPUCores,
-			Memory: limits.MemoryGB,
-		}
-
-		state := types.State{}
-		state.Services = services
-		state.VMs = vmSet
-
-		timeStart := it.TimeStart
-		timeEnd := it.TimeEnd
-		setConfiguration(&configurations,state,timeStart,timeEnd, totalServicesBootingTime, stateLoadCapacity)
-		p.currentState = state
-	}
-
-		//Add new policy
-		parameters := make(map[string]string)
-		parameters[types.METHOD] =  util.SCALE_METHOD_HORIZONTAL
-		parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(true)
-		parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
-		parameters[types.ISRESIZEPODS] = strconv.FormatBool(containerResizeEnabled)
-		numConfigurations := len(configurations)
-		newPolicy.ScalingActions = configurations
-		newPolicy.Algorithm = p.algorithm
-		newPolicy.ID = bson.NewObjectId()
-		newPolicy.Status = types.DISCARTED	//State by default
-		newPolicy.Parameters = parameters
-		newPolicy.Metrics.NumberScalingActions = numConfigurations
-		newPolicy.Metrics.FinishTimeDerivation = time.Now()
-		newPolicy.TimeWindowStart = configurations[0].TimeStart
-		newPolicy.TimeWindowEnd = configurations[numConfigurations -1].TimeEnd
-		policies = append(policies, newPolicy)
-		return policies
+	return policies
 }
 
 /*Calculate VM set able to host the required number of replicas
@@ -128,17 +134,14 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 	@VMScale with the suggested number of VMs for that type
 */
 func (p StepRepackPolicy) FindSuitableVMs(numberReplicas int, limits types.Limit) (types.VMScale,error) {
-	heterogeneousAllowed := p.sysConfiguration.PolicySettings.HetereogeneousAllowed
 	vmSet,err := buildHomogeneousVMSet(numberReplicas,limits, p.mapVMProfiles)
-
-	if heterogeneousAllowed {
-		hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, limits, p.mapVMProfiles)
-		costi := hetVMSet.Cost(p.mapVMProfiles)
-		costj := vmSet.Cost(p.mapVMProfiles)
-		if costi < costj {
-			vmSet = hetVMSet
-		}
+	hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, limits, p.mapVMProfiles)
+	costi := hetVMSet.Cost(p.mapVMProfiles)
+	costj := vmSet.Cost(p.mapVMProfiles)
+	if costi < costj {
+		vmSet = hetVMSet
 	}
+
 	if err!= nil {
 		return vmSet,errors.New("No suitable VM set found")
 	}
