@@ -127,14 +127,14 @@ func computeMetricsScalingActions (scalingActions *[]types.ScalingStep, mapVMPro
 
 	for i,_ := range *scalingActions {
 		vmSetToScale := (*scalingActions)[i].State.VMs
-		serviceToScale := (*scalingActions)[i].State.Services[sysConfiguration.ServiceName]
+		serviceToScale := (*scalingActions)[i].State.Services[sysConfiguration.MainServiceName]
 
 		if i< numberScalingActions - 1 {
 			vmSetScaled := (*scalingActions)[i+1].State.VMs
 			if !vmSetToScale.Equal(vmSetScaled) {
 				numberVMScalingActions += 1
 			}
-			serviceScaled := (*scalingActions)[i+1].State.Services[sysConfiguration.ServiceName]
+			serviceScaled := (*scalingActions)[i+1].State.Services[sysConfiguration.MainServiceName]
 			if !serviceToScale.Equal(serviceScaled) {
 				numberContainerScalingActions += 1
 			}

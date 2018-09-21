@@ -63,10 +63,11 @@ type MaxServiceCapacity struct {
 
 /*Struct used to parse the information received from the performance profiles API*/
 type ServicePerformanceProfile struct {
-	HostInstanceType  	string               `json:"HostInstanceType"`
-	Name                string               `json:"ServiceName"`
-	ServiceType         string               `json:"ServiceType"`
-	TestAPI         	string               `json:"TestAPI"`
+	HostInstanceType string `json:"HostInstanceType"`
+	ServiceName      string	`json:"ServiceName"`
+	MainServiceName  string `json:"MainServiceName"`
+	ServiceType      string `json:"ServiceType"`
+	TestAPI          string `json:"TestAPI"`
 	Profiles			[] struct {
 								Limits Limit                 `json:"Limits"`
 								MSCs	[]MSCCompleteSetting `json:"MSCs"`

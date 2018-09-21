@@ -50,7 +50,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 
 		//Load in terms of number of requests
 		totalLoad := it.Requests
-		serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
+		serviceToScale := p.currentState.Services[p.sysConfiguration.MainServiceName]
 		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
 		currentNumberReplicas := serviceToScale.Scale
 		currentLoadCapacity := getStateLoadCapacity(currentNumberReplicas,currentContainerLimits)
@@ -133,7 +133,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 				}
 		}
 		services := make(map[string]types.ServiceInfo)
-		services[p.sysConfiguration.ServiceName] = types.ServiceInfo {
+		services[p.sysConfiguration.MainServiceName] = types.ServiceInfo {
 			Scale:  resourcesConfiguration.MSCSetting.Replicas,
 			CPU:    resourcesConfiguration.Limits.CPUCores,
 			Memory: resourcesConfiguration.Limits.MemoryGB,

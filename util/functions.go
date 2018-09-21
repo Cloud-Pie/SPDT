@@ -9,7 +9,7 @@ import "strings"
 	out:
 		@string	Endpoint with new values
 */
-func ParseURL(endpoint string, parameters map[string]string) string{
+func ParseURL(endpoint string, parameters map[string]string) string {
 	for key, value := range parameters {
 		endpoint = strings.Replace(endpoint, "{"+key+"}", value, -1)
 	}

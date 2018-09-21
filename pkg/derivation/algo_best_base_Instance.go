@@ -43,14 +43,14 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 	for vmType, vm := range p.mapVMProfiles {
 		vmLimits := types.Limit{ MemoryGB:vm.Memory, CPUCores:vm.CPUCores}
 		//Container limits that fit into the VM type
-		allLimits,_ := storage.GetPerformanceProfileDAO(p.sysConfiguration.ServiceName).FindAllUnderLimits(vm.CPUCores, vm.Memory)
+		allLimits,_ := storage.GetPerformanceProfileDAO(p.sysConfiguration.MainServiceName).FindAllUnderLimits(vm.CPUCores, vm.Memory)
 		for _, li := range allLimits {
 			vmTypeSuitable, newPolicy := p.deriveCandidatePolicy(processedForecast.CriticalIntervals,containerResizeEnabled, li.Limit, vmLimits, vmType, underProvisionAllowed, percentageUnderProvision )
 			if vmTypeSuitable {
 				policies = append(policies, newPolicy)
 			}
 		}
-		serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
+		serviceToScale := p.currentState.Services[p.sysConfiguration.MainServiceName]
 		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
 		vmTypeSuitable, newPolicy := p.deriveCandidatePolicy(processedForecast.CriticalIntervals,true, currentContainerLimits, vmLimits, vmType, underProvisionAllowed, percentageUnderProvision )
 		if vmTypeSuitable {
@@ -133,7 +133,7 @@ func (p BestBaseInstancePolicy) deriveCandidatePolicy(criticalIntervals []types.
 		limits := servicePerformanceProfile.Limits
 
 		services :=  make(map[string]types.ServiceInfo)
-		services[ p.sysConfiguration.ServiceName] = types.ServiceInfo {
+		services[ p.sysConfiguration.MainServiceName] = types.ServiceInfo {
 			Scale:  newNumServiceReplicas,
 			CPU:    limits.CPUCores,
 			Memory: limits.MemoryGB,

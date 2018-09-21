@@ -35,7 +35,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
-	serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
+	serviceToScale := p.currentState.Services[p.sysConfiguration.MainServiceName]
 	currentContainerLimits := types.Limit{CPUCores:serviceToScale.CPU, MemoryGB:serviceToScale.Memory}
 
 	newPolicy := types.Policy{}
@@ -71,7 +71,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 		}
 
 		services := make(map[string]types.ServiceInfo)
-		services[p.sysConfiguration.ServiceName] = types.ServiceInfo{
+		services[p.sysConfiguration.MainServiceName] = types.ServiceInfo{
 			Scale:  newNumServiceReplicas,
 			CPU:    resourceLimits.CPUCores,
 			Memory: resourceLimits.MemoryGB,

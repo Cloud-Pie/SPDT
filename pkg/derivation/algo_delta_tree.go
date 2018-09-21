@@ -68,7 +68,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 
 		//Current configuration
 		totalLoad := it.Requests
-		serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
+		serviceToScale := p.currentState.Services[p.sysConfiguration.MainServiceName]
 		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
 		currentNumberReplicas := serviceToScale.Scale
 		currentLoadCapacity := getStateLoadCapacity(currentNumberReplicas, currentContainerLimits)
@@ -135,7 +135,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 		}
 
 		services :=  make(map[string]types.ServiceInfo)
-		services[ p.sysConfiguration.ServiceName] = types.ServiceInfo{
+		services[ p.sysConfiguration.MainServiceName] = types.ServiceInfo{
 			Scale:  newNumServiceReplicas,
 			CPU:    resourceLimits.CPUCores,
 			Memory: resourceLimits.MemoryGB,

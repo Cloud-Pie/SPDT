@@ -30,12 +30,13 @@ func GetPerformanceProfiles(endpoint string) (types.ServiceProfile, error){
 	return performanceProfile,err
 }
 
-func GetServicePerformanceProfiles(endpoint string, appName string, appType string) (types.ServicePerformanceProfile, error){
+func GetServicePerformanceProfiles(endpoint string, appName string, appType string, mainServiceName string) (types.ServicePerformanceProfile, error){
 
 	servicePerformanceProfile := types.ServicePerformanceProfile{}
 	parameters := make(map[string]string)
 	parameters["apptype"] = appType
 	parameters["appname"] = appName
+	parameters["mainservicename"] = mainServiceName
 	endpoint = util.ParseURL(endpoint, parameters)
 
 	response, err := http.Get(endpoint)
@@ -55,11 +56,12 @@ func GetServicePerformanceProfiles(endpoint string, appName string, appType stri
 	return servicePerformanceProfile,err
 }
 
-func GetPredictedReplicas(endpoint string, appName string, appType string, msc float64, cpuCores float64, memGb float64) (types.MSCCompleteSetting, error){
+func GetPredictedReplicas(endpoint string, appName string, appType string, mainServiceName string,  msc float64, cpuCores float64, memGb float64) (types.MSCCompleteSetting, error){
 	mscSetting := types.MSCCompleteSetting{}
 	parameters := make(map[string]string)
 	parameters["apptype"] = appType
 	parameters["appname"] = appName
+	parameters["mainservicename"] = mainServiceName
 	parameters["msc"] = strconv.FormatFloat(msc, 'f', 1, 64)
 	parameters["numcoresutil"] = strconv.FormatFloat(cpuCores, 'f', 1, 64)
 	parameters["numcoreslimit"] = strconv.FormatFloat(cpuCores, 'f', 1, 64)

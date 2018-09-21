@@ -42,13 +42,13 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 	biggestVM := p.sortedVMProfiles[len(p.sortedVMProfiles)-1]
 	vmLimits := types.Limit{ MemoryGB:biggestVM.Memory, CPUCores:biggestVM.CPUCores}
 
-	allLimits,_ := storage.GetPerformanceProfileDAO(p.sysConfiguration.ServiceName).FindAllUnderLimits(biggestVM.CPUCores, biggestVM.Memory)
+	allLimits,_ := storage.GetPerformanceProfileDAO(p.sysConfiguration.MainServiceName).FindAllUnderLimits(biggestVM.CPUCores, biggestVM.Memory)
 	for _, li := range allLimits {
 		newPolicy := p.deriveCandidatePolicy(processedForecast.CriticalIntervals, li.Limit, vmLimits, containerResizeEnabled,underProvisionAllowed, percentageUnderProvision)
 		policies = append(policies, newPolicy)
 	}
 
-	serviceToScale := p.currentState.Services[p.sysConfiguration.ServiceName]
+	serviceToScale := p.currentState.Services[p.sysConfiguration.MainServiceName]
 	currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
 	newPolicy := p.deriveCandidatePolicy(processedForecast.CriticalIntervals,currentContainerLimits, vmLimits, true, underProvisionAllowed, percentageUnderProvision )
 	policies = append(policies, newPolicy)
@@ -105,7 +105,7 @@ func (p StepRepackPolicy)deriveCandidatePolicy(criticalIntervals []types.Critica
 		limits := profileCurrentLimits.Limits
 
 		services := make(map[string]types.ServiceInfo)
-		services[ p.sysConfiguration.ServiceName] = types.ServiceInfo{
+		services[ p.sysConfiguration.MainServiceName] = types.ServiceInfo{
 			Scale:  newNumServiceReplicas,
 			CPU:    limits.CPUCores,
 			Memory: limits.MemoryGB,
