@@ -775,12 +775,10 @@ fieldset[disabled] .btn {
   background-color: #009b75;
 }
 
-.selected-row{
+.selected{
   background-color: #009b75;
   font-weight: bold
 }
-
-
 
 
 h1{

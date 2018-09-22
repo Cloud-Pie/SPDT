@@ -1,40 +1,40 @@
-const policiesEndpoint = 'http://localhost:8083/api/primeapp/policies'
-const forecastRequestsEndpoint = 'http://localhost:8083/api/primeapp/forecast?'
+const policiesEndpoint = '/api/primeapp/policies'
+const forecastRequestsEndpoint = '/api/primeapp/forecast'
 
-var allPolicies
-var requestDemand
+var allPolicies = []
+var requestDemand = []
+var timeRequestDemand = []
 
-function getVirtualUnits(data){
-
+function computeUnits(data){
     time = [];
     vms = [];
     replicas = [];
-    TRN = [];
+    MSC = [];
     utilizationCpuCores = [];
     utilizationMemGB = [];
-    cpuCores = [];
-    memGB = [];
+    limitsCpuCores = [];
+    limitsMemGB = [];
     labelsTypesVmSet = [];
-    arrayConfig = data.scaling_actions
-
-    usedTypesString = data.parameters["vm-types"]
-    vmTypesList = usedTypesString.split(",");
-
+    arrayScalingActions = data.scaling_actions
+    vmTypesList = data.parameters["vm-types"].split(",");
+    maxNumVMs = 0
+    maxNumContainers = 0
     vmScalesInTime = {}
     vmTypesList.forEach(function (vmType) {
         vmScalesInTime[vmType] = []
     })
 
-    arrayConfig.forEach(function (conf) {
+    arrayScalingActions.forEach(function (conf) {
         time.push(conf.time_start)
         let vmLabels = ""
         let totalVMS = 0
 
-        //Flags map to identify if a record for that type was already inserted
+        //Flags map to identify if a record for that vm type was already inserted
         vmScalesInTimeFlags = {}
         vmTypesList.forEach(function (vmType) {
             vmScalesInTimeFlags[vmType] = false
         })
+        /*Virtual Machines*/
         vmSet = conf.State.VMs
         for (var key in vmSet) {
             vmLabels = vmLabels + key + ":" + vmSet[key] + ", "
@@ -48,20 +48,28 @@ function getVirtualUnits(data){
             }
         }
         vms.push(totalVMS)
+        if (totalVMS > maxNumVMs){
+            maxNumVMs = totalVMS
+        }
         labelsTypesVmSet.push(vmLabels)
+
+        /*Services*/
         services = conf.State.Services
         for (var key in services) {
             replicas.push(services[key].Replicas)
-            cpuCores.push(services[key].Cpu_cores)
-            memGB.push(services[key].Mem_gb)
+            if (services[key].Replicas > maxNumContainers) {
+                maxNumContainers = services[key].Replicas
+            }
+            limitsCpuCores.push(services[key].Cpu_cores)
+            limitsMemGB.push(services[key].Mem_gb)
         }
-        TRN.push(conf.metrics.requests_capacity)
+        MSC.push(conf.metrics.requests_capacity)
         utilizationCpuCores.push(conf.metrics.cpu_utilization)
         utilizationMemGB.push(conf.metrics.mem_utilization)
     })
 
     //Needed to include the last time t into the plot
-    lastConf = arrayConfig[arrayConfig.length - 1]
+    lastConf = arrayScalingActions[arrayScalingActions.length - 1]
     time.push(lastConf.time_end)
     vmSet = lastConf.State.VMs
     let vmLabels = ""
@@ -84,14 +92,20 @@ function getVirtualUnits(data){
         }
     }
     vms.push(totalVMS)
+    if (totalVMS > maxNumVMs){
+        maxNumVMs = totalVMS
+    }
     labelsTypesVmSet.push(vmLabels)
     services = lastConf.State.Services
     for (var key in services) {
         replicas.push(services[key].Replicas)
-        cpuCores.push(services[key].Cpu_cores)
-        memGB.push(services[key].Mem_gb)
+        if (services[key].Replicas > maxNumContainers) {
+            maxNumContainers = services[key].Replicas
+        }
+        limitsCpuCores.push(services[key].Cpu_cores)
+        limitsMemGB.push(services[key].Mem_gb)
     }
-    TRN.push(lastConf.metrics.requests_capacity)
+    MSC.push(lastConf.metrics.requests_capacity)
     utilizationCpuCores.push(lastConf.metrics.cpu_utilization)
     utilizationMemGB.push(lastConf.metrics.mem_utilization)
     //End last t
@@ -100,17 +114,19 @@ function getVirtualUnits(data){
         time: time,
         vms: vms,
         replicas: replicas,
-        trn: TRN,
+        msc: MSC,
         utilizationCpuCores: utilizationCpuCores,
         utilizationMemGB: utilizationMemGB,
         labelsTypesVmSet: labelsTypesVmSet,
         vmScalesInTime: vmScalesInTime,
-        cpuCores: cpuCores,
-        memGB:memGB
+        limitsCpuCores: limitsCpuCores,
+        limitsMemGB:limitsMemGB,
+        maxNumContainers: maxNumContainers,
+        maxNumVMs: maxNumVMs
     }
 }
 
-function plotVMUnitsPerType(time, vms, textHover) {
+function plotVMUnitsPerType(time, vms, timeRequests, textHover, maxNumberVMs) {
    let data = [];
    for (var key in vms) {
       data.push(
@@ -120,7 +136,6 @@ function plotVMUnitsPerType(time, vms, textHover) {
                name: key,
                type: 'scatter',
                line: {shape: 'hv'}
-
            }
        )
 
@@ -129,12 +144,13 @@ function plotVMUnitsPerType(time, vms, textHover) {
    data[l-1].text = textHover
    data.push(
         {
-            x: time,
+            x: timeRequests,
             y: requestDemand,
             name: 'Demand',
             type: 'scatter',
             line: {shape: 'spline', color:'#092e20'},
-            yaxis: 'y2'
+            yaxis: 'y2',
+            visible: 'legendonly'
         }
     )
 
@@ -143,15 +159,13 @@ function plotVMUnitsPerType(time, vms, textHover) {
         titlefont: {
            size:18, color: '#092e20'
         },
-
         autosize:true,
         margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-
-        yaxis: {title: 'N° VMs'},
+        yaxis: {title: 'N° VMs', range: [0, maxNumberVMs]},
         yaxis2: {
-           title: 'Requests/Sec',
+           title: 'Requests/Hour',
            titlefont: {color: '#092e20'},
            tickfont: {color: '#092e20'},
            overlaying: 'y',
@@ -166,8 +180,6 @@ function plotVMUnitsPerType(time, vms, textHover) {
     };
 
    Plotly.newPlot('vmUnits', stackedArea(data),layout);
-
-   // Plotly.newPlot('vmUnits', data, layout);
 }
 
 function stackedArea(traces) {
@@ -210,7 +222,7 @@ function plotVMUnits(time, vms, textHover) {
     Plotly.newPlot('vmUnits', data,layout);
 }
 
-function plotContainerUnits(time, replicas, cpuCores, memGB) {
+function plotContainerUnits(time, replicas, cpuCores, memGB, maxNumContainers) {
     var trace1 = {
         x: time,
         y: replicas,
@@ -242,7 +254,7 @@ function plotContainerUnits(time, replicas, cpuCores, memGB) {
         titlefont: {
            size:18, color: '#092e20'
         },
-        yaxis: {title: 'N° Containers'},
+        yaxis: {title: 'N° Containers', range: [0, maxNumContainers]},
         yaxis2: {
             title: 'Resources',
             titlefont: {color: 'rgb(148, 103, 189)'},
@@ -308,7 +320,7 @@ function plotCapacity(time, demand, supply, timeSuply){
 function plotMem(time, memGB) {
     var trace = {
         x: time,
-        y: memGB,
+        y: limitsMemGB,
         type: 'scatter',
         name: 'Mem GB'
     };
@@ -339,7 +351,7 @@ function plotCPU(time, cpuCores) {
 
     var trace = {
         x: time,
-        y: cpuCores,
+        y: limitsCpuCores,
         type: 'scatter',
         name: 'CPU Cores'
     };
@@ -367,17 +379,19 @@ function plotCPU(time, cpuCores) {
 }
 
 function searchByID(policyId) {
+    requestURL = policiesEndpoint + "/" + policyId
+
     if (policyId == null) {
         policyId = document.getElementById("searchpolicyid").value;
     }
 
-    requestURL=policiesEndpoint+ "/" +policyId
-    var units
     fetch(requestURL)
         .then((response) => response.json())
         .then(function (policy){
-           showPolicyInfo(policy)
-           //hideCandidatesDiv()
+            var timeStart = new Date(policy.window_time_start).toISOString();
+            var timeEnd = new Date( policy.window_time_end).toISOString();
+            //fetchLoadPredicted(timeStart,timeEnd)
+            displayPolicyInformation(policy)
         })
         .catch(function(err) {
             console.log('Fetch Error :-S', err);
@@ -385,40 +399,45 @@ function searchByID(policyId) {
         });
 }
 
-
-function showPolicyInfo(policy) {
-    var units
-    document.getElementById("jsonId").innerText = JSON.stringify(policy,undefined, 5);
+function displayPolicyInformation(policy) {
     showSinglePolicyPanels()
     var timeStart = new Date(policy.window_time_start).toISOString();
     var timeEnd = new Date( policy.window_time_end).toISOString();
-    units = getVirtualUnits(policy)
+    var units = computeUnits(policy)
+    document.getElementById("jsonId").innerText = JSON.stringify(policy,undefined, 5);
 
+    if (requestDemand.length == 0) {
+        fetchLoadPredicted(timeStart,timeEnd)
+    }
+    plotCapacity(timeRequestDemand, requestDemand, units.msc, units.time)
+    plotVMUnitsPerType(units.time, units.vmScalesInTime,timeRequestDemand, units.labelsTypesVmSet, units.maxNumVMs)
+    plotContainerUnits(units.time, units.replicas, units.limitsCpuCores, units.limitsMemGB, units.maxNumContainers)
+    plotMem(units.time, units.utilizationMemGB)
+    plotCPU(units.time, units.utilizationCpuCores)
+    fillMetrics(policy)
+    fillDetailsTable(policy)
+}
+
+function fetchLoadPredicted(timeStart, timeEnd){
     let params = {
-       "start": timeStart,
-       "end": timeEnd
+        "start": timeStart,
+        "end": timeEnd
     }
     let esc = encodeURIComponent
     let query = Object.keys(params)
         .map(k => esc(k) + '=' + esc(params[k]))
         .join('&')
 
-    url_forecast = forecastRequestsEndpoint + query
-    fetch(url_forecast)
-         .then((response) => response.json())
-         .then(function (forecast){
-                requestDemand = forecast.Requests
-                plotCapacity(forecast.Timestamp, forecast.Requests, units.trn, units.time)
-                plotVMUnitsPerType(units.time, units.vmScalesInTime, units.labelsTypesVmSet)
-                plotContainerUnits(units.time, units.replicas, units.cpuCores, units.memGB)
-                plotMem(units.time, units.utilizationMemGB)
-                plotCPU(units.time, units.utilizationCpuCores)
-                fillMetrics(policy)
-                fillDetailsTable(policy)
-         })
-        .catch(function(err) {
-              console.log('Fetch Error :-S', err);
-        });
+    requestURL = forecastRequestsEndpoint + '?' + query
+    fetch(requestURL)
+        .then((response) => response.json())
+        .then(function (data){
+            requestDemand = data.Requests
+            timeRequestDemand = data.Timestamp
+        }).catch(function(err) {
+        console.log('Fetch Error :-S', err);
+        showNoResultsPanel()
+    });
 }
 
 function searchByTimestamp() {
@@ -433,29 +452,18 @@ function searchByTimestamp() {
         .map(k => esc(k) + '=' + esc(params[k]))
         .join('&')
 
-    requestURL = forecastRequestsEndpoint + query
     policiesRequest = policiesEndpoint +"?" + query
-    fetch(requestURL)
+    fetch(policiesRequest)
         .then((response) => response.json())
         .then(function (data){
-            requestDemand = data.Requests
-            fetch(policiesRequest)
-                .then((response) => response.json())
-                .then(function (data){
-                    allPolicies = data
-                    if(allPolicies.length > 0) {
-                        showSinglePolicyPanels()
-                        fillCandidateTable(data)
-                        showPolicyInfo(allPolicies[0])
-                    }else{
-                        showNoResultsPanel()
-                    }
-                })
-                .catch(function(err) {
-                    console.log('Fetch Error :-S', err);
-                    showNoResultsPanel()
-                });
-
+            allPolicies = data
+            if(allPolicies.length > 0) {
+                showSinglePolicyPanels()
+                fillCandidateTable(data)
+                displayPolicyInformation(allPolicies[0])
+            }else{
+                showNoResultsPanel()
+            }
         })
         .catch(function(err) {
             console.log('Fetch Error :-S', err);
@@ -464,7 +472,6 @@ function searchByTimestamp() {
 }
 
 function fillCandidateTable(policyCandidates) {
-
     $("#tBodyCandidates").children().remove()
     for(var i = 0; i < policyCandidates.length; i++) {
 
@@ -481,9 +488,11 @@ function fillCandidateTable(policyCandidates) {
             "</tr>");
     }
 
-   $("tr").click(function() {
-        var id = $(this).find('td:first').text()
-        searchByID(id)
+    $('#tCandidates > tbody > tr').click(function () {
+      $('#tCandidates > tbody > tr').removeClass("selected");
+      $(this).addClass("selected");
+       var id = $(this).find('td:first').text()
+       searchByID(id)
     });
 }
 
@@ -531,17 +540,6 @@ function fillDetailsTable(policy) {
     }
 }
 
-function fillParameters(policy){
-    $("#lParameters").children().remove()
-    $("#lParameters").append(
-        "<li><label>"+"Algorithm:"+"</label><span>"+policy.algorithm+"</span></li>");
-    parameters = policy.parameters
-    for (var key in parameters) {
-        $("#lParameters").append(
-            "<li><label>"+key+":"+"</label><span>"+parameters[key]+"</span></li>");
-    }
-}
-
 function clickedCompareAll(){
     showMultiplePolicyPanels()
 
@@ -570,12 +568,12 @@ function getVirtualUnitsAll(policies) {
         time = [];
         vms = [];
         replicas = [];
-        TRN = [];
+        MSC = [];
         utilizationCpuCores = [];
         utilizationMemGB = [];
         tracesAll.push(policy.id)
-        arrayConfig = policy.scaling_actions
-        arrayConfig.forEach(function (conf) {
+        arrayScalingActions = policy.scaling_actions
+        arrayScalingActions.forEach(function (conf) {
             time.push(conf.time_start)
 
             vmSet = conf.State.VMs
@@ -588,11 +586,11 @@ function getVirtualUnitsAll(policies) {
                 utilizationCpuCores.push(services[key].Cpu_cores * services[key].Replicas)
                 utilizationMemGB.push(services[key].Mem_gb * services[key].Replicas)
             }
-            TRN.push(conf.metrics.requests_capacity)
+            MSC.push(conf.metrics.requests_capacity)
         })
         vmsAll.push(vms)
         replicasAll.push(replicas)
-        TRNAll.push(TRN)
+        TRNAll.push(MSC)
         cpuCoresAll.push(utilizationCpuCores)
         memGBAll.push(utilizationMemGB)
         overprovisionAll.push(policy.metrics.over_provision)
