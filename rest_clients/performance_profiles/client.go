@@ -103,14 +103,13 @@ func GetVMsProfiles(endpoint string) ([]types.VmProfile, error){
 	return vmList,err
 }
 
-func GetAllBootShutDownProfiles(endpoint string, vmType string) ([]types.BootShutDownTime, error){
-	instanceValues := []types.BootShutDownTime{}
-
+func GetAllBootShutDownProfilesByType(endpoint string, vmType string, region string, csp string) (types.InstancesBootShutdownTime, error){
+	instanceValues := types.InstancesBootShutdownTime{}
 	q := url.Values{}
 	q.Add("instanceType", vmType)
-	q.Add("region", "")
-	q.Add("appraoch", "avg")
-	q.Add("csp", "")
+	q.Add("region", region)
+	q.Add("appraoch", "regression_vm_boot")
+	q.Add("csp", csp)
 
 	req, err := http.NewRequest("GET",endpoint,nil)
 	if err != nil {
@@ -137,7 +136,7 @@ func GetAllBootShutDownProfiles(endpoint string, vmType string) ([]types.BootShu
 	return instanceValues,err
 }
 
-func GetBootShutDownProfile(endpoint string, vmType string, numberInstance int, csp string, region string) (types.BootShutDownTime, error){
+func GetBootShutDownProfileByType(endpoint string, vmType string, numberInstance int, csp string, region string) (types.BootShutDownTime, error){
 	instanceValues := types.BootShutDownTime{}
 
 	q := url.Values{}

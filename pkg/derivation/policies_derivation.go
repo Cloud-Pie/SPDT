@@ -129,14 +129,25 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.SystemConfiguration) float64 {
 	bootTime := 0.0
 	//Check in db if already data is stored
+	vmBootingProfileDAO := storage.GetVMBootingProfileDAO(sysConfiguration.MainServiceName)
+
 	//Call API
 	for vmType, n := range vmsScale {
-		url := sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VM_TIMES
-		csp := sysConfiguration.CSP
-		region := sysConfiguration.Region
-		times, error := performance_profiles.GetBootShutDownProfile(url,vmType, n, csp, region)
-		if error != nil {
-			log.Error("Error in bootingTime query  type %s %d VMS. Details: %s", vmType, n, error.Error())
+		times, err := vmBootingProfileDAO.BootingShutdownTime(vmType, n)
+		if err != nil {
+			url := sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VM_TIMES
+			csp := sysConfiguration.CSP
+			region := sysConfiguration.Region
+			times, err = performance_profiles.GetBootShutDownProfileByType(url,vmType, n, csp, region)
+			if err != nil {
+				log.Error("Error in bootingTime query  type %s %d VMS. Details: %s", vmType, n, err.Error())
+				log.Warning("Takes the biggest time available")
+				times.BootTime = util.DEFAULT_BOOT_TIME
+			}else {
+				vmBootingProfile,_ := vmBootingProfileDAO.FindByType(vmType)
+				vmBootingProfile.InstancesValues = append(vmBootingProfile.InstancesValues, times)
+				vmBootingProfileDAO.UpdateByType(vmType, vmBootingProfile)
+			}
 		}
 		bootTime += times.BootTime
 	}
@@ -153,16 +164,26 @@ func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.System
 */
 func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.SystemConfiguration) float64 {
 	terminationTime := 0.0
-
 	//Check in db if already data is stored
+	vmBootingProfileDAO := storage.GetVMBootingProfileDAO(sysConfiguration.MainServiceName)
+
 	//Call API
 	for vmType, n := range vmsScale {
-		url := sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VM_TIMES
-		csp := sysConfiguration.CSP
-		region := sysConfiguration.Region
-		times, error := performance_profiles.GetBootShutDownProfile(url,vmType, n, csp, region)
-		if error != nil {
-			log.Error("Error in terminationTime query for type %s %d VMS. Details: %s", vmType, n, error.Error())
+		times, err := vmBootingProfileDAO.BootingShutdownTime(vmType, n)
+		if err != nil {
+			url := sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VM_TIMES
+			csp := sysConfiguration.CSP
+			region := sysConfiguration.Region
+			times, err = performance_profiles.GetBootShutDownProfileByType(url,vmType, n, csp, region)
+			if err != nil {
+				log.Error("Error in terminationTime query for type %s %d VMS. Details: %s", vmType, n, err.Error())
+				log.Warning("Takes default shutdown")
+				times.ShutDownTime = util.DEFAULT_SHUTDOWN_TIME
+			} else {
+				vmBootingProfile,_ := vmBootingProfileDAO.FindByType(vmType)
+				vmBootingProfile.InstancesValues = append(vmBootingProfile.InstancesValues, times)
+				vmBootingProfileDAO.UpdateByType(vmType, vmBootingProfile)
+			}
 		}
 		terminationTime += times.ShutDownTime
 	}

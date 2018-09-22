@@ -25,6 +25,7 @@ var profilesDBHost = []string{ DEFAULT_DB_SERVER_PROFILES,}
 const (
 	DEFAULT_DB_PROFILES = "ServiceProfiles"
     DEFAULT_DB_COLLECTION_PROFILES = "PerformanceProfiles"
+	DEFAULT_DB_COLLECTION_VMS = "VMTimingProfiles"
     )
 
 //Connect to the database

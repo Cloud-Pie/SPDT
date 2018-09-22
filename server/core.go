@@ -3,6 +3,7 @@ package server
 import (
 	Pservice "github.com/Cloud-Pie/SPDT/rest_clients/performance_profiles"
 	Fservice "github.com/Cloud-Pie/SPDT/rest_clients/forecast"
+	Sservice "github.com/Cloud-Pie/SPDT/rest_clients/scheduler"
 	"github.com/Cloud-Pie/SPDT/util"
 	"github.com/Cloud-Pie/SPDT/config"
 	"github.com/Cloud-Pie/SPDT/storage"
@@ -146,16 +147,40 @@ func getVMProfiles()[]types.VmProfile {
 }
 
 //Fetch the performance profile of the microservice that should be scaled
+func getVMBootingProfile(sysConfiguration config.SystemConfiguration, vmProfiles []types.VmProfile){
+	var err error
+	var vmBootingProfile types.InstancesBootShutdownTime
+	vmBootingProfileDAO := storage.GetVMBootingProfileDAO(sysConfiguration.MainServiceName)
+	storedVMBootingProfiles,_ := vmBootingProfileDAO.FindAll()
+	if len(storedVMBootingProfiles) == 0 {
+		log.Info("Start request Performance Profiles")
+		endpoint := sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_ALL_VM_TIMES
+		csp := sysConfiguration.CSP
+		region := sysConfiguration.Region
+		for _, vm := range vmProfiles {
+			vmBootingProfile, err = Pservice.GetAllBootShutDownProfilesByType(endpoint, vm.Type, region, csp)
+			if err != nil {
+				log.Error("Error in request VM Booting Profile for type %s. %s",vm.Type, err.Error())
+			}
+			vmBootingProfile.VMType = vm.Type
+			vmBootingProfileDAO.Insert(vmBootingProfile)
+		}
+	}
+	//defer serviceProfileDAO.Session.Close()
+}
+
+//Fetch the performance profile of the microservice that should be scaled
 func getServiceProfile(sysConfiguration config.SystemConfiguration){
 	var err error
 	var servicePerformanceProfile types.ServicePerformanceProfile
-	serviceProfileDAO := storage.GetPerformanceProfileDAO(sysConfiguration.ServiceName)
+	serviceProfileDAO := storage.GetPerformanceProfileDAO(sysConfiguration.MainServiceName)
 	storedPerformanceProfiles,_ := serviceProfileDAO.FindAll()
 	if len(storedPerformanceProfiles) == 0 {
 
 		log.Info("Start request Performance Profiles")
 		endpoint := sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILES
-		servicePerformanceProfile, err = Pservice.GetServicePerformanceProfiles(endpoint,sysConfiguration.ServiceName, sysConfiguration.ServiceType )
+		servicePerformanceProfile, err = Pservice.GetServicePerformanceProfiles(endpoint,sysConfiguration.AppName,
+																sysConfiguration.AppType, sysConfiguration.MainServiceName)
 
 		if err != nil {
 			log.Error("Error in request Performance Profiles: %s",err.Error())
@@ -192,6 +217,9 @@ func getServiceProfile(sysConfiguration config.SystemConfiguration){
 func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64, times []time.Time, sysConfiguration config.SystemConfiguration) (types.Policy, error){
 	//Get VM Profiles
 	vmProfiles := getVMProfiles()
+	//Get VM booting Profiles
+	getVMBootingProfile(sysConfiguration, vmProfiles)
+
 	var err error
 	var selectedPolicy types.Policy
 	//Derive Strategies
@@ -209,7 +237,7 @@ func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64
 		log.Error("Error evaluation policies: %s", err.Error())
 	}else {
 		log.Info("Finish policies evaluation")
-		policyDAO := storage.GetPolicyDAO(sysConfiguration.ServiceName)
+		policyDAO := storage.GetPolicyDAO(sysConfiguration.MainServiceName)
 		for _,p := range policies {
 			err = policyDAO.Insert(p)
 			if err != nil {
@@ -239,7 +267,7 @@ func ScheduleScaling(sysConfiguration config.SystemConfiguration, selectedPolicy
 func InvalidateScalingStates(sysConfiguration config.SystemConfiguration, timeInvalidation time.Time) error {
 	log.Info("Start request Scheduler to invalidate states")
 	statesInvalidationURL := sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_INVALIDATE_STATES
-	err := schedule.InvalidateStates(timeInvalidation, statesInvalidationURL)
+	err := Sservice.InvalidateStates(timeInvalidation, statesInvalidationURL)
 	if err != nil {
 		log.Error("The scheduler request failed with error %s\n", err)
 	} else {
