@@ -15,7 +15,7 @@ func TriggerScheduler(policy types.Policy, endpoint string)(scheduler.StateToSch
 
 		for k,v := range state.Services {
 			cpu := CPUToString(v.CPU)
-			memory := memGBTobytes(v.Memory)
+			memory := memGBToBytes(v.Memory)
 			replicas := v.Scale
 			mapServicesToSchedule[k] = scheduler.ServiceToSchedule{
 				Scale:replicas,
@@ -47,7 +47,7 @@ func CPUToString(value float64) string {
 	return cpu
 }
 
-func memGBTobytes(value float64) int64 {
+func memGBToBytes(value float64) int64 {
 	mem := 1000000000 * value
 	memInt := int64(mem)
 	return memInt

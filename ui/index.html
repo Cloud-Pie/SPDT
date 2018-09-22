@@ -168,6 +168,7 @@
                                                             <span class="icon"><i class="fa fa-dollar"></i></span>
                                                             <p>
                                                                 <span class="number"><label id="costid"></label></span>
+                                                                <br>
                                                                 <span class="title">Cost</span>
                                                             </p>
                                                         </div>
@@ -177,6 +178,7 @@
                                                             <span class="icon"><i class="fa fa-upload"></i></span>
                                                             <p>
                                                                 <span class="number"><label id="overid"></label></span>
+                                                                <br>
                                                                 <span class="title">Overprovision</span>
                                                             </p>
                                                         </div>
@@ -186,6 +188,7 @@
                                                             <span class="icon"><i class="fa fa-download"></i></span>
                                                             <p>
                                                                 <span class="number"><label id="underid"> </label></span>
+                                                                <br>
                                                                 <span class="title">Underprovision</span>
                                                             </p>
                                                         </div>
@@ -195,6 +198,7 @@
                                                             <span class="icon"><i class="fa fa-cogs"></i></span>
                                                             <p>
                                                                 <span class="number"><label id="reconfVMsid"></label></span>
+                                                                <br>
                                                                 <span class="title">N° Scaling VMs</span>
                                                             </p>
                                                         </div>
@@ -204,6 +208,7 @@
                                                             <span class="icon"><i class="fa fa-cogs"></i></span>
                                                             <p>
                                                                 <span class="number"><label id="reconfContid"></label></span>
+                                                                <br>
                                                                 <span class="title">N° Scaling Replicas</span>
                                                             </p>
                                                         </div>
@@ -212,8 +217,9 @@
                                                         <div class="metric">
                                                             <span class="icon"><i class="fa fa-cogs"></i></span>
                                                             <p>
-                                                                <span class="number"><label id="reconfid"></label></span>
-                                                                <span class="title">Total Actions</span>
+                                                                <span class="number"><label id="durationId"></label></span>
+                                                                <br>
+                                                                <span class="title">Derivation Duration (ms)</span>
                                                             </p>
                                                         </div>
                                                     </div>
@@ -241,18 +247,16 @@
                                                     </div>
                                                 </div>
                                                 <div class="row">
-                                                    <div class="col-md-6 padding-2">
-                                                        <div class="panel">
-                                                            <div class="panel-body">
-                                                                <div id="resourceCPU" class="ct-chart"></div>
-                                                            </div>
+                                                    <div class="panel">
+                                                        <div class="panel-body">
+                                                            <div id="resources" class="ct-chart"></div>
                                                         </div>
                                                     </div>
-                                                    <div class="col-md-6 padding-2">
-                                                        <div class="panel">
-                                                            <div class="panel-body">
-                                                                <div id="resourceMem" class="ct-chart"></div>
-                                                            </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="panel">
+                                                        <div class="panel-body">
+                                                            <div id="accumulatedCost" class="ct-chart"></div>
                                                         </div>
                                                     </div>
                                                 </div>

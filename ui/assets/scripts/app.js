@@ -20,6 +20,7 @@ function computeUnits(data){
     maxNumVMs = 0
     maxNumContainers = 0
     vmScalesInTime = {}
+    accumulatedCost = []
     vmTypesList.forEach(function (vmType) {
         vmScalesInTime[vmType] = []
     })
@@ -66,6 +67,14 @@ function computeUnits(data){
         MSC.push(conf.metrics.requests_capacity)
         utilizationCpuCores.push(conf.metrics.cpu_utilization)
         utilizationMemGB.push(conf.metrics.mem_utilization)
+        lenghtAccumulatedCost = accumulatedCost.length
+        if (accumulatedCost.length == 0) {
+            accumulatedCost.push(conf.metrics.cost)
+        }else {
+            cost = accumulatedCost[accumulatedCost.length-1] + conf.metrics.cost
+            accumulatedCost.push(cost)
+        }
+
     })
 
     //Needed to include the last time t into the plot
@@ -122,7 +131,8 @@ function computeUnits(data){
         limitsCpuCores: limitsCpuCores,
         limitsMemGB:limitsMemGB,
         maxNumContainers: maxNumContainers,
-        maxNumVMs: maxNumVMs
+        maxNumVMs: maxNumVMs,
+        accumulatedCost: accumulatedCost
     }
 }
 
@@ -135,7 +145,8 @@ function plotVMUnitsPerType(time, vms, timeRequests, textHover, maxNumberVMs) {
                y: vms[key],
                name: key,
                type: 'scatter',
-               line: {shape: 'hv'}
+               line: {shape: 'hv'},
+               fill: 'tonexty'
            }
        )
 
@@ -160,7 +171,7 @@ function plotVMUnitsPerType(time, vms, timeRequests, textHover, maxNumberVMs) {
            size:18, color: '#092e20'
         },
         autosize:true,
-        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         yaxis: {title: 'N° VMs', range: [0, maxNumberVMs]},
@@ -207,7 +218,7 @@ function plotVMUnits(time, vms, textHover) {
            size:18
         },
         autosize:true,
-        margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
+        //margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
 
@@ -228,7 +239,8 @@ function plotContainerUnits(time, replicas, cpuCores, memGB, maxNumContainers) {
         y: replicas,
         type: 'scatter',
         name: 'N° Replicas',
-        line: {shape: 'hv'}
+        line: {shape: 'hv'},
+        fill: 'tonexty'
     };
 
     var trace2 = {
@@ -263,7 +275,7 @@ function plotContainerUnits(time, replicas, cpuCores, memGB, maxNumContainers) {
             side: 'right'
         },
         autosize:true,
-        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
 
@@ -301,7 +313,7 @@ function plotCapacity(time, demand, supply, timeSuply){
            size:18, color: '#092e20'
         },
         autosize:true,
-        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
 
@@ -316,23 +328,21 @@ function plotCapacity(time, demand, supply, timeSuply){
     var data = [trace1, trace2];
     Plotly.newPlot('requestsUnits', data,layout);
 }
-
-function plotMem(time, memGB) {
+function plotAccumulatedCost(time, cost) {
     var trace = {
         x: time,
-        y: limitsMemGB,
+        y: cost,
         type: 'scatter',
-        name: 'Mem GB'
+        name: '$'
     };
 
     var layout = {
-        title: '<b>Memory GB</b>',
+        title: '<b>Accumulated Cost</b>',
         titlefont: {
-           size:18, color: '#092e20'
+            size:18, color: '#092e20'
         },
-        yaxis: {range: [0, 100]},
         autosize:true,
-        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
 
@@ -344,26 +354,33 @@ function plotMem(time, memGB) {
         },
     };
     var data = [trace];
-    Plotly.newPlot('resourceMem', data,layout);
+    Plotly.newPlot('accumulatedCost', data,layout);
 }
 
-function plotCPU(time, cpuCores) {
+function plotProvidedResources(time, cpuCores, memGB) {
 
     var trace = {
         x: time,
-        y: limitsCpuCores,
+        y: cpuCores,
         type: 'scatter',
-        name: 'CPU Cores'
+        name: '% CPU Cores'
+    };
+
+    var trace2 = {
+        x: time,
+        y: memGB,
+        type: 'scatter',
+        name: '% Mem GB'
     };
 
     var layout = {
-        title: '<b>CPU Cores</b>',
+        title: '<b>% Resource Utilization</b>',
         titlefont: {
            size:18, color: '#092e20'
         },
         yaxis: {range: [0, 100]},
         autosize:true,
-        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
 
@@ -374,8 +391,8 @@ function plotCPU(time, cpuCores) {
             x: 0.2
         },
     };
-    var data = [trace];
-    Plotly.newPlot('resourceCPU', data,layout);
+    var data = [trace, trace2];
+    Plotly.newPlot('resources', data,layout);
 }
 
 function searchByID(policyId) {
@@ -412,8 +429,8 @@ function displayPolicyInformation(policy) {
     plotCapacity(timeRequestDemand, requestDemand, units.msc, units.time)
     plotVMUnitsPerType(units.time, units.vmScalesInTime,timeRequestDemand, units.labelsTypesVmSet, units.maxNumVMs)
     plotContainerUnits(units.time, units.replicas, units.limitsCpuCores, units.limitsMemGB, units.maxNumContainers)
-    plotMem(units.time, units.utilizationMemGB)
-    plotCPU(units.time, units.utilizationCpuCores)
+    plotProvidedResources(units.time, units.utilizationCpuCores, units.utilizationMemGB)
+    plotAccumulatedCost(units.time, units.accumulatedCost)
     fillMetrics(policy)
     fillDetailsTable(policy)
 }
@@ -500,7 +517,7 @@ function fillMetrics(policy){
     document.getElementById("costid").innerText = policy.metrics.cost;
     document.getElementById("overid").innerText = policy.metrics.over_provision;
     document.getElementById("underid").innerText = policy.metrics.under_provision;
-    document.getElementById("reconfid").innerText = policy.metrics.n_scaling_actions;
+    document.getElementById("durationId").innerText = policy.metrics.derivation_duration;
     document.getElementById("reconfVMsid").innerText = policy.metrics.num_scale_vms;
     document.getElementById("reconfContid").innerText = policy.metrics.num_scale_containers;
 }
@@ -643,7 +660,7 @@ function plotCapacityAll(time, demand, supplyAll,tracesAll){
     var layout = {
         title: 'Workload',
         autosize:true,
-        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
 
@@ -676,7 +693,7 @@ function plotMemAll(time, memGBAll, tracesAll) {
     var layout = {
         title: 'Memory provisioned',
         autosize:true,
-        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
 
@@ -709,7 +726,7 @@ function plotCPUAll(time, cpuCoresAll, tracesAll) {
     var layout = {
         title: 'CPU cores provisioned',
         autosize:true,
-        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 200
@@ -742,7 +759,7 @@ function plotVMsAll(time, vmsAll, tracesAll) {
     var layout = {
         title: 'N° VMs',
         autosize:true,
-        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 200
@@ -773,7 +790,7 @@ function plotReplicasAll(time, replicasAll, tracesAll) {
     var layout = {
         title: 'N° Replicas',
         autosize:true,
-        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 200
@@ -793,7 +810,7 @@ function plotNScalingVMAll(nScalingVMs, tracesAll) {
     var layout = {
         title: 'N° times VM scaling',
         autosize:true,
-        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 200
@@ -813,7 +830,7 @@ function plotOverprovisionAll(overAll, tracesAll) {
     var layout = {
         title: '% Over provision',
         autosize:true,
-        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 200
@@ -833,7 +850,7 @@ function plotUnderprovisionAll(underAll, tracesAll) {
     var layout = {
         title: '% Under provision',
         autosize:true,
-        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         height: 200
