@@ -47,7 +47,7 @@ func SelectPolicy(policies *[]types.Policy, sysConfig config.SystemConfiguration
 		numScaledContainers, numScaledVMS, vmTypes := computeMetricsScalingActions(&(*policies)[i].ScalingActions, mapVMProfiles, sysConfig)
 		(*policies)[i].Metrics.NumberContainerScalingActions = numScaledContainers
 		(*policies)[i].Metrics.NumberVMScalingActions = numScaledVMS
-		(*policies)[i].Parameters[types.VMTYPES] = misc.MapKeystoString(vmTypes)
+		(*policies)[i].Parameters[types.VMTYPES] = misc.MapKeysToString(vmTypes)
 
 	}
 

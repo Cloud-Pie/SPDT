@@ -1,33 +1,44 @@
 package derivation
 
-import "github.com/Cloud-Pie/SPDT/types"
-type TRNProfile struct {
-	ResourceLimits	types.Limit
-	NumberReplicas	int
-	TRN				float64
+import (
+	"github.com/Cloud-Pie/SPDT/types"
+	"github.com/Cloud-Pie/SPDT/config"
+)
+
+type MSCProfile struct {
+	ResourceLimits types.Limit
+	NumberReplicas int
+	MSC            float64
 }
 
-type VMSet struct {
-	VMSet                 types.VMScale
-	Cost                  float64
-	TotalNVMs             int
-	TotalReplicasCapacity int
+/*
+	Constructs different VM clusters (heterogeneous included) to add resources every time the workload
+	increases in a factor of deltaLoad.
+ */
+type TreePolicy struct {
+	algorithm  		string               //Algorithm's name
+	timeWindow 		TimeWindowDerivation //Algorithm used to process the forecasted time serie
+	currentState	types.State			 //Current State
+	sortedVMProfiles []types.VmProfile    			//List of VM profiles sorted by price
+	mapVMProfiles map[string]types.VmProfile
+	sysConfiguration	config.SystemConfiguration
 }
 
+/*
+	Node that represents a candidate option to scale
+*/
+type Node struct {
+	NReplicas	int
+	vmType	string
+	children []*Node
+	vmScale types.VMScale
+}
 
-// Set missing values for the VMSet structure
-func (set *VMSet) setValues(mapVMProfiles map[string]types.VmProfile) {
-	cost := float64(0.0)
-	totalNVMs := 0
-	totalCapacity :=0
-	for k,v := range set.VMSet {
-		cost += mapVMProfiles[k].Pricing.Price * float64(v)
-		totalNVMs += v
-		totalCapacity += mapVMProfiles[k].ReplicasCapacity * v
-	}
-	set.Cost = cost
-	set.TotalNVMs = totalNVMs
-	set.TotalReplicasCapacity = totalCapacity
+/*
+	Tree structure used to create different combinations of VM types
+ */
+type Tree struct {
+	Root *Node
 }
 
 
@@ -162,7 +173,7 @@ func vmTypesList(mapVMProfiles map[string]types.VmProfile) string{
 	return  vmTypes
 }
 
-func MapKeystoString(keys map[string] bool)string {
+func MapKeysToString(keys map[string] bool)string {
 	var vmTypes string
 	for k,_ := range keys {
 		vmTypes += k + ","

@@ -8,39 +8,9 @@ import (
 	"strconv"
 	"fmt"
 	"sort"
-	"github.com/Cloud-Pie/SPDT/config"
 	"github.com/Cloud-Pie/SPDT/util"
 )
 
-/*
-	Constructs different VM clusters (heterogeneous included) to add resources every time the workload
-	increases in a factor of deltaLoad.
- */
-type TreePolicy struct {
-	algorithm  		string               //Algorithm's name
-	timeWindow 		TimeWindowDerivation //Algorithm used to process the forecasted time serie
-	currentState	types.State			 //Current State
-	sortedVMProfiles []types.VmProfile    			//List of VM profiles sorted by price
-	mapVMProfiles map[string]types.VmProfile
-	sysConfiguration	config.SystemConfiguration
-}
-
-/*
-	Node that represents a candidate option to scale
-*/
-type Node struct {
-	NReplicas	int
-	vmType	string
-	children []*Node
-	vmScale types.VMScale
-}
-
-/**
-	Tree structure used to create different combinations of VM types
- */
-type Tree struct {
-	Root *Node
-}
 
 /* Derive a list of policies using this approach
 	in:
@@ -75,6 +45,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 		deltaLoad := totalLoad - currentLoadCapacity
 
 		if deltaLoad == 0 {
+			//case 0: Resource configuration do not change
 			vmSet = p.currentState.VMs
 			newNumServiceReplicas = currentNumberReplicas
 			resourceLimits  = currentContainerLimits
@@ -88,20 +59,21 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 			totalServicesBootingTime = profileCurrentLimits.MSCSetting.BootTimeSec
 
 			if deltaLoad > 0 {
+				//case 1: Increase resources
 				computeCapacity(&p.sortedVMProfiles, profileCurrentLimits.Limits, &p.mapVMProfiles)
 				currentReplicasCapacity := p.currentState.VMs.ReplicasCapacity(p.mapVMProfiles)
 				if currentReplicasCapacity >= profileCurrentLimits.MSCSetting.Replicas {
-					//case 1: Increases number of replicas with the current limit resources but VMS remain the same
+					//case 1.1: Increases number of replicas with the current limit resources but VMS remain the same
 					vmSet = p.currentState.VMs
 				} else {
 					//search for a different profile that fit into the current VM set and handle total load
 					profileNewLimits, candidateFound := findConfigOptionByContainerResize(p.currentState.VMs, totalLoad, p.mapVMProfiles)
 					if candidateFound {
-						//case 2: Change the configuration of limit resources for the containers but VMS remain the same
+						//case 1.2: Change the configuration of limit resources for the containers but VMS remain the same
 						vmSet = p.currentState.VMs
 						profileCurrentLimits = profileNewLimits
 					}else{
-						//case 3: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.
+						//case 1.3: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.
 						//Keep the current resource limits for the containers
 						deltaNumberReplicas := newNumServiceReplicas - currentNumberReplicas
 						vmSet = p.FindSuitableVMs(deltaNumberReplicas, profileCurrentLimits.Limits)
@@ -109,29 +81,26 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 						if underProvisionAllowed {
 							ProfileCurrentLimitsUnder := selectProfileByLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
 							vmSetUnder := p.FindSuitableVMs(profileCurrentLimits.MSCSetting.Replicas, profileCurrentLimits.Limits)
-
+							costVMSetUnderProvision := vmSetUnder.Cost(p.mapVMProfiles)
 							if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.MSCSetting.MSCPerSecond, percentageUnderProvision) &&
-								vmSetUnder.Cost(p.mapVMProfiles) < vmSet.Cost(p.mapVMProfiles) {
+								costVMSetUnderProvision > 0 && costVMSetUnderProvision < vmSet.Cost(p.mapVMProfiles) {
 								vmSet = vmSetUnder
 								profileCurrentLimits = ProfileCurrentLimitsUnder
-
 							}
 						}
 						//Merge the current configuration with configuration for the new replicas
 						vmSet.Merge(p.currentState.VMs)
 					}
 				}
-
-				newNumServiceReplicas = profileCurrentLimits.MSCSetting.Replicas
-				resourceLimits  = profileCurrentLimits.Limits
-				stateLoadCapacity = profileCurrentLimits.MSCSetting.MSCPerSecond
-				totalServicesBootingTime = profileCurrentLimits.MSCSetting.BootTimeSec
-
 			} else {
-				//delta load is negative, some resources should be terminated
+				//case 2: delta load is negative, some resources should be terminated
 				deltaReplicas := currentNumberReplicas - profileCurrentLimits.MSCSetting.Replicas
 				vmSet = p.removeVMs(p.currentState.VMs, deltaReplicas, currentContainerLimits)
 			}
+			newNumServiceReplicas = profileCurrentLimits.MSCSetting.Replicas
+			resourceLimits  = profileCurrentLimits.Limits
+			stateLoadCapacity = profileCurrentLimits.MSCSetting.MSCPerSecond
+			totalServicesBootingTime = profileCurrentLimits.MSCSetting.BootTimeSec
 		}
 
 		services :=  make(map[string]types.ServiceInfo)
@@ -205,7 +174,7 @@ func Drucken (n *Node, level int) {
 
 /*
 	Remove VMs from the current set of VMs, the resources that hosts the defined number of container replicas
-	underprovisioning is not allowed.
+	under provisioning is not allowed.
 	in:
 		@currentVMSet
 		@numberReplicas
@@ -262,7 +231,7 @@ func (p TreePolicy)removeVMs(currentVMSet types.VMScale, numberReplicas int, lim
 		@error
 */
 func (p TreePolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.MSCSimpleSetting,
-	newLimits types.Limit, profileNewLimits types.MSCSimpleSetting, containerResize bool) (TRNProfile, error) {
+	newLimits types.Limit, profileNewLimits types.MSCSimpleSetting, containerResize bool) (MSCProfile, error) {
 
 	currentNumberReplicas := float64(profileCurrentLimits.Replicas)
 	utilizationCurrent := (currentNumberReplicas * currentLimits.CPUCores)+(currentNumberReplicas * currentLimits.MemoryGB)
@@ -271,12 +240,12 @@ func (p TreePolicy) selectContainersConfig(currentLimits types.Limit, profileCur
 	utilizationNew := (newNumberReplicas * newLimits.CPUCores)+(newNumberReplicas * newLimits.MemoryGB)
 
 	if utilizationNew < utilizationCurrent && containerResize {
-		return TRNProfile{ResourceLimits:newLimits,
+		return MSCProfile{ResourceLimits:newLimits,
 			NumberReplicas:int(newNumberReplicas),
-			TRN:profileNewLimits.MSCPerSecond,}, nil
+			MSC:profileNewLimits.MSCPerSecond,}, nil
 	} else {
-		return TRNProfile{ResourceLimits:currentLimits,
+		return MSCProfile{ResourceLimits:currentLimits,
 			NumberReplicas:int(currentNumberReplicas),
-			TRN:profileCurrentLimits.MSCPerSecond,}, nil
+			MSC:profileCurrentLimits.MSCPerSecond,}, nil
 	}
 }

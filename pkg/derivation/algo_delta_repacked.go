@@ -273,7 +273,7 @@ func(p DeltaRepackedPolicy) calculateReconfigurationCost(newSet types.VMScale) f
 
 */
 func (p DeltaRepackedPolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.MSCSimpleSetting,
-	newLimits types.Limit, profileNewLimits types.MSCSimpleSetting, containerResize bool) (TRNProfile, error) {
+	newLimits types.Limit, profileNewLimits types.MSCSimpleSetting, containerResize bool) (MSCProfile, error) {
 
 	currentNumberReplicas := float64(profileCurrentLimits.Replicas)
 	utilizationCurrent := (currentNumberReplicas * currentLimits.CPUCores)+(currentNumberReplicas * currentLimits.MemoryGB)
@@ -282,13 +282,13 @@ func (p DeltaRepackedPolicy) selectContainersConfig(currentLimits types.Limit, p
 	utilizationNew := (newNumberReplicas * newLimits.CPUCores)+(newNumberReplicas * newLimits.MemoryGB)
 
 	if utilizationNew < utilizationCurrent && containerResize {
-		return TRNProfile{ResourceLimits:newLimits,
+		return MSCProfile{ResourceLimits:newLimits,
 							NumberReplicas:int(newNumberReplicas),
-							TRN:profileNewLimits.MSCPerSecond,}, nil
+							MSC:profileNewLimits.MSCPerSecond,}, nil
 	} else {
-		return TRNProfile{ResourceLimits:currentLimits,
+		return MSCProfile{ResourceLimits:currentLimits,
 			NumberReplicas:int(currentNumberReplicas),
-			TRN:profileCurrentLimits.MSCPerSecond,}, nil
+			MSC:profileCurrentLimits.MSCPerSecond,}, nil
 	}
 }
 
