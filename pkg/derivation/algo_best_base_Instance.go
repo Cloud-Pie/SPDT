@@ -87,14 +87,6 @@ func (p BestBaseInstancePolicy) deriveCandidatePolicy(criticalIntervals []types.
 
 	for _, it := range criticalIntervals {
 		servicePerformanceProfile := selectProfileByLimits(it.Requests, containerLimits, false)
-		if containerResizeEnabled {
-			profileWithNewLimits,_ := selectProfileUnderVMLimits(it.Requests, vmLimits, false)
-			resize := shouldResizeContainer(servicePerformanceProfile, profileWithNewLimits)
-			if resize {
-				servicePerformanceProfile = profileWithNewLimits
-			}
-		}
-
 		vmSet,err := p.FindSuitableVMs(servicePerformanceProfile.MSCSetting.Replicas, servicePerformanceProfile.Limits, vmType)
 		if err !=  nil {
 			vmTypeSuitable = false
