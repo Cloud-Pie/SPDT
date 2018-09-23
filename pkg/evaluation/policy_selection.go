@@ -118,49 +118,44 @@ out:
 	@map[string]bool vmTypes
 		- Map with the vm types used in the scaling actions
 */
-
 func computeMetricsScalingActions (scalingActions *[]types.ScalingStep, mapVMProfiles map[string] types.VmProfile,  sysConfiguration config.SystemConfiguration) (int,int, map[string]bool) {
 	numberVMScalingActions := 0
-	numberContainerScalingActions := 1
-	numberScalingActions := len(*scalingActions)
+	numberContainerScalingActions := 0
 	vmTypes := make(map[string] bool)
 
 	for i,_ := range *scalingActions {
-		vmSetToScale := (*scalingActions)[i].DesiredState.VMs
-		serviceToScale := (*scalingActions)[i].DesiredState.Services[sysConfiguration.MainServiceName]
+		vmSetDesired := (*scalingActions)[i].DesiredState.VMs
+		desiredServiceReplicas := (*scalingActions)[i].DesiredState.Services[sysConfiguration.MainServiceName]
 
-		if i< numberScalingActions - 1 {
-			vmSetScaled := (*scalingActions)[i+1].DesiredState.VMs
-			if !vmSetToScale.Equal(vmSetScaled) {
-				numberVMScalingActions += 1
-			}
-			serviceScaled := (*scalingActions)[i+1].DesiredState.Services[sysConfiguration.MainServiceName]
-			if !serviceToScale.Equal(serviceScaled) {
-				numberContainerScalingActions += 1
-			}
+		vmSetInitial := (*scalingActions)[i].InitialState.VMs
+		if !vmSetDesired.Equal(vmSetInitial) {
+			numberVMScalingActions += 1
 		}
+
+		initialServiceReplicas := (*scalingActions)[i].InitialState.Services[sysConfiguration.MainServiceName]
+		if !desiredServiceReplicas.Equal(initialServiceReplicas) {
+			numberContainerScalingActions += 1
+		}
+
 		totalCPUCores := 0.0
 		totalMemGB := 0.0
-		for k,v := range vmSetToScale {
+		for k,v := range vmSetDesired {
 			vmTypes[k] = true
 			totalCPUCores += mapVMProfiles[k].CPUCores * float64(v)
 			totalMemGB += mapVMProfiles[k].Memory * float64(v)
 		}
 		if totalMemGB > 0 {
-			percentageMemUtilization := serviceToScale.Memory * float64(serviceToScale.Scale) * 100.0 / totalMemGB
+			percentageMemUtilization := desiredServiceReplicas.Memory * float64(desiredServiceReplicas.Scale) * 100.0 / totalMemGB
 			(*scalingActions)[i].Metrics.MemoryUtilization = percentageMemUtilization
 		}
 		if totalCPUCores > 0 {
-			percentageCPUUtilization := serviceToScale.CPU * float64(serviceToScale.Scale)  * 100.0 / totalCPUCores
+			percentageCPUUtilization := desiredServiceReplicas.CPU * float64(desiredServiceReplicas.Scale)  * 100.0 / totalCPUCores
 			(*scalingActions)[i].Metrics.CPUUtilization = percentageCPUUtilization
 		}
-
 		if i >= 1 {
 			previousStateEndTime := (*scalingActions)[i-1].TimeEnd
 			(*scalingActions)[i].Metrics.ShadowTimeSec = previousStateEndTime.Sub((*scalingActions)[i].TimeStart).Seconds()
 		}
-
 	}
 	return numberContainerScalingActions, numberVMScalingActions, vmTypes
 }
-

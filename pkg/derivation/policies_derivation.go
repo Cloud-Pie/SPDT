@@ -337,35 +337,18 @@ func setScalingSteps(scalingSteps *[]types.ScalingStep, currentState types.State
 		var shutdownVMDuration float64
 		var startTransitionTime time.Time
 		var currentVMSet types.VMScale
-		if nScalingSteps >= 1 {
-			currentVMSet = (*scalingSteps)[nScalingSteps-1].DesiredState.VMs
-			/*lastBilledStartedTime := (*scalingSteps)[nScalingSteps-1].TimeStartBilling
-			removeBilledVMs := checkBillingPeriod(systemConfiguration.PricingModel.BillingUnit, nVMRemoved, lastBilledStartedTime,timeStart)
-			if !removeBilledVMs {
-				newVMSet := currentVMSet
-				newVMSet.Merge(vmAdded)
-				newState.VMs = newVMSet
-			}*/
-			//timeStartBill = updateStartBillingTime(lastBilledStartedTime, timeStart)
-			timeStartBill = (*scalingSteps)[nScalingSteps-1].TimeEndBilling
-		} else {
-			deltaScalingAction := timeEnd.Sub(timeStartBill).Hours()
-			ds := int(math.Ceil(deltaScalingAction))
-			timeEndBill = timeStartBill.Add(time.Duration(ds)*time.Hour)
-
-			currentVMSet = initialState.VMs
-		}
-
+		currentVMSet = currentState.VMs
 		vmAdded, vmRemoved := DeltaVMSet(currentVMSet, newState.VMs)
 		nVMRemoved := len(vmRemoved)
 		nVMAdded := len(vmAdded)
 
-		if nVMRemoved > 0 && nVMAdded > 0 && nScalingSteps >= 1 {
+		if nVMRemoved > 0 && nVMAdded > 0 {
 			//case 1: There is an overlaping of configurations
-			shutdownVMDuration = computeVMTerminationTime(vmRemoved, systemConfiguration)
-			previousTimeEnd := (*scalingSteps)[nScalingSteps-1].TimeEnd
-			(*scalingSteps)[nScalingSteps-1].TimeEnd = previousTimeEnd.Add(time.Duration(shutdownVMDuration) * time.Second)
-
+			if  nScalingSteps >= 1 {
+				shutdownVMDuration = computeVMTerminationTime(vmRemoved, systemConfiguration)
+				previousTimeEnd := (*scalingSteps)[nScalingSteps-1].TimeEnd
+				(*scalingSteps)[nScalingSteps-1].TimeEnd = previousTimeEnd.Add(time.Duration(shutdownVMDuration) * time.Second)
+			}
 			startTransitionTime = computeScaleOutTransitionTime(vmAdded, true, timeStart, totalServicesBootingTime)
 		} else if nVMRemoved > 0 && nVMAdded == 0 {
 			//case 2:  Scale in,
@@ -376,7 +359,12 @@ func setScalingSteps(scalingSteps *[]types.ScalingStep, currentState types.State
 			//case 3: Scale out
 			startTransitionTime = computeScaleOutTransitionTime(vmAdded, true, timeStart, totalServicesBootingTime)
 		}
-
+		/*removeBilledVMs := checkBillingPeriod(systemConfiguration.PricingModel.BillingUnit, nVMRemoved, lastBilledStartedTime,timeStart)
+		if !removeBilledVMs {
+			newVMSet := currentVMSet
+			newVMSet.Merge(vmAdded)
+			newState.VMs = newVMSet
+		}*/
 		//newState.LaunchTime = startTransitionTime
 		name,_ := structhash.Hash(newState, 1)
 		newState.Hash = strings.Replace(name, "v1_", "", -1)
