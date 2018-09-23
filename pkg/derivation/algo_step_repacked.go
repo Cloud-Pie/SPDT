@@ -133,6 +133,7 @@ func (p StepRepackPolicy)deriveCandidatePolicy(criticalIntervals []types.Critica
 	newPolicy.Metrics.FinishTimeDerivation = time.Now()
 	newPolicy.TimeWindowStart = scalingSteps[0].TimeStart
 	newPolicy.TimeWindowEnd = scalingSteps[numConfigurations-1].TimeEnd
+	newPolicy.Metrics.DerivationDuration = newPolicy.Metrics.FinishTimeDerivation.Sub(newPolicy.Metrics.StartTimeDerivation).Seconds()
 
 	return newPolicy
 }
