@@ -92,24 +92,14 @@ func (p BestBaseInstancePolicy) deriveCandidatePolicy(criticalIntervals []types.
 			vmTypeSuitable = false
 		}
 
+		costVMSetOverProvision := vmSet.Cost(p.mapVMProfiles)
+		//Update values if the configuration that leads to under provisioning is cheaper
 		if underProvisionAllowed {
-			profileCurrentLimitsUnderProvision := selectProfileByLimits(it.Requests, containerLimits, underProvisionAllowed)
-			profileWitNewLimitsUnderProvision,_ := selectProfileUnderVMLimits(it.Requests, vmLimits, underProvisionAllowed)
-			resize := shouldResizeContainer(profileCurrentLimitsUnderProvision, profileWitNewLimitsUnderProvision)
-			if resize {
-				profileCurrentLimitsUnderProvision = profileWitNewLimitsUnderProvision
-			}
-			vmSetUnder,err2 := p.FindSuitableVMs(profileCurrentLimitsUnderProvision.MSCSetting.Replicas, servicePerformanceProfile.Limits, vmType)
-
-			if err2 !=  nil {
-				vmTypeSuitable = false
-				break
-			}
-			vmTypeSuitable = true
-			if isUnderProvisionInRange(it.Requests, profileCurrentLimitsUnderProvision.MSCSetting.MSCPerSecond, percentageUnderProvision) &&
-				vmSetUnder.Cost(p.mapVMProfiles) < vmSet.Cost(p.mapVMProfiles) {
-				vmSet = vmSetUnder
-				servicePerformanceProfile = profileCurrentLimitsUnderProvision
+			containerConfigUnder := p.optionWithUnderProvision(it.Requests, containerLimits, percentageUnderProvision, vmType)
+			if containerConfigUnder.Cost >0 && containerConfigUnder.Cost < costVMSetOverProvision &&
+				isUnderProvisionInRange(it.Requests, containerConfigUnder.MSCSetting.MSCPerSecond, percentageUnderProvision) {
+				vmSet = containerConfigUnder.VMSet
+				servicePerformanceProfile = containerConfigUnder
 			}
 		}
 
@@ -154,4 +144,21 @@ func (p BestBaseInstancePolicy) deriveCandidatePolicy(criticalIntervals []types.
 		newPolicy.TimeWindowEnd = scalingSteps[numScalingSteps-1].TimeEnd
 	}
 	return vmTypeSuitable, newPolicy
+}
+
+/*Search a container configuration (limits & n replicas) which has under provision but leads to a cheaper VM set
+	in:
+		@totalLoad - float64 = Number of requests
+		@containerLimits -Limit = Resource limits for the container
+		@percentageUnderProvision -float64 = percentage of the max under provision allowed
+	out:
+		ContainersConfig -
+*/
+func (p BestBaseInstancePolicy) optionWithUnderProvision(totalLoad float64, containerLimits types.Limit, percentageUnderProvision float64, vmType string) types.ContainersConfig {
+	containerConfigUnder := selectProfileByLimits(totalLoad, containerLimits, true)
+	vmSetUnder,_ := p.FindSuitableVMs(containerConfigUnder.MSCSetting.Replicas, containerConfigUnder.Limits, vmType)
+	costVMSetUnderProvision := vmSetUnder.Cost(p.mapVMProfiles)
+	containerConfigUnder.VMSet = vmSetUnder
+	containerConfigUnder.Cost = costVMSetUnderProvision
+	return  containerConfigUnder
 }
