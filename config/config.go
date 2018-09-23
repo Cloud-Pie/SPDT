@@ -41,17 +41,18 @@ type PolicySettings struct{
 
 //Struct that models the system configuration to derive the scaling policies
 type SystemConfiguration struct {
-	CSP 							string				`yaml:"CSP"`
-	Region 							string				`yaml:"region"`
-	ServiceName						string				`yaml:"service-name"`
-	ServiceType						string				`yaml:"service-type"`
-	PricingModel					PricingModel  	    `yaml:"pricing-model"`
-	ForecastingComponent 			Component			`yaml:"forecasting-component"`
-	PerformanceProfilesComponent 	Component			`yaml:"performance-profiles-component"`
-	SchedulerComponent 				Component			`yaml:"scheduler-component"`
-	ScalingHorizon					ScalingHorizon 		`yaml:"scaling-horizon"`
-	PreferredAlgorithm 				string				`yaml:"preferred-algorithm"`
-	PolicySettings 					PolicySettings		`yaml:"policy-settings"`
+	CSP                          string         `yaml:"CSP"`
+	Region                       string         `yaml:"region"`
+	AppName                      string         `yaml:"app-name"`
+	MainServiceName              string         `yaml:"main-service-name"`
+	AppType                      string         `yaml:"app-type"`
+	PricingModel                 PricingModel   `yaml:"pricing-model"`
+	ForecastingComponent         Component      `yaml:"forecasting-component"`
+	PerformanceProfilesComponent Component      `yaml:"performance-profiles-component"`
+	SchedulerComponent           Component      `yaml:"scheduler-component"`
+	ScalingHorizon               ScalingHorizon `yaml:"scaling-horizon"`
+	PreferredAlgorithm           string         `yaml:"preferred-algorithm"`
+	PolicySettings               PolicySettings `yaml:"policy-settings"`
 						}
 
 //Method that parses the configuration file into a struct type
