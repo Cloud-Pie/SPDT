@@ -241,6 +241,11 @@ func selectProfileByLimits(requests float64, limits types.Limit, underProvision 
 			containerConfig.MSCSetting.MSCPerSecond = mscSetting.MSCPerSecond.RegBruteForce
 			newMSCSetting.Replicas = mscSetting.Replicas
 			newMSCSetting.MSCPerSecond = mscSetting.MSCPerSecond.RegBruteForce
+			if mscSetting.BootTimeMs > 0 {
+				newMSCSetting.BootTimeSec = mscSetting.BootTimeMs / 1000
+			} else {
+				newMSCSetting.BootTimeSec = util.DEFAULT_POD_BOOT_TIME
+			}
 			newMSCSetting.BootTimeSec = mscSetting.BootTimeMs / 1000
 
 		} else {
