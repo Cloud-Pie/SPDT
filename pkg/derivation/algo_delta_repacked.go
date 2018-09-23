@@ -149,7 +149,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		timeEnd := it.TimeEnd
 		totalServicesBootingTime := resourcesConfiguration.MSCSetting.BootTimeSec
 		stateLoadCapacity := resourcesConfiguration.MSCSetting.MSCPerSecond
-		setScalingSteps(&configurations,state,timeStart,timeEnd, totalServicesBootingTime,stateLoadCapacity)
+		setScalingSteps(&configurations,p.currentState, state,timeStart,timeEnd, totalServicesBootingTime,stateLoadCapacity)
 		//Update current state
 		p.currentState = state
 	}

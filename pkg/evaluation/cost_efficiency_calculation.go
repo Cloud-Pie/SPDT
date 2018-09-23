@@ -24,7 +24,7 @@ func computePolicyCost(policy types.Policy, billingUnit string, mapVMProfiles ma
 func computeConfigurationCost(cf types.ScalingStep, unit string, mapVMProfiles map[string] types.VmProfile) float64 {
 	configurationCost := 0.0
 	deltaTime := billedTime(cf.TimeStart,cf.TimeEnd,unit)
-	for k,v := range cf.State.VMs {
+	for k,v := range cf.DesiredState.VMs {
 		configurationCost += mapVMProfiles [k].Pricing.Price * float64(v) * deltaTime
 	}
 	return  configurationCost

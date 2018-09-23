@@ -146,7 +146,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 		state.VMs = vmSet
 		timeStart := it.TimeStart
 		timeEnd := it.TimeEnd
-		setScalingSteps(&configurations,state,timeStart,timeEnd, totalServicesBootingTime, stateLoadCapacity)
+		setScalingSteps(&configurations,p.currentState,state,timeStart,timeEnd, totalServicesBootingTime, stateLoadCapacity)
 		p.currentState = state
 	}
 

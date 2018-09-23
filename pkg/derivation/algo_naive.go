@@ -84,7 +84,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 		//update state before next iteration
 		timeStart := it.TimeStart
 		timeEnd := it.TimeEnd
-		setScalingSteps(&configurations, state, timeStart, timeEnd, totalServicesBootingTime, stateLoadCapacity)
+		setScalingSteps(&configurations, p.currentState, state, timeStart, timeEnd, totalServicesBootingTime, stateLoadCapacity)
 		p.currentState = state
 	}
 

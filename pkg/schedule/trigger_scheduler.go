@@ -11,7 +11,7 @@ func TriggerScheduler(policy types.Policy, endpoint string)(scheduler.StateToSch
 	var stateToSchedule  scheduler.StateToSchedule
 	for _, conf := range policy.ScalingActions {
 		mapServicesToSchedule := make(map[string]scheduler.ServiceToSchedule)
-		state := conf.State
+		state := conf.DesiredState
 
 		for k,v := range state.Services {
 			cpu := CPUToString(v.CPU)
@@ -25,7 +25,7 @@ func TriggerScheduler(policy types.Policy, endpoint string)(scheduler.StateToSch
 		}
 
 		stateToSchedule = scheduler.StateToSchedule{
-			LaunchTime:state.LaunchTime,
+			LaunchTime:conf.TimeStartTransition,
 			Services:mapServicesToSchedule,
 			Name:state.Hash,
 			VMs:state.VMs,

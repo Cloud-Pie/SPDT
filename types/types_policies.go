@@ -94,9 +94,8 @@ func (conf1 ServiceInfo) Equal(conf2 ServiceInfo) bool {
 	return true
 }
 
-/*State is the metadata of the state expected to scale to*/
+/*DesiredState is the metadata of the state expected to scale to*/
 type State struct {
-	LaunchTime    time.Time `json:"ISODate"`
 	Services      Service   `json:"Services"`
 	Hash          string    `json:"Hash"`
 	VMs           VMScale   `json:"VMs"`
@@ -115,7 +114,7 @@ type StateLoadCapacity struct {
 }
 
 /*_________________________________________
-		State Methods
+		DesiredState Methods
 ___________________________________________
 */
 
@@ -166,12 +165,14 @@ type PolicyMetrics struct {
 
 /*Resource configuration*/
 type ScalingStep struct {
-	State					State			    `json:"State" bson:"State"`
-	TimeStart 				time.Time			`json:"time_start" bson:"time_start"`
-	TimeEnd					time.Time			`json:"time_end" bson:"time_end"`
-	Metrics					ConfigMetrics		`json:"metrics" bson:"metrics"`
-	TimeStartBilling		time.Time			`json:"time_start_billing" bson:"time_start_billing"`
-	TimeEndBilling			time.Time			`json:"time_end_billing" bson:"time_end_billing"`
+	TimeStartTransition	time.Time	`json:"time_start_transition" bson:"time_start_transition"`
+	InitialState	 State		   `json:"initial_state" bson:"initial_state"`
+	DesiredState     State         `json:"desired_state" bson:"desired_state"`
+	TimeStart        time.Time     `json:"time_start" bson:"time_start"`
+	TimeEnd          time.Time     `json:"time_end" bson:"time_end"`
+	Metrics          ConfigMetrics `json:"metrics" bson:"metrics"`
+	TimeStartBilling time.Time     `json:"time_start_billing" bson:"time_start_billing"`
+	TimeEndBilling   time.Time     `json:"time_end_billing" bson:"time_end_billing"`
 }
 
 

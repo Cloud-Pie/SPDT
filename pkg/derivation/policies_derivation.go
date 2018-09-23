@@ -199,8 +199,8 @@ func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.Sy
 */
 func maxReplicasCapacityInVM(vmProfile types.VmProfile, resourceLimit types.Limit) int {
 	//For memory resources, Kubernetes Engine reserves aprox 6% of cores and 25% of Mem
-		cpuCoresAvailable := vmProfile.CPUCores * 0.94
-		memGBAvailable := vmProfile.Memory * 0.75
+		cpuCoresAvailable := vmProfile.CPUCores * (1-util.PERCENTAGE_REQUIRED_k8S_INSTALLATION_CPU)
+		memGBAvailable := vmProfile.Memory * (1-util.PERCENTAGE_REQUIRED_k8S_INSTALLATION_MEM)
 
 		m := float64(cpuCoresAvailable) / float64(resourceLimit.CPUCores)
 		n := float64(memGBAvailable) / float64(resourceLimit.MemoryGB)
@@ -323,11 +323,11 @@ func getStateLoadCapacity(numberReplicas int, limits types.Limit) float64 {
 
 /* Utility method to set up each scaling configuration
 */
-func setScalingSteps(scalingSteps *[]types.ScalingStep, state types.State, timeStart time.Time, timeEnd time.Time, totalServicesBootingTime float64, stateLoadCapacity float64) {
+func setScalingSteps(scalingSteps *[]types.ScalingStep, currentState types.State,newState types.State, timeStart time.Time, timeEnd time.Time, totalServicesBootingTime float64, stateLoadCapacity float64) {
 	nScalingSteps := len(*scalingSteps)
 	timeStartBill := timeStart
 	timeEndBill := timeEnd
-	if nScalingSteps >= 1 && state.Equal((*scalingSteps)[nScalingSteps-1].State) {
+	if nScalingSteps >= 1 && newState.Equal((*scalingSteps)[nScalingSteps-1].DesiredState) {
 		(*scalingSteps)[nScalingSteps-1].TimeEnd = timeEnd
 		timeBillingStarted := (*scalingSteps)[nScalingSteps-1].TimeStartBilling
 		timeEndBill = updateEndBillingTime(timeBillingStarted,timeEnd)
@@ -338,13 +338,13 @@ func setScalingSteps(scalingSteps *[]types.ScalingStep, state types.State, timeS
 		var startTransitionTime time.Time
 		var currentVMSet types.VMScale
 		if nScalingSteps >= 1 {
-			currentVMSet = (*scalingSteps)[nScalingSteps-1].State.VMs
+			currentVMSet = (*scalingSteps)[nScalingSteps-1].DesiredState.VMs
 			/*lastBilledStartedTime := (*scalingSteps)[nScalingSteps-1].TimeStartBilling
 			removeBilledVMs := checkBillingPeriod(systemConfiguration.PricingModel.BillingUnit, nVMRemoved, lastBilledStartedTime,timeStart)
 			if !removeBilledVMs {
 				newVMSet := currentVMSet
 				newVMSet.Merge(vmAdded)
-				state.VMs = newVMSet
+				newState.VMs = newVMSet
 			}*/
 			//timeStartBill = updateStartBillingTime(lastBilledStartedTime, timeStart)
 			timeStartBill = (*scalingSteps)[nScalingSteps-1].TimeEndBilling
@@ -356,7 +356,7 @@ func setScalingSteps(scalingSteps *[]types.ScalingStep, state types.State, timeS
 			currentVMSet = initialState.VMs
 		}
 
-		vmAdded, vmRemoved := DeltaVMSet(currentVMSet,state.VMs)
+		vmAdded, vmRemoved := DeltaVMSet(currentVMSet, newState.VMs)
 		nVMRemoved := len(vmRemoved)
 		nVMAdded := len(vmAdded)
 
@@ -377,17 +377,19 @@ func setScalingSteps(scalingSteps *[]types.ScalingStep, state types.State, timeS
 			startTransitionTime = computeScaleOutTransitionTime(vmAdded, true, timeStart, totalServicesBootingTime)
 		}
 
-		state.LaunchTime = startTransitionTime
-		name,_ := structhash.Hash(state, 1)
-		state.Hash = strings.Replace(name, "v1_", "", -1)
+		//newState.LaunchTime = startTransitionTime
+		name,_ := structhash.Hash(newState, 1)
+		newState.Hash = strings.Replace(name, "v1_", "", -1)
 		*scalingSteps = append(*scalingSteps,
 			types.ScalingStep{
-				State:          state,
-				TimeStart:      timeStart,
-				TimeEnd:        timeEnd,
-				Metrics:types.ConfigMetrics{RequestsCapacity:stateLoadCapacity,},
-				TimeStartBilling:timeStartBill,
-				TimeEndBilling:timeEndBill,
+				InitialState:currentState,
+				DesiredState:        newState,
+				TimeStart:           timeStart,
+				TimeEnd:             timeEnd,
+				Metrics:             types.ConfigMetrics{RequestsCapacity:stateLoadCapacity,},
+				TimeStartBilling:    timeStartBill,
+				TimeEndBilling:      timeEndBill,
+				TimeStartTransition: startTransitionTime,
 			})
 	}
 }
