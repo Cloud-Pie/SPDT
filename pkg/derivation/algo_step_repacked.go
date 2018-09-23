@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"errors"
 	"github.com/Cloud-Pie/SPDT/util"
-	"github.com/Cloud-Pie/SPDT/storage"
 )
 
 /*
@@ -42,15 +41,9 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 	biggestVM := p.sortedVMProfiles[len(p.sortedVMProfiles)-1]
 	vmLimits := types.Limit{ MemoryGB:biggestVM.Memory, CPUCores:biggestVM.CPUCores}
 
-	allLimits,_ := storage.GetPerformanceProfileDAO(p.sysConfiguration.MainServiceName).FindAllUnderLimits(biggestVM.CPUCores, biggestVM.Memory)
-	for _, li := range allLimits {
-		newPolicy := p.deriveCandidatePolicy(processedForecast.CriticalIntervals, li.Limit, vmLimits, containerResizeEnabled,underProvisionAllowed, percentageUnderProvision)
-		policies = append(policies, newPolicy)
-	}
-
 	serviceToScale := p.currentState.Services[p.sysConfiguration.MainServiceName]
 	currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
-	newPolicy := p.deriveCandidatePolicy(processedForecast.CriticalIntervals,currentContainerLimits, vmLimits, true, underProvisionAllowed, percentageUnderProvision )
+	newPolicy := p.deriveCandidatePolicy(processedForecast.CriticalIntervals,currentContainerLimits, vmLimits, containerResizeEnabled, underProvisionAllowed, percentageUnderProvision )
 	policies = append(policies, newPolicy)
 
 	return policies
@@ -90,15 +83,18 @@ func (p StepRepackPolicy)deriveCandidatePolicy(criticalIntervals []types.Critica
 
 	for _, it := range criticalIntervals {
 		profileCurrentLimits := selectProfileByLimits(it.Requests, containerLimits, false)
+		var vmSet types.VMScale
 		if containerResizeEnabled {
-			ProfileNewLimits, _ := selectProfileUnderVMLimits(it.Requests, vmLimits, false)
-			resize := shouldResizeContainer(profileCurrentLimits, ProfileNewLimits)
-			if resize {
-				profileCurrentLimits = ProfileNewLimits
-			}
+				ProfileNewLimits, _ := selectProfileUnderVMLimits(it.Requests, vmLimits, false)
+				resize := shouldResizeContainer(profileCurrentLimits, ProfileNewLimits)
+				if resize {
+					profileCurrentLimits = ProfileNewLimits
+				}
+				vmSet, _ = p.FindSuitableVMs(profileCurrentLimits.MSCSetting.Replicas, profileCurrentLimits.Limits)
+		} else {
+			vmSet, _ = p.FindSuitableVMs(profileCurrentLimits.MSCSetting.Replicas, profileCurrentLimits.Limits)
 		}
 
-		vmSet, _ := p.FindSuitableVMs(profileCurrentLimits.MSCSetting.Replicas, profileCurrentLimits.Limits)
 		newNumServiceReplicas := profileCurrentLimits.MSCSetting.Replicas
 		stateLoadCapacity := profileCurrentLimits.MSCSetting.MSCPerSecond
 		totalServicesBootingTime := profileCurrentLimits.MSCSetting.BootTimeSec

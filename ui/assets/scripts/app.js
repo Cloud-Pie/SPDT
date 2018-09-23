@@ -36,7 +36,7 @@ function computeUnits(data){
             vmScalesInTimeFlags[vmType] = false
         })
         /*Virtual Machines*/
-        vmSet = conf.State.VMs
+        vmSet = conf.desired_state.VMs
         for (var key in vmSet) {
             vmLabels = vmLabels + key + ":" + vmSet[key] + ", "
             totalVMS = totalVMS + vmSet[key]
@@ -55,7 +55,7 @@ function computeUnits(data){
         labelsTypesVmSet.push(vmLabels)
 
         /*Services*/
-        services = conf.State.Services
+        services = conf.desired_state.Services
         for (var key in services) {
             replicas.push(services[key].Replicas)
             if (services[key].Replicas > maxNumContainers) {
@@ -80,7 +80,7 @@ function computeUnits(data){
     //Needed to include the last time t into the plot
     lastConf = arrayScalingActions[arrayScalingActions.length - 1]
     time.push(lastConf.time_end)
-    vmSet = lastConf.State.VMs
+    vmSet = lastConf.desired_state.VMs
     let vmLabels = ""
     let totalVMS = 0
     //Flags map to identify if a record for that type was already inserted
@@ -105,7 +105,7 @@ function computeUnits(data){
         maxNumVMs = totalVMS
     }
     labelsTypesVmSet.push(vmLabels)
-    services = lastConf.State.Services
+    services = lastConf.desired_state.Services
     for (var key in services) {
         replicas.push(services[key].Replicas)
         if (services[key].Replicas > maxNumContainers) {
@@ -423,9 +423,9 @@ function displayPolicyInformation(policy) {
     var units = computeUnits(policy)
     document.getElementById("jsonId").innerText = JSON.stringify(policy,undefined, 5);
 
-    if (requestDemand.length == 0) {
+    //if (requestDemand.length == 0) {
         fetchLoadPredicted(timeStart,timeEnd)
-    }
+   // }
     plotCapacity(timeRequestDemand, requestDemand, units.msc, units.time)
     plotVMUnitsPerType(units.time, units.vmScalesInTime,timeRequestDemand, units.labelsTypesVmSet, units.maxNumVMs)
     plotContainerUnits(units.time, units.replicas, units.limitsCpuCores, units.limitsMemGB, units.maxNumContainers)
@@ -593,11 +593,11 @@ function getVirtualUnitsAll(policies) {
         arrayScalingActions.forEach(function (conf) {
             time.push(conf.time_start)
 
-            vmSet = conf.State.VMs
+            vmSet = conf.desired_state.VMs
             for (var key in vmSet) {
                 vms.push(vmSet[key])
             }
-            services = conf.State.Services
+            services = conf.desired_state.Services
             for (var key in services) {
                 replicas.push(services[key].Replicas)
                 utilizationCpuCores.push(services[key].Cpu_cores * services[key].Replicas)

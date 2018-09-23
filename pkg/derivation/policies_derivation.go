@@ -142,7 +142,7 @@ func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.System
 			if err != nil {
 				log.Error("Error in bootingTime query  type %s %d VMS. Details: %s", vmType, n, err.Error())
 				log.Warning("Takes the biggest time available")
-				times.BootTime = util.DEFAULT_BOOT_TIME
+				times.BootTime = util.DEFAULT_VM_BOOT_TIME
 			}else {
 				vmBootingProfile,_ := vmBootingProfileDAO.FindByType(vmType)
 				vmBootingProfile.InstancesValues = append(vmBootingProfile.InstancesValues, times)
@@ -178,7 +178,7 @@ func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.Sy
 			if err != nil {
 				log.Error("Error in terminationTime query for type %s %d VMS. Details: %s", vmType, n, err.Error())
 				log.Warning("Takes default shutdown")
-				times.ShutDownTime = util.DEFAULT_SHUTDOWN_TIME
+				times.ShutDownTime = util.DEFAULT_VM_SHUTDOWN_TIME
 			} else {
 				vmBootingProfile,_ := vmBootingProfileDAO.FindByType(vmType)
 				vmBootingProfile.InstancesValues = append(vmBootingProfile.InstancesValues, times)
@@ -199,7 +199,7 @@ func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.Sy
 */
 func maxReplicasCapacityInVM(vmProfile types.VmProfile, resourceLimit types.Limit) int {
 	//For memory resources, Kubernetes Engine reserves aprox 6% of cores and 25% of Mem
-		cpuCoresAvailable := vmProfile.CPUCores * (1-util.PERCENTAGE_REQUIRED_k8S_INSTALLATION_CPU)
+		cpuCoresAvailable := vmProfile.CPUCores  *(1-util.PERCENTAGE_REQUIRED_k8S_INSTALLATION_CPU)
 		memGBAvailable := vmProfile.Memory * (1-util.PERCENTAGE_REQUIRED_k8S_INSTALLATION_MEM)
 
 		m := float64(cpuCoresAvailable) / float64(resourceLimit.CPUCores)
@@ -235,10 +235,7 @@ func selectProfileByLimits(requests float64, limits types.Limit, underProvision 
 		mainServiceName := systemConfiguration.MainServiceName
 		mscSetting,err := performance_profiles.GetPredictedReplicas(url,appName,appType,mainServiceName,requests,limits.CPUCores, limits.MemoryGB)
 
-
-		profile,_:= serviceProfileDAO.FindProfileByLimits(limits)
 		newMSCSetting := types.MSCSimpleSetting{}
-
 		if err == nil{
 			containerConfig.MSCSetting.Replicas = mscSetting.Replicas
 			containerConfig.MSCSetting.MSCPerSecond = mscSetting.MSCPerSecond.RegBruteForce
@@ -247,16 +244,20 @@ func selectProfileByLimits(requests float64, limits types.Limit, underProvision 
 			newMSCSetting.BootTimeSec = mscSetting.BootTimeMs / 1000
 
 		} else {
-			numberReplicas := float64(containerConfig.MSCSetting.Replicas) * requests / containerConfig.MSCSetting.MSCPerSecond
+			/*numberReplicas := float64(containerConfig.MSCSetting.Replicas) * requests / containerConfig.MSCSetting.MSCPerSecond
 			containerConfig.MSCSetting.Replicas = int(numberReplicas)
 			containerConfig.MSCSetting.MSCPerSecond = requests
-			newMSCSetting = types.MSCSimpleSetting{Replicas:int(numberReplicas), MSCPerSecond:requests, BootTimeSec:100}
+			newMSCSetting = types.MSCSimpleSetting{Replicas:int(numberReplicas), MSCPerSecond:requests, BootTimeSec:100}*/
 		}
 
-		profile.MSCSettings = append(profile.MSCSettings,newMSCSetting)
-		err3 := serviceProfileDAO.UpdateById(profile.ID, profile)
-		if err3 != nil{
-			log.Error("Performance profile not updated")
+		profile,_:= serviceProfileDAO.FindProfileTRN(limits.CPUCores, limits.MemoryGB, newMSCSetting.Replicas)
+		if profile.ID == "" {
+			profile,_= serviceProfileDAO.FindProfileByLimits(limits)
+			profile.MSCSettings = append(profile.MSCSettings,newMSCSetting)
+			err3 := serviceProfileDAO.UpdateById(profile.ID, profile)
+			if err3 != nil{
+				log.Error("Performance profile not updated")
+			}
 		}
 	}
 	//defer serviceProfileDAO.Session.Close()
@@ -627,7 +628,7 @@ func findConfigOptionByContainerResize(currentVMSet types.VMScale, totalLoad flo
 		//Update the vm Profiles with the capacity for replicas with given limits
 		computeVMsCapacity(li.Limit, &mapVMProfiles)
 		currentConfigurationReplicasCapacity := currentVMSet.ReplicasCapacity(mapVMProfiles)
-		if currentConfigurationReplicasCapacity >= replicas {
+		if currentConfigurationReplicasCapacity >= replicas  && configurationOption.MSCSetting.MSCPerSecond >= totalLoad {
 			configurationOptionFound = configurationOption
 			optionFound = true
 			break

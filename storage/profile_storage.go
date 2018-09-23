@@ -276,7 +276,7 @@ func (p *PerformanceProfileDAO) FindProfileTRN(cores float64, memory float64, nu
 		"limits.cpu_cores" : cores,
 		"limits.mem_gb" : memory,
 		"mscs": bson.M{"$elemMatch": bson.M{"replicas":bson.M{"$gte": numberReplicas}}}}).
-		Select(bson.M{"_id": 0, "limits":1, "mscs.$":1}).One(&performanceProfile)
+		Select(bson.M{"_id": 1, "limits":1, "mscs.$":1}).One(&performanceProfile)
 	return performanceProfile,err
 }
 
@@ -287,6 +287,7 @@ func (p *PerformanceProfileDAO) FindProfileByLimits(limit types.Limit) (types.Pe
 		"limits.mem_gb" : limit.MemoryGB}).One(&performanceProfile)
 	return performanceProfile,err
 }
+
 
 func GetPerformanceProfileDAO(serviceName string) *PerformanceProfileDAO {
 	if PerformanceProfileDB == nil {

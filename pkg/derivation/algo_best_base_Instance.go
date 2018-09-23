@@ -50,12 +50,6 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 				policies = append(policies, newPolicy)
 			}
 		}
-		serviceToScale := p.currentState.Services[p.sysConfiguration.MainServiceName]
-		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
-		vmTypeSuitable, newPolicy := p.deriveCandidatePolicy(processedForecast.CriticalIntervals,true, currentContainerLimits, vmLimits, vmType, underProvisionAllowed, percentageUnderProvision )
-		if vmTypeSuitable {
-			policies = append(policies, newPolicy)
-		}
 	}
 	return policies
 }

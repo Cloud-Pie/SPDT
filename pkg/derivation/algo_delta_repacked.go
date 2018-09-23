@@ -337,6 +337,11 @@ func(p DeltaRepackedPolicy) shouldRepackVMSet(currentOption types.ContainersConf
 	return types.ContainersConfig{}, false
 }
 
+/*
+	Evaluate if only scaling out containers is enough to handle the workload
+	either using the current limit constrains or finding other (cpu, mem) configuration that meet the requirement
+	and still fit into the current VM set.
+*/
 func (p DeltaRepackedPolicy) onlyScaleOutContainers(currentVMSet types.VMScale, totalLoad float64, currentContainerLimits types.Limit) (types.ContainersConfig, bool){
 	containersResourceConfig :=  types.ContainersConfig{}
 	onlyScaleContainers := false
