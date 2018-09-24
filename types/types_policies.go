@@ -142,13 +142,15 @@ func (currentState State) Equal(candidateState State) bool {
 
 
 type ConfigMetrics struct {
-	Cost             float64 `json:"cost" bson:"cost"`
-	OverProvision    float64 `json:"over_provision" bson:"over_provision"`
-	UnderProvision   float64 `json:"under_provision" bson:"under_provision"`
-	RequestsCapacity float64 `json:"requests_capacity" bson:"requests_capacity"`
-	CPUUtilization   float64 `json:"cpu_utilization" bson:"cpu_utilization"`
-	MemoryUtilization float64 `json:"mem_utilization" bson:"mem_utilization"`
-	ShadowTimeSec			float64				`json:"shadow_time" bson:"shadow_time"`
+	Cost             				float64 				`json:"cost" bson:"cost"`
+	OverProvision    				float64 				`json:"over_provision" bson:"over_provision"`
+	UnderProvision   				float64 				`json:"under_provision" bson:"under_provision"`
+	RequestsCapacity 				float64 				`json:"requests_capacity" bson:"requests_capacity"`
+	CPUUtilization   				float64 				`json:"cpu_utilization" bson:"cpu_utilization"`
+	MemoryUtilization 				float64 				`json:"mem_utilization" bson:"mem_utilization"`
+	ShadowTimeSec					float64					`json:"shadow_time_sec" bson:"shadow_time_sec"`
+	TransitionTimeSec				float64					`json:"transition_time_sec" bson:"transition_time_sec"`
+	ElapsedTimeSec					float64					`json:"elapsed_time_sec" bson:"elapsed_time_sec"`
 }
 
 type PolicyMetrics struct {
@@ -161,6 +163,9 @@ type PolicyMetrics struct {
 	DerivationDuration            float64       `json:"derivation_duration" bson:"derivation_duration"`
 	NumberVMScalingActions        int		  	`json:"num_scale_vms" bson:"num_scale_vms"`
 	NumberContainerScalingActions int		  	`json:"num_scale_containers" bson:"num_scale_containers"`
+	AvgShadowTime 				  float64		`json:"avg_shadow_time_sec" bson:"avg_shadow_time_sec"`
+	AvgTransitionTime 			  float64		`json:"avg_transition_time_sec" bson:"avg_transition_time_sec"`
+	AvgElapsedTime 			      float64		`json:"avg_time_between_scaling_sec" bson:"avg_time_between_scaling_sec"`
 }
 
 /*Resource configuration*/

@@ -155,7 +155,10 @@ func computeMetricsScalingActions (scalingActions *[]types.ScalingStep, mapVMPro
 		if i >= 1 {
 			previousStateEndTime := (*scalingActions)[i-1].TimeEnd
 			(*scalingActions)[i].Metrics.ShadowTimeSec = previousStateEndTime.Sub((*scalingActions)[i].TimeStart).Seconds()
+			(*scalingActions)[i].Metrics.TransitionTimeSec = (*scalingActions)[i-1].TimeEnd.Sub((*scalingActions)[i].TimeStartTransition).Seconds()
 		}
+		(*scalingActions)[i].Metrics.ElapsedTimeSec = (*scalingActions)[i].TimeEnd.Sub((*scalingActions)[i].TimeStart).Seconds()
+
 	}
 	return numberContainerScalingActions, numberVMScalingActions, vmTypes
 }
