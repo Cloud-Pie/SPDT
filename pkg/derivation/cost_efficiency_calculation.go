@@ -1,4 +1,4 @@
-package evaluation
+package derivation
 
 import (
 	"github.com/Cloud-Pie/SPDT/types"
@@ -10,7 +10,7 @@ import (
 
 //Compute the total cost for a given policy
 //It takes into account the billing unit according to the pricing model
-func computePolicyCost(policy types.Policy, billingUnit string, mapVMProfiles map[string] types.VmProfile) float64 {
+func ComputePolicyCost(policy types.Policy, billingUnit string, mapVMProfiles map[string] types.VmProfile) float64 {
 	totalCost := 0.0
 	for cfi,cf := range policy.ScalingActions {
 		configurationCost := computeConfigurationCost(cf, billingUnit, mapVMProfiles)

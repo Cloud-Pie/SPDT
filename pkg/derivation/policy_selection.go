@@ -29,7 +29,7 @@ func SelectPolicy(policies *[]types.Policy, sysConfig config.SystemConfiguration
 	mapVMProfiles := misc.VMListToMap(vmProfiles)
 	//Calculate total cost of the policy
 	for i := range *policies {
-		cost := computePolicyCost((*policies)[i],sysConfig.PricingModel.BillingUnit, mapVMProfiles)
+		cost := ComputePolicyCost((*policies)[i],sysConfig.PricingModel.BillingUnit, mapVMProfiles)
 		(*policies)[i].Metrics.Cost = math.Ceil(cost*100)/100
 	}
 	//Sort policies based on price

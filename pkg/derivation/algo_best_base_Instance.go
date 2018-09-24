@@ -10,6 +10,7 @@ import (
 	"github.com/Cloud-Pie/SPDT/util"
 	"errors"
 	"github.com/Cloud-Pie/SPDT/storage"
+	"sort"
 )
 
 /*
@@ -51,7 +52,17 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 			}
 		}
 	}
-	return policies
+
+	for i := range policies {
+		cost := ComputePolicyCost((policies)[i],systemConfiguration.PricingModel.BillingUnit, p.mapVMProfiles)
+		(policies)[i].Metrics.Cost = math.Ceil(cost*100)/100
+	}
+	//Sort policies based on price
+	sort.Slice(policies, func(i, j int) bool {
+		return (policies)[i].Metrics.Cost < (policies)[j].Metrics.Cost
+	})
+
+	return []types.Policy{policies[0]}
 }
 
 /*Calculate VM set able to host the required number of replicas
