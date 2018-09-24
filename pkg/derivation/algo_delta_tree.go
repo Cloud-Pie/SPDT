@@ -67,12 +67,12 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 					vmSet = p.currentState.VMs
 				} else {
 					//search for a different profile that fit into the current VM set and handle total load
-					profileNewLimits, candidateFound := findConfigOptionByContainerResize(p.currentState.VMs, totalLoad, p.mapVMProfiles)
+					/*profileNewLimits, candidateFound := findConfigOptionByContainerResize(p.currentState.VMs, totalLoad, p.mapVMProfiles)
 					if candidateFound {
 						//case 1.2: Change the configuration of limit resources for the containers but VMS remain the same
 						vmSet = p.currentState.VMs
 						profileCurrentLimits = profileNewLimits
-					}else{
+					}else{*/
 						//case 1.3: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.
 						//Keep the current resource limits for the containers
 						deltaNumberReplicas := newNumServiceReplicas - currentNumberReplicas
@@ -95,7 +95,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 						}
 						//Merge the current configuration with configuration for the new replicas
 						vmSet.Merge(p.currentState.VMs)
-					}
+					//}
 				}
 			} else {
 				//case 2: delta load is negative, some resources should be terminated
@@ -154,13 +154,13 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 */
 func (p TreePolicy) FindSuitableVMs(numberReplicas int, limits types.Limit) types.VMScale {
 	vmSet, _ := buildHomogeneousVMSet(numberReplicas,limits, p.mapVMProfiles)
-	hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, limits, p.mapVMProfiles)
+	/*hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, limits, p.mapVMProfiles)
 	costi := hetVMSet.Cost(p.mapVMProfiles)
 	costj := vmSet.Cost(p.mapVMProfiles)
 	if costi < costj {
 		vmSet = hetVMSet
 	}
-
+*/
 	return vmSet
 }
 

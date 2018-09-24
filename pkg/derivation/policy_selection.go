@@ -31,7 +31,8 @@ func SelectPolicy(policies *[]types.Policy, sysConfig config.SystemConfiguration
 		policyMetrics, vmTypes:= ComputePolicyMetrics(&(*policies)[i].ScalingActions,forecast.ForecastedValues, systemConfiguration, mapVMProfiles )
 		policyMetrics.StartTimeDerivation = (*policies)[i].Metrics.StartTimeDerivation
 		policyMetrics.FinishTimeDerivation = (*policies)[i].Metrics.FinishTimeDerivation
-		policyMetrics.DerivationDuration = (*policies)[i].Metrics.FinishTimeDerivation.Sub((*policies)[i].Metrics.StartTimeDerivation).Seconds()
+		duration := (*policies)[i].Metrics.FinishTimeDerivation.Sub((*policies)[i].Metrics.StartTimeDerivation).Seconds()
+		policyMetrics.DerivationDuration = math.Ceil(duration*100)/100
 		(*policies)[i].Metrics = policyMetrics
 		(*policies)[i].Parameters[types.VMTYPES] = MapKeysToString(vmTypes)
 	}

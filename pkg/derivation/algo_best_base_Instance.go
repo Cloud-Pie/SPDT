@@ -39,7 +39,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
-
+	startAlgo := time.Now()
 	//Loops all the VM types and derive a policy using a single VMType
 	for vmType, vm := range p.mapVMProfiles {
 		vmLimits := types.Limit{ MemoryGB:vm.Memory, CPUCores:vm.CPUCores}
@@ -59,10 +59,16 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 	}
 	//Sort policies based on price
 	sort.Slice(policies, func(i, j int) bool {
-		return (policies)[i].Metrics.Cost < (policies)[j].Metrics.Cost
+		order := (policies)[i].Metrics.Cost < (policies)[j].Metrics.Cost
+		return order
 	})
-
-	return []types.Policy{policies[0]}
+	//return policies
+	timeEndAlgo := time.Now()
+	selectedOption := policies[0]
+	selectedOption.Metrics.StartTimeDerivation = startAlgo
+	selectedOption.Metrics.FinishTimeDerivation = timeEndAlgo
+	selectedOption.Metrics.DerivationDuration = selectedOption.Metrics.FinishTimeDerivation.Sub(selectedOption.Metrics.StartTimeDerivation).Seconds()
+	return []types.Policy{selectedOption}
 }
 
 /*Calculate VM set able to host the required number of replicas

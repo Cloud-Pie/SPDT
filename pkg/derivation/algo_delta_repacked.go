@@ -181,9 +181,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		newPolicy.ID = bson.NewObjectId()
 		newPolicy.Status = types.DISCARTED	//State by default
 		newPolicy.Parameters = parameters
-		newPolicy.Metrics.NumberScalingActions = numConfigurations
 		newPolicy.Metrics.FinishTimeDerivation = time.Now()
-		newPolicy.Metrics.DerivationDuration = newPolicy.Metrics.FinishTimeDerivation.Sub(newPolicy.Metrics.StartTimeDerivation).Seconds()
 		newPolicy.TimeWindowStart = configurations[0].TimeStart
 		newPolicy.TimeWindowEnd = configurations[numConfigurations -1].TimeEnd
 		policies = append(policies, newPolicy)
@@ -200,12 +198,12 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 */
 func (p DeltaRepackedPolicy) FindSuitableVMs(numberReplicas int, resourceLimits types.Limit) types.VMScale {
 	vmSet, _ := buildHomogeneousVMSet(numberReplicas,resourceLimits, p.mapVMProfiles)
-	hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, resourceLimits, p.mapVMProfiles)
+	/*hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, resourceLimits, p.mapVMProfiles)
 	costi := hetVMSet.Cost(p.mapVMProfiles)
 	costj := vmSet.Cost(p.mapVMProfiles)
 	if costi < costj {
 		vmSet = hetVMSet
-	}
+	}*/
 	return vmSet
 }
 
