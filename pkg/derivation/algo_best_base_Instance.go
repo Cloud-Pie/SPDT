@@ -41,12 +41,13 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
 	startAlgo := time.Now()
 	//Loops all the VM types and derive a policy using a single VMType
+	selectedResourceLimits := p.selectServiceProfilesLimits(processedForecast.CriticalIntervals, )
+
 	for vmType, vm := range p.mapVMProfiles {
 		vmLimits := types.Limit{ MemoryGB:vm.Memory, CPUCores:vm.CPUCores}
 		//Container limits that fit into the VM type
-		allLimits,_ := storage.GetPerformanceProfileDAO(p.sysConfiguration.MainServiceName).FindAllUnderLimits(vm.CPUCores, vm.Memory)
-		for _, li := range allLimits {
-			vmTypeSuitable, newPolicy := p.deriveCandidatePolicy(processedForecast.CriticalIntervals,containerResizeEnabled, li.Limit, vmLimits, vmType, underProvisionAllowed, percentageUnderProvision )
+		for _, li := range selectedResourceLimits {
+			vmTypeSuitable, newPolicy := p.deriveCandidatePolicy(processedForecast.CriticalIntervals,containerResizeEnabled, li, vmLimits, vmType, underProvisionAllowed, percentageUnderProvision )
 			if vmTypeSuitable {
 				policies = append(policies, newPolicy)
 			}
@@ -91,6 +92,7 @@ func (p BestBaseInstancePolicy) FindSuitableVMs(numberReplicas int, resourcesLim
 	}
 	return vmScale,err
 }
+
 
 func (p BestBaseInstancePolicy) deriveCandidatePolicy(criticalIntervals []types.CriticalInterval, containerResizeEnabled bool,
 	containerLimits types.Limit, vmLimits types.Limit, vmType string, underProvisionAllowed bool,percentageUnderProvision float64 ) (bool, types.Policy) {
@@ -178,4 +180,29 @@ func (p BestBaseInstancePolicy) optionWithUnderProvision(totalLoad float64, cont
 	containerConfigUnder.VMSet = vmSetUnder
 	containerConfigUnder.Cost = costVMSetUnderProvision
 	return  containerConfigUnder
+}
+
+func (p BestBaseInstancePolicy) selectServiceProfilesLimits(forecastedValues []types.CriticalInterval, ) [] types.Limit{
+	max := 0.0
+	for _,v := range forecastedValues {
+		if v.Requests > max {
+			max = v.Requests
+		}
+	}
+
+	selectedLimits := []types.Limit{}
+	vmProfiles := p.sortedVMProfiles
+	sort.Slice(vmProfiles, func(i, j int) bool {
+		return vmProfiles[i].Pricing.Price >  vmProfiles[j].Pricing.Price
+	})
+	biggestVMType := p.mapVMProfiles[vmProfiles[0].Type]
+	allLimits,_ := storage.GetPerformanceProfileDAO(p.sysConfiguration.MainServiceName).FindAllUnderLimits(biggestVMType.CPUCores, biggestVMType.Memory)
+
+	for _,v := range allLimits {
+		servicePerformanceProfile := selectProfileByLimits(max, v.Limit, false)
+		if servicePerformanceProfile.MSCSetting.MSCPerSecond >= max {
+			selectedLimits = append(selectedLimits,v.Limit)
+		}
+	}
+	return selectedLimits
 }
