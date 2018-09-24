@@ -1,11 +1,10 @@
-package evaluation
+package derivation
 import (
 	"github.com/Cloud-Pie/SPDT/types"
+	"github.com/Cloud-Pie/SPDT/config"
+	"math"
 	"sort"
 	"errors"
-	"github.com/Cloud-Pie/SPDT/config"
-	misc "github.com/Cloud-Pie/SPDT/pkg/derivation"
-	"math"
 )
 
 /*Evaluates and select the most suitable policy for the given system configurations and forecast
@@ -26,30 +25,20 @@ import (
 */
 func SelectPolicy(policies *[]types.Policy, sysConfig config.SystemConfiguration, vmProfiles []types.VmProfile, forecast types.Forecast)(types.Policy, error) {
 
-	mapVMProfiles := misc.VMListToMap(vmProfiles)
+	mapVMProfiles := VMListToMap(vmProfiles)
 	//Calculate total cost of the policy
 	for i := range *policies {
-		cost := ComputePolicyCost((*policies)[i],sysConfig.PricingModel.BillingUnit, mapVMProfiles)
-		(*policies)[i].Metrics.Cost = math.Ceil(cost*100)/100
+		policyMetrics, vmTypes:= ComputePolicyMetrics(&(*policies)[i].ScalingActions,forecast.ForecastedValues, systemConfiguration, mapVMProfiles )
+		policyMetrics.StartTimeDerivation = (*policies)[i].Metrics.StartTimeDerivation
+		policyMetrics.FinishTimeDerivation = (*policies)[i].Metrics.FinishTimeDerivation
+		policyMetrics.DerivationDuration = (*policies)[i].Metrics.FinishTimeDerivation.Sub((*policies)[i].Metrics.StartTimeDerivation).Seconds()
+		(*policies)[i].Metrics = policyMetrics
+		(*policies)[i].Parameters[types.VMTYPES] = MapKeysToString(vmTypes)
 	}
 	//Sort policies based on price
 	sort.Slice(*policies, func(i, j int) bool {
 		return (*policies)[i].Metrics.Cost < (*policies)[j].Metrics.Cost
 	})
-
-	//Calculate Metrics of the policies
-	for i := range *policies {
-		nForecast := len(forecast.ForecastedValues)
-		over, under := computeMetricsCapacity(&(*policies)[i].ScalingActions,forecast.ForecastedValues, nForecast)
-		(*policies)[i].Metrics.OverProvision = math.Ceil(over*100)/100
-		(*policies)[i].Metrics.UnderProvision = math.Ceil(under*100)/100
-
-		numScaledContainers, numScaledVMS, vmTypes := computeMetricsScalingActions(&(*policies)[i].ScalingActions, mapVMProfiles, sysConfig)
-		(*policies)[i].Metrics.NumberContainerScalingActions = numScaledContainers
-		(*policies)[i].Metrics.NumberVMScalingActions = numScaledVMS
-		(*policies)[i].Parameters[types.VMTYPES] = misc.MapKeysToString(vmTypes)
-
-	}
 
 	if len(*policies) >0 {
 		remainBudget, time := isEnoughBudget(sysConfig.PricingModel.Budget, (*policies)[0])
@@ -65,100 +54,131 @@ func SelectPolicy(policies *[]types.Policy, sysConfig config.SystemConfiguration
 }
 
 
-//Calculate overprovisioning and underprovisioning of a state
-func computeMetricsCapacity(configurations *[]types.ScalingStep, forecast []types.ForecastedValue, nForecastedValues int) (float64, float64){
-	var avgOver float64
-	var avgUnder float64
-	fi := 0
-	totalOver := 0.0
-	totalUnder := 0.0
-	numConfigurations := float64(len(*configurations))
+//Compute the metrics related to the policy and its scaling actions
+func ComputePolicyMetrics(scalingActions *[]types.ScalingStep, forecast []types.ForecastedValue,
+	sysConfiguration config.SystemConfiguration, mapVMProfiles map[string]types.VmProfile) (types.PolicyMetrics, map[string]bool) {
 
-	for i,_ := range *configurations {
-		confOver := 0.0
-		confUnder := 0.0
-		numSamplesOver := 0.0
-		numSamplesUnder := 0.0
-		for  fi < nForecastedValues && (*configurations)[i].TimeEnd.After(forecast[fi].TimeStamp) {
-			deltaLoad := (*configurations)[i].Metrics.RequestsCapacity - forecast[fi].Requests
-			if deltaLoad > 0 {
-				confOver += deltaLoad*100.0/ forecast[fi].Requests
-				numSamplesOver++
-			} else if deltaLoad < 0 {
-				confUnder += -1*deltaLoad*100.0/ forecast[fi].Requests
-				numSamplesUnder++
-			}
-			fi++
-		}
-		if numSamplesUnder > 0 {
-			(*configurations)[i].Metrics.UnderProvision = math.Ceil(confUnder /numSamplesUnder*100)/100
-			totalUnder += confUnder /numSamplesUnder
-		}
-		if numSamplesOver > 0 {
-			(*configurations)[i].Metrics.OverProvision = math.Ceil(confOver /numSamplesOver*100)/100
-			totalOver += confOver /numSamplesOver
-		}
-	}
-	avgOver = totalOver/numConfigurations
-	avgUnder = totalUnder /numConfigurations
-	return avgOver,avgUnder
-}
+	var avgOverProvision float64
+	var avgUnderProvision float64
+	var avgElapsedTime float64
+	var avgTransitionTime float64
+	var avgShadowTime float64
 
-/*Compute number of scaling steps per VM and containers
- in:
-	@scalingActions *[]types.ScalingStep
-				- List of scaling actions or configurations
-	@sysConfig config.SystemConfiguration
-				- Configuration specified by the user in the config file
-out:
-	@int numberContainerScalingActions
-		- Number of times where the containers where scaled
-	@int numberVMScalingActions
-		- Number of times where the vms where scaled
-	@map[string]bool vmTypes
-		- Map with the vm types used in the scaling actions
-*/
-func computeMetricsScalingActions (scalingActions *[]types.ScalingStep, mapVMProfiles map[string] types.VmProfile,  sysConfiguration config.SystemConfiguration) (int,int, map[string]bool) {
+	totalCost	:= 0.0
 	numberVMScalingActions := 0
 	numberContainerScalingActions := 0
 	vmTypes := make(map[string] bool)
+	totalOver := 0.0
+	totalUnder := 0.0
+	totalElapsedTime := 0.0
+	totalTransitionTime := 0.0
+	totalShadowTime := 0.0
 
-	for i,_ := range *scalingActions {
-		vmSetDesired := (*scalingActions)[i].DesiredState.VMs
-		desiredServiceReplicas := (*scalingActions)[i].DesiredState.Services[sysConfiguration.MainServiceName]
+	index := 0
+	numberScalingActions := len(*scalingActions)
+	nPredictedValues := len(forecast)
+	for i, _ := range *scalingActions {
+		scalingAction := (*scalingActions)[i]
+		var underProvision float64
+		var overProvision float64
+		var cost float64
+		var transitionTime float64
+		var elapsedTime float64
+		var shadowTime float64
+		var cpuUtilization float64
+		var memUtilization float64
 
-		vmSetInitial := (*scalingActions)[i].InitialState.VMs
+		//Capacity
+		scaleActionOverProvision := 0.0
+		scaleActionUnderProvision := 0.0
+		numSamplesOver := 0.0
+		numSamplesUnder := 0.0
+		for  index < nPredictedValues && scalingAction.TimeEnd.After(forecast[index].TimeStamp) {
+			deltaLoad := scalingAction.Metrics.RequestsCapacity - forecast[index].Requests
+			if deltaLoad > 0 {
+				scaleActionOverProvision += deltaLoad*100.0/ forecast[index].Requests
+				numSamplesOver++
+			} else if deltaLoad < 0 {
+				scaleActionUnderProvision += -1*deltaLoad*100.0/ forecast[index].Requests
+				numSamplesUnder++
+			}
+			index++
+		}
+		if numSamplesUnder > 0 {
+			underProvision = math.Ceil(scaleActionUnderProvision/numSamplesUnder*100)/100
+			totalUnder += scaleActionUnderProvision /numSamplesUnder
+		}
+		if numSamplesOver > 0 {
+			overProvision = math.Ceil(scaleActionOverProvision/numSamplesOver*100)/100
+			totalOver += scaleActionOverProvision /numSamplesOver
+		}
+
+		//Other metrics
+		vmSetDesired := scalingAction.DesiredState.VMs
+		vmSetInitial := scalingAction.InitialState.VMs
 		if !vmSetDesired.Equal(vmSetInitial) {
 			numberVMScalingActions += 1
 		}
 
-		initialServiceReplicas := (*scalingActions)[i].InitialState.Services[sysConfiguration.MainServiceName]
+		desiredServiceReplicas := scalingAction.DesiredState.Services[sysConfiguration.MainServiceName]
+		initialServiceReplicas := scalingAction.InitialState.Services[sysConfiguration.MainServiceName]
 		if !desiredServiceReplicas.Equal(initialServiceReplicas) {
 			numberContainerScalingActions += 1
 		}
 
-		totalCPUCores := 0.0
-		totalMemGB := 0.0
+		totalCPUCoresInVMSet := 0.0
+		totalMemGBInVMSet := 0.0
+		deltaTime := BilledTime(scalingAction.TimeStart, scalingAction.TimeEnd, sysConfiguration.PricingModel.BillingUnit)
 		for k,v := range vmSetDesired {
 			vmTypes[k] = true
-			totalCPUCores += mapVMProfiles[k].CPUCores * float64(v)
-			totalMemGB += mapVMProfiles[k].Memory * float64(v)
+			totalCPUCoresInVMSet += mapVMProfiles[k].CPUCores * float64(v)
+			totalMemGBInVMSet += mapVMProfiles[k].Memory * float64(v)
+			cost +=  mapVMProfiles [k].Pricing.Price * float64(v) * deltaTime
+			totalCost += cost
 		}
-		if totalMemGB > 0 {
-			percentageMemUtilization := desiredServiceReplicas.Memory * float64(desiredServiceReplicas.Scale) * 100.0 / totalMemGB
-			(*scalingActions)[i].Metrics.MemoryUtilization = percentageMemUtilization
-		}
-		if totalCPUCores > 0 {
-			percentageCPUUtilization := desiredServiceReplicas.CPU * float64(desiredServiceReplicas.Scale)  * 100.0 / totalCPUCores
-			(*scalingActions)[i].Metrics.CPUUtilization = percentageCPUUtilization
-		}
-		if i >= 1 {
-			previousStateEndTime := (*scalingActions)[i-1].TimeEnd
-			(*scalingActions)[i].Metrics.ShadowTimeSec = previousStateEndTime.Sub((*scalingActions)[i].TimeStart).Seconds()
-			(*scalingActions)[i].Metrics.TransitionTimeSec = (*scalingActions)[i-1].TimeEnd.Sub((*scalingActions)[i].TimeStartTransition).Seconds()
-		}
-		(*scalingActions)[i].Metrics.ElapsedTimeSec = (*scalingActions)[i].TimeEnd.Sub((*scalingActions)[i].TimeStart).Seconds()
 
+		if i>1 {
+			previousStateEndTime := (*scalingActions)[i-1].TimeEnd
+			shadowTime = previousStateEndTime.Sub(scalingAction.TimeStart).Seconds()
+			totalShadowTime += shadowTime
+			transitionTime = previousStateEndTime.Sub(scalingAction.TimeStartTransition).Seconds()
+			totalTransitionTime += transitionTime
+		}
+
+		memUtilization = desiredServiceReplicas.Memory * float64(desiredServiceReplicas.Scale) * 100.0 / totalMemGBInVMSet
+		cpuUtilization = desiredServiceReplicas.CPU * float64(desiredServiceReplicas.Scale)  * 100.0 / totalCPUCoresInVMSet
+		elapsedTime = scalingAction.TimeEnd.Sub(scalingAction.TimeStart).Seconds()
+		totalElapsedTime += elapsedTime
+
+		configMetrics := types.ConfigMetrics {
+			UnderProvision:    underProvision,
+			OverProvision:     overProvision,
+			Cost:              cost,
+			TransitionTimeSec: transitionTime,
+			ElapsedTimeSec:    elapsedTime,
+			ShadowTimeSec:     shadowTime,
+			RequestsCapacity:  scalingAction.Metrics.RequestsCapacity,
+			CPUUtilization:    cpuUtilization,
+			MemoryUtilization: memUtilization,
+		}
+		(*scalingActions)[i].Metrics = configMetrics
 	}
-	return numberContainerScalingActions, numberVMScalingActions, vmTypes
+
+	avgOverProvision = totalOver/ float64(numberScalingActions)
+	avgUnderProvision = totalUnder / float64(numberScalingActions)
+	avgElapsedTime = totalElapsedTime / float64(numberScalingActions)
+	avgTransitionTime = totalTransitionTime / float64(numberScalingActions)
+	avgShadowTime = totalShadowTime / float64(numberScalingActions)
+
+	return types.PolicyMetrics {
+		Cost:math.Ceil(totalCost*100)/100,
+		OverProvision:math.Ceil(avgOverProvision*100)/100,
+		UnderProvision:math.Ceil(avgUnderProvision*100)/100,
+		NumberVMScalingActions:numberVMScalingActions,
+		NumberContainerScalingActions:numberContainerScalingActions,
+		NumberScalingActions:numberVMScalingActions,
+		AvgElapsedTime:math.Ceil(avgElapsedTime*100)/100,
+		AvgShadowTime:math.Ceil(avgShadowTime*100)/100,
+		AvgTransitionTime:math.Ceil(avgTransitionTime*100)/100,
+	}, vmTypes
 }

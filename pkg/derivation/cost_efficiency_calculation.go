@@ -23,7 +23,7 @@ func ComputePolicyCost(policy types.Policy, billingUnit string, mapVMProfiles ma
 //Compute cost for a configuration of resources
 func computeConfigurationCost(cf types.ScalingStep, unit string, mapVMProfiles map[string] types.VmProfile) float64 {
 	configurationCost := 0.0
-	deltaTime := billedTime(cf.TimeStart,cf.TimeEnd,unit)
+	deltaTime := BilledTime(cf.TimeStart,cf.TimeEnd,unit)
 	for k,v := range cf.DesiredState.VMs {
 		configurationCost += mapVMProfiles [k].Pricing.Price * float64(v) * deltaTime
 	}
@@ -38,7 +38,7 @@ func setDeltaTime (timeStart time.Time, timeEnd time.Time, unit string) float64 
 
 
 //Calculate detlta time for a time window
-func billedTime (timeStart time.Time, timeEnd time.Time, unit string) float64 {
+func BilledTime(timeStart time.Time, timeEnd time.Time, unit string) float64 {
 	var delta float64
 	delta = timeEnd.Sub(timeStart).Hours()
 	switch unit {
