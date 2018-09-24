@@ -18,24 +18,18 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 			//Request Performance Profiles
 			getServiceProfile(sysConfiguration)
 
-			log.Info("Start points of interest search in time serie")
-			poiList, values, times, err:= forecast_processing.PointsOfInterest(forecast)
-			if err != nil {
-				log.Error("The request failed with error %s\n", err)
-				return
-			} else {
-				log.Info("Finish points of interest search in time serie")
-			}
+
 
 			var timeInvalidation time.Time
 			var oldPolicy types.Policy
 			var indexConflict int
 			var selectedPolicy types.Policy
-			policyDAO := storage.GetPolicyDAO(sysConfiguration.ServiceName)
+			var err error
+			policyDAO := storage.GetPolicyDAO(sysConfiguration.MainServiceName)
 
 			//verify if current time is greater than start window
 			if time.Now().After(forecast.TimeWindowStart) {
-				selectedPolicy, err = setNewPolicy(newForecast,poiList,values,times, sysConfiguration)
+				selectedPolicy, err = setNewPolicy(newForecast, sysConfiguration)
 				oldPolicy, indexConflict = policy_management.ConflictTimeOldPolicy(forecast,timeConflict)
 				timeInvalidation = oldPolicy.ScalingActions[indexConflict].TimeEnd
 				selectedPolicy.ScalingActions[0].TimeStart = timeInvalidation
@@ -44,7 +38,7 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 
 			}else{
 				//Invalidate completely old policy and create new one
-				selectedPolicy, err = setNewPolicy(forecast,poiList,values,times, sysConfiguration)
+				selectedPolicy, err = setNewPolicy(forecast, sysConfiguration)
 				po, _ := policyDAO.FindOneByTimeWindow(forecast.TimeWindowStart, forecast.TimeWindowEnd)
 				selectedPolicy.ID = po.ID
 				oldPolicy = selectedPolicy
@@ -64,6 +58,8 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 			}
 			//Subscribe to the notifications
 			SubscribeForecastingUpdates(sysConfiguration, selectedPolicy, forecast.IDPrediction)
+		} else {
+			log.Info("Updated forecast received but policies did not change")
 		}
 	}
 }

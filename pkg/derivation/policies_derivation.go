@@ -14,6 +14,8 @@ import (
 	"errors"
 	"github.com/cnf/structhash"
 	"strings"
+	"fmt"
+	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
 )
 
 var log = logging.MustGetLogger("spdt")
@@ -32,6 +34,7 @@ type TimeWindowDerivation interface {
 	WindowDerivation(values []float64, times [] time.Time)	types.ProcessedForecast
 }
 
+
 /* Derive scaling policies
 	in:
 		@poiList []types.PoI
@@ -42,7 +45,7 @@ type TimeWindowDerivation interface {
 	out:
 		@[]types.Policy
 */
-func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedVMProfiles []types.VmProfile, sysConfiguration config.SystemConfiguration) ([]types.Policy, error) {
+func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration config.SystemConfiguration, forecast types.Forecast) ([]types.Policy, error) {
 	var policies []types.Policy
 	systemConfiguration = sysConfiguration
 
@@ -58,60 +61,59 @@ func Policies(poiList []types.PoI, values []float64, times [] time.Time, sortedV
 		return policies, errors.New("Service "+ systemConfiguration.MainServiceName +" is not deployed")
 	}
 
-	timeWindows := SmallStepOverProvision{PoIList:poiList}
-	processedForecast := timeWindows.WindowDerivation(values,times)
+	processedForecast := forecast_processing.WindowDerivation(forecast)
 	initialState = currentState
 	mapVMProfiles := VMListToMap(sortedVMProfiles)
 
 	switch sysConfiguration.PreferredAlgorithm {
 	case util.NAIVE_ALGORITHM:
-		naive := NaivePolicy {algorithm:util.NAIVE_ALGORITHM, timeWindow:timeWindows,
+		naive := NaivePolicy {algorithm:util.NAIVE_ALGORITHM,
 							 currentState:currentState, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies = naive.CreatePolicies(processedForecast)
 
 	case util.BASE_INSTANCE_ALGORITHM:
-		base := BestBaseInstancePolicy{algorithm:util.BASE_INSTANCE_ALGORITHM, timeWindow:timeWindows,
+		base := BestBaseInstancePolicy{algorithm:util.BASE_INSTANCE_ALGORITHM,
 										currentState:currentState,mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies = base.CreatePolicies(processedForecast)
 
 	case util.SMALL_STEP_ALGORITHM:
-		sstep := StepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows,
+		sstep := StepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM,
 									mapVMProfiles:mapVMProfiles, sortedVMProfiles:sortedVMProfiles, sysConfiguration: sysConfiguration, currentState:currentState}
 		policies = sstep.CreatePolicies(processedForecast)
 
 	case util.SEARCH_TREE_ALGORITHM:
-		tree := TreePolicy {algorithm:util.SEARCH_TREE_ALGORITHM, timeWindow:timeWindows, currentState:currentState,
+		tree := TreePolicy {algorithm:util.SEARCH_TREE_ALGORITHM, currentState:currentState,
 			sortedVMProfiles:sortedVMProfiles,mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration}
 		policies = tree.CreatePolicies(processedForecast)
 
 	case util.DELTA_REPACKED:
-		algorithm := DeltaRepackedPolicy {algorithm:util.DELTA_REPACKED, timeWindow:timeWindows, currentState:currentState,
+		algorithm := DeltaRepackedPolicy {algorithm:util.DELTA_REPACKED, currentState:currentState,
 		sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies = algorithm.CreatePolicies(processedForecast)
 	default:
 		//naive
-		naive := NaivePolicy {algorithm:util.NAIVE_ALGORITHM, timeWindow:timeWindows,
+		naive := NaivePolicy {algorithm:util.NAIVE_ALGORITHM,
 			currentState:currentState, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies1 := naive.CreatePolicies(processedForecast)
 		policies = append(policies, policies1...)
 		//types
-		base := BestBaseInstancePolicy{algorithm:util.BASE_INSTANCE_ALGORITHM, timeWindow:timeWindows,
+		base := BestBaseInstancePolicy{algorithm:util.BASE_INSTANCE_ALGORITHM,
 			currentState:currentState, sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies2 := base.CreatePolicies(processedForecast)
 		policies = append(policies, policies2...)
 		//sstep
-		sstep := StepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM, timeWindow:timeWindows,
+		sstep := StepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM,
 			sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration, currentState:currentState}
 		policies3 := sstep.CreatePolicies(processedForecast)
 		policies = append(policies, policies3...)
 		//delta repack
-		algorithm := DeltaRepackedPolicy {algorithm:util.DELTA_REPACKED, timeWindow:timeWindows, currentState:currentState,
+		algorithm := DeltaRepackedPolicy {algorithm:util.DELTA_REPACKED, currentState:currentState,
 			sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies4 := algorithm.CreatePolicies(processedForecast)
 		policies = append(policies, policies4...)
 
 		//tree
-		tree := TreePolicy {algorithm:util.SEARCH_TREE_ALGORITHM, timeWindow:timeWindows, currentState:currentState,
+		tree := TreePolicy {algorithm:util.SEARCH_TREE_ALGORITHM, currentState:currentState,
 			sortedVMProfiles:sortedVMProfiles,mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration}
 		policies5 := tree.CreatePolicies(processedForecast)
 		policies = append(policies, policies5...)
@@ -433,7 +435,8 @@ func buildHeterogeneousVMSet(numberReplicas int, limits types.Limit, mapVMProfil
 	computeVMsCapacity(limits, &mapVMProfiles)
 
 	buildTree(tree.Root, numberReplicas,&candidateVMSets,mapVMProfiles)
-
+	fmt.Println("lenght tree")
+	fmt.Println(len(candidateVMSets))
 	if len(candidateVMSets)> 0{
 		sort.Slice(candidateVMSets, func(i, j int) bool {
 			costi := candidateVMSets[i].Cost(mapVMProfiles)
@@ -623,14 +626,17 @@ func computeScaleOutTransitionTime(vmAdded types.VMScale, podResize bool, timeSt
 	//Time to boot new VMS
 	nVMAdded := len(vmAdded)
 	if nVMAdded > 0 {
+		//Case 1: New VMs
 		bootTimeVMAdded := computeVMBootingTime(vmAdded, systemConfiguration)
 		transitionTime = timeStart.Add(-1 * time.Duration(bootTimeVMAdded) * time.Second)
 		//Time for add new VMS into k8s cluster
-		//60 seconds
-		transitionTime = transitionTime.Add(-1 * time.Duration(60) * time.Second)
+		transitionTime = transitionTime.Add(-1 * time.Duration(util.TIME_ADD_NODE_TO_K8S) * time.Second)
+		//Time to boot pods assuming worst scenario, when image has to be pulled
+		transitionTime = transitionTime.Add(-1 * time.Duration(podsBootingTime) * time.Second)
+	} else {
+		//Case: Only replication of pods
+		transitionTime = transitionTime.Add(-1 * time.Duration(util.TIME_CONTAINER_START) * time.Second)
 	}
-	//Time to boot pods
-	transitionTime = transitionTime.Add(-1 * time.Duration(podsBootingTime) * time.Second)
 	return transitionTime
 }
 

@@ -34,7 +34,7 @@ func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time, ConfigFile st
 	}
 
 	//Retrieve data access to the database for forecasting
-	forecastDAO := storage.GetForecastDAO(sysConfiguration.ServiceName)
+	forecastDAO := storage.GetForecastDAO(sysConfiguration.MainServiceName)
 	//Check if already exist, then update
 	resultQuery,err := forecastDAO.FindOneByTimeWindow(timeStart, timeEnd)
 
@@ -52,16 +52,9 @@ func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time, ConfigFile st
 		forecastDAO.Update(id, forecast)
 	}
 
-	log.Info("Start points of interest search in time serie")
-	poiList, values, times, err:= forecast_processing.PointsOfInterest(forecast)
-	if err != nil {
-		log.Error("The request failed with error %s\n", err)
-		return err
-	} else {
-		log.Info("Finish points of interest search in time serie")
-	}
 
-	selectedPolicy,err := setNewPolicy(forecast, poiList,values,times, sysConfiguration)
+
+	selectedPolicy,err := setNewPolicy(forecast, sysConfiguration)
 
 	if err == nil {
 		//Schedule scaling states
@@ -69,6 +62,10 @@ func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time, ConfigFile st
 
 		//Subscribe to the notifications
 		SubscribeForecastingUpdates(sysConfiguration, selectedPolicy, forecast.IDPrediction)
+	} else {
+		//Send message to user
+		fmt.Println(err.Error())
+		log.Warning("Process stopped. %s", err.Error())
 	}
 
 	return err
