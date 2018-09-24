@@ -42,8 +42,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 	}
 	configurations := []types.ScalingStep{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
-	//containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
-	//percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
+	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
 
 	for i, it := range processedForecast.CriticalIntervals {
 		resourcesConfiguration := types.ContainersConfig{}
@@ -53,7 +52,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		serviceToScale := p.currentState.Services[p.sysConfiguration.MainServiceName]
 		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
 		currentNumberReplicas := serviceToScale.Scale
-		currentLoadCapacity := getStateLoadCapacity(currentNumberReplicas,currentContainerLimits)
+		currentLoadCapacity := getStateLoadCapacity(currentNumberReplicas,currentContainerLimits).MSCPerSecond
 		deltaLoad := totalLoad - currentLoadCapacity
 
 		if deltaLoad == 0 {
@@ -78,6 +77,22 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 					//The replicas have the current limits configuration
 					deltaNumberReplicas := profileCurrentLimits.MSCSetting.Replicas - currentNumberReplicas
 					vmSetDeltaLoad := p.FindSuitableVMs(deltaNumberReplicas,profileCurrentLimits.Limits)
+
+					if underProvisionAllowed {
+						replicasUnder := deltaNumberReplicas-1
+						if replicasUnder > 1 {
+							vmSetUnder := p.FindSuitableVMs(replicasUnder,currentContainerLimits)
+							costVMSetUnderProvision := vmSetUnder.Cost(p.mapVMProfiles)
+							replicasUnder =  profileCurrentLimits.MSCSetting.Replicas  - 1
+							mscConfig := getStateLoadCapacity(replicasUnder,currentContainerLimits)
+							if isUnderProvisionInRange(totalLoad, mscConfig.MSCPerSecond, percentageUnderProvision) &&
+								costVMSetUnderProvision > 0 && costVMSetUnderProvision < vmSetDeltaLoad.Cost(p.mapVMProfiles) {
+								vmSetDeltaLoad = vmSetUnder
+								profileCurrentLimits.MSCSetting = mscConfig
+							}
+						}
+					}
+
 					//Merge the current configuration with configuration for the new replicas
 					vmSetDeltaLoad.Merge(p.currentState.VMs)
 					rConfigDeltaLoad := types.ContainersConfig {
@@ -159,7 +174,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 		parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL
 		parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(true)
 		parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
-		parameters[types.ISRESIZEPODS] = strconv.FormatBool(false)
+		parameters[types.ISRESIZEPODS] = strconv.FormatBool(true)
 		numConfigurations := len(configurations)
 		newPolicy.ScalingActions = configurations
 		newPolicy.Algorithm = p.algorithm
@@ -370,4 +385,22 @@ func (p DeltaRepackedPolicy) onlyScaleOutContainers(currentVMSet types.VMScale, 
 	}
 
 	return containersResourceConfig, onlyScaleContainers
+}
+
+
+/*Search a container configuration (limits & n replicas) which has under provision but leads to a cheaper VM set
+	in:
+		@totalLoad - float64 = Number of requests
+		@containerLimits -Limit = Resource limits for the container
+		@percentageUnderProvision -float64 = percentage of the max under provision allowed
+	out:
+		ContainersConfig -
+*/
+func (p DeltaRepackedPolicy) optionWithUnderProvision(totalLoad float64, containerLimits types.Limit, percentageUnderProvision float64) types.ContainersConfig {
+	containerConfigUnder := selectProfileByLimits(totalLoad, containerLimits, true)
+	vmSetUnder := p.FindSuitableVMs(containerConfigUnder.MSCSetting.Replicas, containerConfigUnder.Limits)
+	costVMSetUnderProvision := vmSetUnder.Cost(p.mapVMProfiles)
+	containerConfigUnder.VMSet = vmSetUnder
+	containerConfigUnder.Cost = costVMSetUnderProvision
+	return  containerConfigUnder
 }

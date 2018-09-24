@@ -85,6 +85,35 @@ func GetPredictedReplicas(endpoint string, appName string, appType string, mainS
 	return mscSetting,err
 }
 
+func GetPredictedMSCByReplicas(endpoint string, appName string, appType string, mainServiceName string,  replicas int, cpuCores float64, memGb float64) (types.MSCCompleteSetting, error){
+	mscSetting := types.MSCCompleteSetting{}
+	parameters := make(map[string]string)
+	parameters["apptype"] = appType
+	parameters["appname"] = appName
+	parameters["mainservicename"] = mainServiceName
+	parameters["replicas"] = strconv.Itoa(replicas)
+	parameters["numcoresutil"] = strconv.FormatFloat(cpuCores, 'f', 1, 64)
+	parameters["numcoreslimit"] = strconv.FormatFloat(cpuCores, 'f', 1, 64)
+	parameters["nummemlimit"] = strconv.FormatFloat(memGb, 'f', 1, 64)
+
+	endpoint = util.ParseURL(endpoint, parameters)
+
+	response, err := http.Get(endpoint)
+	if err != nil {
+		return mscSetting,err
+	}
+	defer response.Body.Close()
+	data, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return mscSetting,err
+	}
+	err = json.Unmarshal(data, &mscSetting)
+	if err != nil {
+		return mscSetting,err
+	}
+	return mscSetting,err
+}
+
 func GetVMsProfiles(endpoint string) ([]types.VmProfile, error){
 	vmList := []types.VmProfile{}
 	response, err := http.Get(endpoint)

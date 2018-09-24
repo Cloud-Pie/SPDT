@@ -275,7 +275,7 @@ func (p *PerformanceProfileDAO) FindProfileTRN(cores float64, memory float64, nu
 	err := p.db.C(p.Collection).Find(bson.M{
 		"limits.cpu_cores" : cores,
 		"limits.mem_gb" : memory,
-		"mscs": bson.M{"$elemMatch": bson.M{"replicas":bson.M{"$gte": numberReplicas}}}}).
+		"mscs": bson.M{"$elemMatch": bson.M{"replicas":bson.M{"$eq": numberReplicas}}}}).
 		Select(bson.M{"_id": 1, "limits":1, "mscs.$":1}).One(&performanceProfile)
 	return performanceProfile,err
 }

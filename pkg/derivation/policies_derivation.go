@@ -229,7 +229,7 @@ func selectProfileByLimits(requests float64, limits types.Limit, underProvision 
 	} else if err2 == nil {
 		containerConfig = underProvisionConfig
 
-		url := systemConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_UPDATE_PROFILE
+		url := systemConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILE_BY_MSC
 		appName := systemConfiguration.AppName
 		appType := systemConfiguration.AppType
 		mainServiceName := systemConfiguration.MainServiceName
@@ -316,15 +316,41 @@ func selectProfileUnderVMLimits(requests float64,  limits types.Limit, underProv
 	out:
 		@float64	- Max number of request for this containers configuration
 */
-func getStateLoadCapacity(numberReplicas int, limits types.Limit) float64 {
-	currentLoadCapacity := 0.0
+func getStateLoadCapacity(numberReplicas int, limits types.Limit) types.MSCSimpleSetting {
 	serviceProfileDAO := storage.GetPerformanceProfileDAO(systemConfiguration.MainServiceName)
 	profile,_ := serviceProfileDAO.FindProfileTRN(limits.CPUCores, limits.MemoryGB, numberReplicas)
+	newMSCSetting := types.MSCSimpleSetting{}
 	if len(profile.MSCSettings) > 0 {
-		currentLoadCapacity = profile.MSCSettings[0].MSCPerSecond
+		return profile.MSCSettings[0]
+	}else {
+		url := systemConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILE_BY_REPLICAS
+		appName := systemConfiguration.AppName
+		appType := systemConfiguration.AppType
+		mainServiceName := systemConfiguration.MainServiceName
+		mscCompleteSetting,_ := performance_profiles.GetPredictedMSCByReplicas(url,appName,appType,mainServiceName,numberReplicas,limits.CPUCores, limits.MemoryGB)
+		newMSCSetting = types.MSCSimpleSetting{
+			MSCPerSecond:mscCompleteSetting.MSCPerSecond.RegBruteForce,
+			BootTimeSec:mscCompleteSetting.BootTimeMs,
+			Replicas:mscCompleteSetting.Replicas,
+			StandDevBootTimeSec:mscCompleteSetting.StandDevBootTimeMS/1000,
+		}
+		if newMSCSetting.BootTimeSec == 0 {
+			newMSCSetting.BootTimeSec = util.DEFAULT_POD_BOOT_TIME
+		}
+		//update in db
+
+		profile,_:= serviceProfileDAO.FindProfileTRN(limits.CPUCores, limits.MemoryGB, numberReplicas)
+		if profile.ID == "" {
+			profile,_= serviceProfileDAO.FindProfileByLimits(limits)
+			profile.MSCSettings = append(profile.MSCSettings,newMSCSetting)
+			err3 := serviceProfileDAO.UpdateById(profile.ID, profile)
+			if err3 != nil{
+				log.Error("Performance profile not updated")
+			}
+		}
 	}
 	//defer serviceProfileDAO.Session.Close()
-	return currentLoadCapacity
+	return newMSCSetting
 }
 
 /* Utility method to set up each scaling configuration

@@ -41,7 +41,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 		serviceToScale := p.currentState.Services[p.sysConfiguration.MainServiceName]
 		currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
 		currentNumberReplicas := serviceToScale.Scale
-		currentLoadCapacity := getStateLoadCapacity(currentNumberReplicas, currentContainerLimits)
+		currentLoadCapacity := getStateLoadCapacity(currentNumberReplicas, currentContainerLimits).MSCPerSecond
 		deltaLoad := totalLoad - currentLoadCapacity
 
 		if deltaLoad == 0 {
@@ -79,13 +79,18 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
 						vmSet = p.FindSuitableVMs(deltaNumberReplicas, profileCurrentLimits.Limits)
 
 						if underProvisionAllowed {
-							ProfileCurrentLimitsUnder := selectProfileByLimits(it.Requests, currentContainerLimits, underProvisionAllowed)
-							vmSetUnder := p.FindSuitableVMs(profileCurrentLimits.MSCSetting.Replicas, profileCurrentLimits.Limits)
-							costVMSetUnderProvision := vmSetUnder.Cost(p.mapVMProfiles)
-							if isUnderProvisionInRange(it.Requests, ProfileCurrentLimitsUnder.MSCSetting.MSCPerSecond, percentageUnderProvision) &&
-								costVMSetUnderProvision > 0 && costVMSetUnderProvision < vmSet.Cost(p.mapVMProfiles) {
-								vmSet = vmSetUnder
-								profileCurrentLimits = ProfileCurrentLimitsUnder
+							//ProfileCurrentLimitsUnder := selectProfileByLimits(deltaLoad, currentContainerLimits, underProvisionAllowed)
+							replicasUnder := deltaNumberReplicas-1
+							if replicasUnder > 1 {
+								vmSetUnder := p.FindSuitableVMs(replicasUnder,currentContainerLimits)
+								costVMSetUnderProvision := vmSetUnder.Cost(p.mapVMProfiles)
+								replicasUnder = newNumServiceReplicas - 1
+								mscConfig := getStateLoadCapacity(replicasUnder,currentContainerLimits)
+								if isUnderProvisionInRange(totalLoad, mscConfig.MSCPerSecond, percentageUnderProvision) &&
+									costVMSetUnderProvision > 0 && costVMSetUnderProvision < vmSet.Cost(p.mapVMProfiles) {
+									vmSet = vmSetUnder
+									profileCurrentLimits.MSCSetting = mscConfig
+								}
 							}
 						}
 						//Merge the current configuration with configuration for the new replicas
