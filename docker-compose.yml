@@ -19,20 +19,10 @@ services:
             - 'profilesdb'
             - 'policiesdb'
             - 'forecastdb'
-            - 'serie'
         links:
             - 'profilesdb'
             - 'policiesdb'
             - 'forecastdb'
-            - 'serie'
-
-
-    serie:
-          build: Time-Serie-Processing
-          container_name: 'serie'
-          ports:
-             - 5000:5000
-
     profilesdb:
          image: mongo:latest
          container_name: 'profilesdb'
