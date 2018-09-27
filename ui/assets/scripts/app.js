@@ -1,5 +1,5 @@
-const policiesEndpoint = '/api/primeapp/policies'
-const forecastRequestsEndpoint = '/api/primeapp/forecast'
+var policiesEndpoint = '/api/primeapp/policies'
+var forecastRequestsEndpoint = '/api/primeapp/forecast'
 
 var allPolicies = []
 var requestDemand = []
@@ -374,7 +374,7 @@ function plotProvidedResources(time, cpuCores, memGB) {
     };
 
     var layout = {
-        title: '<b>% Resource Utilization</b>',
+        title: '<b>% Resource Allocation</b>',
         titlefont: {
            size:18, color: '#092e20'
         },
@@ -396,6 +396,8 @@ function plotProvidedResources(time, cpuCores, memGB) {
 }
 
 function searchByID(policyId) {
+    appName = document.getElementById("appNameid").value;
+    policiesEndpoint = '/api/'+appName+'/policies'
     requestURL = policiesEndpoint + "/" + policyId
 
     if (policyId == null) {
@@ -469,6 +471,8 @@ function searchByTimestamp() {
         .map(k => esc(k) + '=' + esc(params[k]))
         .join('&')
 
+    appName = document.getElementById("appNameid").value;
+    policiesEndpoint = '/api/'+appName+'/policies'
     policiesRequest = policiesEndpoint +"?" + query
     fetch(policiesRequest)
         .then((response) => response.json())
