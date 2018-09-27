@@ -31,7 +31,7 @@ func invalidate(cmd *cobra.Command, args []string) {
 		configFile := cmd.Flag("config-file").Value.String()
 		systemConfiguration := server.ReadSysConfigurationFile(configFile)
 
-		policyDAO := db.GetPolicyDAO(systemConfiguration.ServiceName)
+		policyDAO := db.GetPolicyDAO(systemConfiguration.MainServiceName)
 		policy,err := policyDAO.FindByID(id)
 		if err != nil {
 			log.Fatalf("Error %s", err.Error())

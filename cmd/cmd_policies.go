@@ -34,7 +34,7 @@ func retrieve (cmd *cobra.Command, args []string) {
 	end := cmd.Flag("end-time").Value.String()
 	configFile := cmd.Flag("config-file").Value.String()
 	systemConfiguration := server.ReadSysConfigurationFile(configFile)
-	policyDAO := db.GetPolicyDAO(systemConfiguration.ServiceName)
+	policyDAO := db.GetPolicyDAO(systemConfiguration.MainServiceName)
 
 	if id != "" {
 		policy,err := policyDAO.FindByID(id)

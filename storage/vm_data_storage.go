@@ -96,11 +96,11 @@ func (p *VMBootingProfileDAO) InstanceVMBootingShutdown(vmType string) (types.In
 	return result, err
 }
 
-func GetVMBootingProfileDAO(serviceName string) *VMBootingProfileDAO {
+func GetVMBootingProfileDAO() *VMBootingProfileDAO {
 	if VMBootingProfileDB == nil {
 		VMBootingProfileDB = &VMBootingProfileDAO {
 			Database:DEFAULT_DB_PROFILES,
-			Collection:DEFAULT_DB_COLLECTION_VM_PROFILES + "_" + serviceName,
+			Collection:DEFAULT_DB_COLLECTION_VM_PROFILES,
 		}
 		_,err := VMBootingProfileDB.Connect()
 		if err != nil {

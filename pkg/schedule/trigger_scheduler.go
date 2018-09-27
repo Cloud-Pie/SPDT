@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-func TriggerScheduler(policy types.Policy, endpoint string)(scheduler.StateToSchedule,error){
-	var stateToSchedule  scheduler.StateToSchedule
+func TriggerScheduler(policy types.Policy, endpoint string)([] scheduler.StateToSchedule,error){
+	var statesToSchedule  []scheduler.StateToSchedule
 	for _, conf := range policy.ScalingActions {
 		mapServicesToSchedule := make(map[string]scheduler.ServiceToSchedule)
 		state := conf.DesiredState
@@ -24,20 +24,21 @@ func TriggerScheduler(policy types.Policy, endpoint string)(scheduler.StateToSch
 			}
 		}
 
-		stateToSchedule = scheduler.StateToSchedule{
+		stateToSchedule := scheduler.StateToSchedule{
 			LaunchTime:conf.TimeStartTransition,
 			Services:mapServicesToSchedule,
 			Name:state.Hash,
 			VMs:state.VMs,
 			ExpectedStart:conf.TimeStart,
 		}
+		statesToSchedule = append(statesToSchedule, stateToSchedule)
 
 		err := scheduler.CreateState(stateToSchedule, endpoint)
 		if err != nil {
-			return stateToSchedule,err
+			return statesToSchedule,err
 		}
 	}
-	return stateToSchedule,nil
+	return statesToSchedule,nil
 }
 
 func CPUToString(value float64) string {

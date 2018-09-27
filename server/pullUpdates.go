@@ -2,12 +2,12 @@ package server
 
 import (
 	Fservice "github.com/Cloud-Pie/SPDT/rest_clients/forecast"
-	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
 	"github.com/Cloud-Pie/SPDT/storage"
 	"github.com/Cloud-Pie/SPDT/util"
 	"time"
 	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/types"
+	"fmt"
 )
 
 var requestsCapacityPerState types.RequestCapacitySupply

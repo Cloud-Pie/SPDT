@@ -132,6 +132,15 @@ func GetPolicyDAO(serviceName string) *PolicyDAO{
 		if err != nil {
 			log.Error(err.Error())
 		}
+	} else if PolicyDB.Collection != DEFAULT_DB_COLLECTION_POLICIES + "_" + serviceName {
+		PolicyDB = &PolicyDAO {
+			Database:DEFAULT_DB_POLICIES,
+			Collection:DEFAULT_DB_COLLECTION_POLICIES + "_" + serviceName,
+		}
+		_,err := PolicyDB.Connect()
+		if err != nil {
+			log.Error(err.Error())
+		}
 	}
 	return PolicyDB
 }

@@ -86,8 +86,8 @@ func (p *ForecastDAO) FindOneByTimeWindow(startTime time.Time, endTime time.Time
 	var forecast types.Forecast
 	//Search for that retrieves exact time window
 	err := p.db.C(p.Collection).
-		Find(bson.M{"start_time": bson.M{"$gte":startTime},
-					"end_time": bson.M{"$lte":endTime}}).One(&forecast)
+		Find(bson.M{"start_time": bson.M{"$eq":startTime},
+					"end_time": bson.M{"$eq":endTime}}).One(&forecast)
 
 	//If user specified search parameters which are not precise, then search the closest time window
 	/*if err != nil {
@@ -112,6 +112,15 @@ func (p *ForecastDAO) FindOneByTimeWindow(startTime time.Time, endTime time.Time
 
 func GetForecastDAO(serviceName string) *ForecastDAO{
 	if ForecastDB == nil {
+		ForecastDB = &ForecastDAO {
+			Database:DEFAULT_DB_FORECAST,
+			Collection:DEFAULT_DB_COLLECTION_FORECAST + "_" + serviceName,
+		}
+		_,err := ForecastDB.Connect()
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
+	} else if ForecastDB.Collection != DEFAULT_DB_COLLECTION_FORECAST + "_" + serviceName {
 		ForecastDB = &ForecastDAO {
 			Database:DEFAULT_DB_FORECAST,
 			Collection:DEFAULT_DB_COLLECTION_FORECAST + "_" + serviceName,

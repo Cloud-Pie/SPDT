@@ -18,10 +18,10 @@ After each change in the workload it calculates the number of VMs of a predefine
 Repeat the process for all the vm types available
 */
 type BestBaseInstancePolicy struct {
-	algorithm  string               //Algorithm's name
-	timeWindow TimeWindowDerivation //Algorithm used to process the forecasted time serie
-	currentState	types.State			 //Current State
-	sortedVMProfiles []types.VmProfile    			//List of VM profiles sorted by price
+	algorithm  string
+	timeWindow TimeWindowDerivation
+	currentState	types.State
+	sortedVMProfiles []types.VmProfile
 	mapVMProfiles   map[string]types.VmProfile
 	sysConfiguration	config.SystemConfiguration
 }
@@ -58,7 +58,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
 		cost := ComputePolicyCost((policies)[i],systemConfiguration.PricingModel.BillingUnit, p.mapVMProfiles)
 		(policies)[i].Metrics.Cost = math.Ceil(cost*100)/100
 	}
-	//Sort policies based on price
+
 	sort.Slice(policies, func(i, j int) bool {
 		order := (policies)[i].Metrics.Cost < (policies)[j].Metrics.Cost
 		return order

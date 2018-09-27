@@ -8,14 +8,15 @@ import (
 	"net/url"
 	"time"
 	"bytes"
+	"github.com/Cloud-Pie/SPDT/util"
 )
 
 func GetForecast(endpoint string, startTime time.Time, endTime time.Time) (types.Forecast, error){
 
 	forecast := types.Forecast{}
 	q := url.Values{}
-	q.Add("start_time", startTime.String())
-	q.Add("end_time", endTime.String())
+	q.Add("start_time", startTime.Format(util.UTC_TIME_LAYOUT))
+	q.Add("end_time", endTime.Format(util.UTC_TIME_LAYOUT))
 
 	req, err := http.NewRequest("GET",endpoint,nil)
 	if err != nil {

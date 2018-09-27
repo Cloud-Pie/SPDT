@@ -30,7 +30,7 @@ func delete(cmd *cobra.Command, args []string) {
 	if force {
 		configFile := cmd.Flag("config-file").Value.String()
 		systemConfiguration := server.ReadSysConfigurationFile(configFile)
-		policyDAO := db.GetPolicyDAO(systemConfiguration.ServiceName)
+		policyDAO := db.GetPolicyDAO(systemConfiguration.MainServiceName)
 		err := policyDAO.DeleteById(id)
 		if err != nil {
 			fmt.Println("Error, policy could not be deleted")

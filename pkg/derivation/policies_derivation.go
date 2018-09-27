@@ -131,7 +131,7 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration config.System
 func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.SystemConfiguration) float64 {
 	bootTime := 0.0
 	//Check in db if already data is stored
-	vmBootingProfileDAO := storage.GetVMBootingProfileDAO(sysConfiguration.MainServiceName)
+	vmBootingProfileDAO := storage.GetVMBootingProfileDAO()
 
 	//Call API
 	for vmType, n := range vmsScale {
@@ -167,7 +167,7 @@ func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.System
 func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.SystemConfiguration) float64 {
 	terminationTime := 0.0
 	//Check in db if already data is stored
-	vmBootingProfileDAO := storage.GetVMBootingProfileDAO(sysConfiguration.MainServiceName)
+	vmBootingProfileDAO := storage.GetVMBootingProfileDAO()
 
 	//Call API
 	for vmType, n := range vmsScale {

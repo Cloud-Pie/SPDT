@@ -15,9 +15,9 @@ It assumes that the current VM set where the microservice is deployed is a homog
 Based on the unique VM type and its capacity to host a number of replicas it increases or decreases the number of VMs
 */
 type NaivePolicy struct {
-	algorithm  		string               //Algorithm's name
-	timeWindow 		TimeWindowDerivation //Algorithm used to process the forecasted time serie
-	currentState	types.State			 //Current State
+	algorithm  		string
+	timeWindow 		TimeWindowDerivation
+	currentState	types.State
 	mapVMProfiles   map[string]types.VmProfile
 	sysConfiguration	config.SystemConfiguration
 }

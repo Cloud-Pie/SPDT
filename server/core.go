@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"sort"
 	"github.com/Cloud-Pie/SPDT/pkg/derivation"
-	"github.com/Cloud-Pie/SPDT/pkg/evaluation"
 	"github.com/Cloud-Pie/SPDT/pkg/schedule"
 	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
 )
@@ -32,6 +31,7 @@ var (
 	timeStart				time.Time
 	timeEnd					time.Time
 	ConfigFile				string
+	testJSON				[]Sservice.StateToSchedule
 )
 
 // Main function to start the scaling policy derivation
@@ -150,7 +150,7 @@ func getVMProfiles()[]types.VmProfile {
 func getVMBootingProfile(sysConfiguration config.SystemConfiguration, vmProfiles []types.VmProfile){
 	var err error
 	var vmBootingProfile types.InstancesBootShutdownTime
-	vmBootingProfileDAO := storage.GetVMBootingProfileDAO(sysConfiguration.MainServiceName)
+	vmBootingProfileDAO := storage.GetVMBootingProfileDAO()
 	storedVMBootingProfiles,_ := vmBootingProfileDAO.FindAll()
 	if len(storedVMBootingProfiles) == 0 {
 		log.Info("Start request Performance Profiles")
@@ -214,7 +214,7 @@ func getServiceProfile(sysConfiguration config.SystemConfiguration){
 }
 
 //Start Derivation of a new scaling policy for the specified scaling horizon and correspondent forecast
-func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64, times []time.Time, sysConfiguration config.SystemConfiguration) (types.Policy, error){
+func setNewPolicy(forecast types.Forecast,sysConfiguration config.SystemConfiguration) (types.Policy, error){
 	//Get VM Profiles
 	vmProfiles := getVMProfiles()
 	//Get VM booting Profiles
@@ -224,7 +224,7 @@ func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64
 	var selectedPolicy types.Policy
 	//Derive Strategies
 	log.Info("Start policies derivation")
-	policies,err = derivation.Policies(poiList, values, times, vmProfiles, sysConfiguration)
+	policies,err = derivation.Policies(vmProfiles, sysConfiguration, forecast)
 	if err != nil {
 		return selectedPolicy, err
 	}
@@ -232,7 +232,7 @@ func setNewPolicy(forecast types.Forecast, poiList []types.PoI, values []float64
 
 	log.Info("Start policies evaluation")
 	//var err error
-	selectedPolicy,err = evaluation.SelectPolicy(&policies, sysConfiguration, vmProfiles, forecast)
+	selectedPolicy,err = derivation.SelectPolicy(&policies, sysConfiguration, vmProfiles, forecast)
 	if err != nil {
 		log.Error("Error evaluation policies: %s", err.Error())
 	}else {
@@ -256,7 +256,8 @@ func millisecondsToSeconds(m float64) float64{
 func ScheduleScaling(sysConfiguration config.SystemConfiguration, selectedPolicy types.Policy) {
 	log.Info("Start request Scheduler")
 	schedulerURL := sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES
-	err := schedule.TriggerScheduler(selectedPolicy, schedulerURL)
+	tset,err := schedule.TriggerScheduler(selectedPolicy, schedulerURL)
+	testJSON = tset
 	if err != nil {
 		log.Error("The scheduler request failed with error %s\n", err)
 	} else {

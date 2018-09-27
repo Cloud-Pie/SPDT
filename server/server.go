@@ -130,7 +130,7 @@ func invalidatePolicyByID(c *gin.Context) {
 
 func serverCall(c *gin.Context) {
 	StartPolicyDerivation(timeStart,timeEnd,"config.yml")
-	c.JSON(http.StatusOK, requestsCapacityPerState)
+	c.JSON(http.StatusOK, testJSON)
 }
 
 //Listener to receive forecasting updates
@@ -138,7 +138,7 @@ func updateForecast(c *gin.Context) {
 	forecast := &types.Forecast{}
 	c.Bind(forecast)
 	forecastChannel <- *forecast
-	c.JSON(http.StatusOK,policies)
+	c.JSON(http.StatusOK,testJSON)
 }
 
 //This handler return the home page of the user interface

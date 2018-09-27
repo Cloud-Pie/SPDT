@@ -299,6 +299,15 @@ func GetPerformanceProfileDAO(serviceName string) *PerformanceProfileDAO {
 		if err != nil {
 			log.Error("Error connecting to Profiles database "+err.Error())
 		}
+	} else if PerformanceProfileDB.Collection != DEFAULT_DB_COLLECTION_PROFILES + "_" + serviceName {
+		PerformanceProfileDB = &PerformanceProfileDAO {
+			Database:DEFAULT_DB_PROFILES,
+			Collection:DEFAULT_DB_COLLECTION_PROFILES + "_" + serviceName,
+		}
+		_,err := PerformanceProfileDB.Connect()
+		if err != nil {
+			log.Error("Error connecting to Profiles database "+err.Error())
+		}
 	}
 	return PerformanceProfileDB
 }
