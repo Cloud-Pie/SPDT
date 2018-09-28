@@ -75,9 +75,7 @@
                     <ul class="nav nav-tabs">
                         <li class="active"><a data-toggle="tab" href="#home">Home</a></li>
                         <li><a data-toggle="tab" href="#menuSearch">Search</a></li>
-                        <li><a data-toggle="tab" href="#menuDerive">Derive</a></li>
                     </ul>
-
                     <div class="tab-content">
                         <div id="home" class="tab-pane fade in active">
                             <div class="hero-unit">
@@ -325,9 +323,11 @@
                                                 </div>
 
                                                 <div class="row">
-                                                    <div class="panel">
-                                                        <div class="panel-body">
-                                                            <div id="vmUnitsAll" class="ct-chart"></div>
+                                                    <div class="col-md-6 padding-2">
+                                                        <div class="panel">
+                                                            <div class="panel-body">
+                                                                <div id="costAll" class="ct-chart"></div>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -392,159 +392,6 @@
                                 </div>
                             </div>
                         </div>
-                         <div id="menuDerive" class="tab-pane fade">
-                             <div class="container-fluid">
-                                 <h2 class="page-title"> Create new Scaling Policy</h2>
-                                 <div class="row">
-                                     <div class="panel col-md-6">
-                                         <div class="panel-heading">
-                                             <h3 class="panel-title">Scaling Horizon</h3>
-                                         </div>
-                                         <div class="panel-body">
-                                             <div class="form-group col-md-4">
-                                                 <label for="datetimepicker6">Start time</label>
-                                                 <div class='input-group date' id='datetimepicker6'>
-                                                     <input type='text' class="form-control" id="datetimestart"/>
-                                                     <span class="input-group-addon">
-                                                    <span class="glyphicon glyphicon-calendar"></span>
-                                                </span>
-                                                 </div>
-                                             </div>
-                                             <div class="form-group col-md-4">
-                                                 <label for="datetimepicker7">End time</label>
-                                                 <div class='input-group date  bottom-right' id='datetimepicker7'>
-                                                     <input type='text' class="form-control" id="datetimeend"/>
-                                                     <span class="input-group-addon">
-                                                    <span class="glyphicon glyphicon-calendar"></span>
-                                                </span>
-                                                 </div>
-                                             </div>
-                                             <br>
-                                             <div class="btn-bottom col-md-2 right-aligned">
-                                                 <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Derive Policy </button>
-                                             </div>
-                                         </div>
-                                     </div>
-
-                                     <div class="panel col-md-5 col-lg-offset-1">
-                                         <div class="panel-heading">
-                                             <h3 class="panel-title">Pricing Model</h3>
-                                         </div>
-                                         <div class="panel-body">
-                                             <div class="col-md-4">
-                                                 <br>
-                                                 <label for="billingUnitDiv">Billing Unit</label>
-                                                 <select class="form-control" id="billingUnitDiv">
-                                                     <option value="hour">Hour</option>
-                                                     <option value="second">Second</option>
-                                                 </select>
-                                             </div>
-                                             <div class="col-md-4">
-                                                 <label for="budgetDiv">Budget</label>
-                                                 <div class="input-group" id="budgetDiv">
-                                                     <span class="input-group-addon">$</span>
-                                                     <input class="form-control" type="text">
-                                                     <span class="input-group-addon">.00</span>
-                                                 </div>
-                                             </div>
-                                         </div>
-                                     </div>
-                                 </div>
-
-                                 <div class="row">
-                                     <div class="panel col-md-6">
-                                         <div class="panel-heading">
-                                             <h3 class="panel-title">Available VMs</h3>
-                                         </div>
-                                         <div class="panel-body">
-                                             <label class="fancy-checkbox">
-                                                 <input type="checkbox">
-                                                 <span>t2.nano</span>
-                                             </label>
-                                             <label class="fancy-checkbox">
-                                                 <input type="checkbox">
-                                                 <span>t2.micro</span>
-                                             </label>
-                                             <label class="fancy-checkbox">
-                                                 <input type="checkbox">
-                                                 <span>t2.small</span>
-                                             </label>
-                                             <label class="fancy-checkbox">
-                                                 <input type="checkbox">
-                                                 <span>t2.medium</span>
-                                             </label>
-                                             <label class="fancy-checkbox">
-                                                 <input type="checkbox">
-                                                 <span>t2.large</span>
-                                             </label>
-                                             <label class="fancy-checkbox">
-                                                 <input type="checkbox">
-                                                 <span>t2.xlarge</span>
-                                             </label>
-                                             <label class="fancy-checkbox">
-                                                 <input type="checkbox">
-                                                 <span>t2.2xlarge</span>
-                                             </label>
-                                             <br>
-                                         </div>
-                                     </div>
-
-                                     <div class="panel col-md-5 col-md-offset-1">
-                                         <div class="panel-heading">
-                                             <h3 class="panel-title">Policy Settings</h3>
-                                         </div>
-                                         <div class="panel-body">
-                                             <label for="algorithmList">Algorithms</label>
-                                             <select class="form-control" id="algorithmList">
-                                                 <option value="cheese">All</option>
-                                                 <option value="cheese">Naive</option>
-                                                 <option value="tomatoes">Base Instance</option>
-                                                 <option value="mozarella">Per Step</option>
-                                                 <option value="mushrooms">Delta</option>
-                                                 <option value="pepperoni">Delta Repacked</option>
-                                             </select>
-
-                                             <label for="vmScalingRadio">VMs Scaling Method</label>
-                                             <label class="fancy-radio" id="vmScalingRadio">
-                                                 <input name="vmScalingMethod" value="vertical" type="radio">
-                                                 <span><i></i>Vertical</span>
-                                             </label>
-                                             <label class="fancy-radio">
-                                                 <input name="vmScalingMethod" value="horizontal" type="radio">
-                                                 <span><i></i>Horizontal</span>
-                                             </label>
-                                             <label class="fancy-radio">
-                                                 <input name="vmScalingMethod" value="hybrid" type="radio">
-                                                 <span><i></i>Hybrid</span>
-                                             </label>
-
-                                             <label for="contScalingRadio">Containers Scaling Method</label>
-                                             <label class="fancy-radio" id="contScalingRadio">
-                                                 <input name="contScalingMethod" value="vertical" type="radio">
-                                                 <span><i></i>Vertical</span>
-                                             </label>
-                                             <label class="fancy-radio">
-                                                 <input name="contScalingMethod" value="horizontal" type="radio">
-                                                 <span><i></i>Horizontal</span>
-                                             </label>
-                                             <label class="fancy-radio">
-                                                 <input name="contScalingMethod" value="hybrid" type="radio">
-                                                 <span><i></i>Hybrid</span>
-                                             </label>
-
-                                             <label class="fancy-checkbox">
-                                                 <input type="checkbox">
-                                                 <span>Heterogeneos Cluster </span>
-                                             </label>
-                                             <label class="fancy-checkbox">
-                                                 <input type="checkbox">
-                                                 <span>Underprovision allowed</span>
-                                             </label>
-                                         </div>
-                                     </div>
-                                 </div>
-                             </div>
-                          </div>
                     </div>
                         <!-- END OVERVIEW -->
                 </div>

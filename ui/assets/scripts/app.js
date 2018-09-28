@@ -1,5 +1,5 @@
-var policiesEndpoint = '/api/primeapp/policies'
-var forecastRequestsEndpoint = '/api/primeapp/forecast'
+var policiesEndpoint = ''
+var forecastRequestsEndpoint = ''
 
 var allPolicies = []
 var requestDemand = []
@@ -446,8 +446,9 @@ function fetchLoadPredicted(timeStart, timeEnd){
     let query = Object.keys(params)
         .map(k => esc(k) + '=' + esc(params[k]))
         .join('&')
-
-    requestURL = forecastRequestsEndpoint + '?' + query
+    appName = document.getElementById("appNameid").value;
+    forecastRequestsEndpoint = '/api/'+appName +'/forecast?' + query
+    requestURL = forecastRequestsEndpoint
     fetch(requestURL)
         .then((response) => response.json())
         .then(function (data){
@@ -566,12 +567,13 @@ function clickedCompareAll(){
 
     units = getVirtualUnitsAll(allPolicies)
     plotCapacityAll(units.time,requestDemand, units.trnAll, units.tracesAll)
-    plotVMsAll(units.time, units.vmsAll, units.tracesAll)
+   // plotVMsAll(units.time, units.vmsAll, units.tracesAll)
     plotReplicasAll(units.time, units.replicasAll,units.tracesAll)
     plotCPUAll(units.time, units.cpuCoresAll, units.tracesAll)
     plotMemAll(units.time, units.memGBAll, units.tracesAll)
     plotNScalingVMAll(units.nScalingVMsAll, units.nScalingContainersAll,units.tracesAll)
     plotOverUnderProvisionAll(units.overprovisionAll,units.underprovisionAll, units.tracesAll)
+    plotCostAll(units.costAll,units.tracesAll)
 }
 
 function getVirtualUnitsAll(policies) {
@@ -585,6 +587,7 @@ function getVirtualUnitsAll(policies) {
     underprovisionAll = [];
     nScalingVMsAll = [];
     nScalingContainersAll = [];
+    costAll = [];
     policies.forEach(function (policy) {
         time = [];
         vms = [];
@@ -618,6 +621,7 @@ function getVirtualUnitsAll(policies) {
         underprovisionAll.push(policy.metrics.under_provision)
         nScalingVMsAll.push(policy.metrics.num_scale_vms)
         nScalingContainersAll.push(policy.metrics.num_scale_containers)
+        costAll.push(policy.metrics.cost)
     })
 
     return {
@@ -631,7 +635,8 @@ function getVirtualUnitsAll(policies) {
         overprovisionAll: overprovisionAll,
         underprovisionAll: underprovisionAll,
         nScalingVMsAll: nScalingVMsAll,
-        nScalingContainersAll:nScalingContainersAll
+        nScalingContainersAll:nScalingContainersAll,
+        costAll: costAll
     }
 }
 
@@ -740,7 +745,7 @@ function plotCPUAll(time, cpuCoresAll, tracesAll) {
 
     Plotly.newPlot('cpuUtilizationAll', data,layout);
 }
-
+/*
 function plotVMsAll(time, vmsAll, tracesAll) {
 
     var data = [];
@@ -772,7 +777,7 @@ function plotVMsAll(time, vmsAll, tracesAll) {
     };
 
     Plotly.newPlot('vmUnitsAll', data,layout);
-}
+}*/
 
 function plotReplicasAll(time, replicasAll, tracesAll) {
     var data = [];
@@ -826,7 +831,12 @@ function plotNScalingVMAll(nScalingVMs, nScalingContainers, tracesAll) {
         //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
-        //height: 200
+        legend: {
+            "orientation": "h",
+            xanchor: "center",
+            y: 1.088,
+            x: 0.2
+        },
     };
 
     Plotly.newPlot('nScalingVmsAll', data,layout);
@@ -865,6 +875,34 @@ function plotOverUnderProvisionAll(overAll, underAll, tracesAll) {
     Plotly.newPlot('overUnderProvisionAll', data,layout);
 }
 
+
+function plotCostAll(costAll, tracesAll) {
+
+    var trace1 = {
+        x: tracesAll,
+        y: costAll,
+        type: 'bar',
+        name: 'Cost $',
+    };
+
+
+    var data = [trace1];
+    var layout = {
+        title: "Cost $",
+        autosize:true,
+        paper_bgcolor:'rgba(0,0,0,0)',
+        plot_bgcolor:'rgba(0,0,0,0)',
+        legend: {
+            "orientation": "h",
+            xanchor: "center",
+            y: 1.088,
+            x: 0.2
+        },
+        //height: 200
+    };
+
+    Plotly.newPlot('costAll', data,layout);
+}
 function showNoResultsPanel(){
     var x = document.getElementById("singlePolicyDiv");
     x.style.display = "none";
