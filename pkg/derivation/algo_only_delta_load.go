@@ -18,7 +18,7 @@ import (
 	out:
 		[] Policy. List of type Policy
 */
-func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []types.Policy {
+func (p DeltaLoadPolicy) CreatePolicies(processedForecast types.ProcessedForecast) []types.Policy {
 	log.Info("Derive policies with %s algorithm", p.algorithm)
 	policies := []types.Policy {}
 	configurations := []types.ScalingStep{}
@@ -152,7 +152,7 @@ func (p TreePolicy) CreatePolicies(processedForecast types.ProcessedForecast) []
  out:
 	@VMScale with the suggested number of VMs for that type
 */
-func (p TreePolicy) FindSuitableVMs(numberReplicas int, limits types.Limit) types.VMScale {
+func (p DeltaLoadPolicy) FindSuitableVMs(numberReplicas int, limits types.Limit) types.VMScale {
 	vmSet, _ := buildHomogeneousVMSet(numberReplicas,limits, p.mapVMProfiles)
 	/*hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, limits, p.mapVMProfiles)
 	costi := hetVMSet.Cost(p.mapVMProfiles)
@@ -187,7 +187,7 @@ func Drucken (n *Node, level int) {
 	out:
 		@VMScale
 */
-func (p TreePolicy)removeVMs(currentVMSet types.VMScale, numberReplicas int, limits types.Limit) types.VMScale {
+func (p DeltaLoadPolicy)removeVMs(currentVMSet types.VMScale, numberReplicas int, limits types.Limit) types.VMScale {
 	var newVMSet types.VMScale
 	newVMSet = copyMap(currentVMSet)
 
@@ -235,7 +235,7 @@ func (p TreePolicy)removeVMs(currentVMSet types.VMScale, numberReplicas int, lim
 		@ContainersConfig
 		@error
 */
-func (p TreePolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.MSCSimpleSetting,
+func (p DeltaLoadPolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.MSCSimpleSetting,
 	newLimits types.Limit, profileNewLimits types.MSCSimpleSetting, containerResize bool) (MSCProfile, error) {
 
 	currentNumberReplicas := float64(profileCurrentLimits.Replicas)

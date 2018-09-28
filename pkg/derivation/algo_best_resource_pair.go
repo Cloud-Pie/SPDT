@@ -17,7 +17,7 @@ import (
 After each change in the workload it calculates the number of VMs of a predefined size needed
 Repeat the process for all the vm types available
 */
-type BestBaseInstancePolicy struct {
+type BestResourcePairPolicy struct {
 	algorithm  string
 	timeWindow TimeWindowDerivation
 	currentState	types.State
@@ -33,7 +33,7 @@ type BestBaseInstancePolicy struct {
 	out:
 		[] Policy. List of type Policy
 */
-func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [] types.Policy {
+func (p BestResourcePairPolicy) CreatePolicies(processedForecast types.ProcessedForecast) [] types.Policy {
 	log.Info("Derive policies with %s algorithm", p.algorithm)
 	policies := []types.Policy{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
@@ -79,7 +79,7 @@ func (p BestBaseInstancePolicy) CreatePolicies(processedForecast types.Processed
  out:
 	@VMScale with the suggested number of VMs for that type
 */
-func (p BestBaseInstancePolicy) FindSuitableVMs(numberReplicas int, resourcesLimit types.Limit, vmType string) (types.VMScale, error) {
+func (p BestResourcePairPolicy) FindSuitableVMs(numberReplicas int, resourcesLimit types.Limit, vmType string) (types.VMScale, error) {
 	vmScale := make(map[string]int)
 	var err error
 	profile := p.mapVMProfiles[vmType]
@@ -94,7 +94,7 @@ func (p BestBaseInstancePolicy) FindSuitableVMs(numberReplicas int, resourcesLim
 }
 
 
-func (p BestBaseInstancePolicy) deriveCandidatePolicy(criticalIntervals []types.CriticalInterval, containerResizeEnabled bool,
+func (p BestResourcePairPolicy) deriveCandidatePolicy(criticalIntervals []types.CriticalInterval, containerResizeEnabled bool,
 	containerLimits types.Limit, vmLimits types.Limit, vmType string, underProvisionAllowed bool,percentageUnderProvision float64 ) (bool, types.Policy) {
 
 	vmTypeSuitable := true
@@ -173,7 +173,7 @@ func (p BestBaseInstancePolicy) deriveCandidatePolicy(criticalIntervals []types.
 	out:
 		ContainersConfig -
 */
-func (p BestBaseInstancePolicy) optionWithUnderProvision(totalLoad float64, containerLimits types.Limit, percentageUnderProvision float64, vmType string) types.ContainersConfig {
+func (p BestResourcePairPolicy) optionWithUnderProvision(totalLoad float64, containerLimits types.Limit, percentageUnderProvision float64, vmType string) types.ContainersConfig {
 	containerConfigUnder := selectProfileByLimits(totalLoad, containerLimits, true)
 	vmSetUnder,_ := p.FindSuitableVMs(containerConfigUnder.MSCSetting.Replicas, containerConfigUnder.Limits, vmType)
 	costVMSetUnderProvision := vmSetUnder.Cost(p.mapVMProfiles)
@@ -182,7 +182,7 @@ func (p BestBaseInstancePolicy) optionWithUnderProvision(totalLoad float64, cont
 	return  containerConfigUnder
 }
 
-func (p BestBaseInstancePolicy) selectServiceProfilesLimits(forecastedValues []types.CriticalInterval, ) [] types.Limit{
+func (p BestResourcePairPolicy) selectServiceProfilesLimits(forecastedValues []types.CriticalInterval, ) [] types.Limit{
 	max := 0.0
 	for _,v := range forecastedValues {
 		if v.Requests > max {

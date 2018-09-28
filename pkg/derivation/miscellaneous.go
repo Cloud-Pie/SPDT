@@ -15,7 +15,7 @@ type MSCProfile struct {
 	Constructs different VM clusters (heterogeneous included) to add resources every time the workload
 	increases in a factor of deltaLoad.
  */
-type TreePolicy struct {
+type DeltaLoadPolicy struct {
 	algorithm  		string               //Algorithm's name
 	timeWindow 		TimeWindowDerivation //Algorithm used to process the forecasted time serie
 	currentState	types.State			 //Current State

@@ -72,7 +72,7 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration config.System
 		policies = naive.CreatePolicies(processedForecast)
 
 	case util.BASE_INSTANCE_ALGORITHM:
-		base := BestBaseInstancePolicy{algorithm:util.BASE_INSTANCE_ALGORITHM,
+		base := BestResourcePairPolicy{algorithm:util.BASE_INSTANCE_ALGORITHM,
 										currentState:currentState,mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies = base.CreatePolicies(processedForecast)
 
@@ -82,7 +82,7 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration config.System
 		policies = sstep.CreatePolicies(processedForecast)
 
 	case util.SEARCH_TREE_ALGORITHM:
-		tree := TreePolicy {algorithm:util.SEARCH_TREE_ALGORITHM, currentState:currentState,
+		tree := DeltaLoadPolicy{algorithm:util.SEARCH_TREE_ALGORITHM, currentState:currentState,
 			sortedVMProfiles:sortedVMProfiles,mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration}
 		policies = tree.CreatePolicies(processedForecast)
 
@@ -97,7 +97,7 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration config.System
 		policies1 := naive.CreatePolicies(processedForecast)
 		policies = append(policies, policies1...)
 		//types
-		base := BestBaseInstancePolicy{algorithm:util.BASE_INSTANCE_ALGORITHM,
+		base := BestResourcePairPolicy{algorithm:util.BASE_INSTANCE_ALGORITHM,
 			currentState:currentState, sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies2 := base.CreatePolicies(processedForecast)
 		policies = append(policies, policies2...)
@@ -113,7 +113,7 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration config.System
 		policies = append(policies, policies4...)
 
 		//tree
-		tree := TreePolicy {algorithm:util.SEARCH_TREE_ALGORITHM, currentState:currentState,
+		tree := DeltaLoadPolicy{algorithm:util.SEARCH_TREE_ALGORITHM, currentState:currentState,
 			sortedVMProfiles:sortedVMProfiles,mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration}
 		policies5 := tree.CreatePolicies(processedForecast)
 		policies = append(policies, policies5...)
