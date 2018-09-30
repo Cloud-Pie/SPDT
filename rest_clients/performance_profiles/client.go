@@ -137,7 +137,7 @@ func GetAllBootShutDownProfilesByType(endpoint string, vmType string, region str
 	q := url.Values{}
 	q.Add("instanceType", vmType)
 	q.Add("region", region)
-	q.Add("appraoch", "regression_vm_boot")
+	q.Add("approach", "regression_vm_boot")
 	q.Add("csp", csp)
 
 	req, err := http.NewRequest("GET",endpoint,nil)
@@ -171,7 +171,7 @@ func GetBootShutDownProfileByType(endpoint string, vmType string, numberInstance
 	q := url.Values{}
 	q.Add("instanceType", vmType)
 	q.Add("region", region)
-	q.Add("appraoch", "avg")
+	q.Add("approach", "avg")
 	q.Add("csp", csp)
 	q.Add("numInstances", strconv.Itoa(numberInstance))
 
