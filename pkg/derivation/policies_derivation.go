@@ -71,9 +71,9 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration config.System
 							 currentState:currentState, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies = naive.CreatePolicies(processedForecast)
 
-	case util.BASE_INSTANCE_ALGORITHM:
-		base := BestResourcePairPolicy{algorithm:util.BASE_INSTANCE_ALGORITHM,
-										currentState:currentState,mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
+	case util.BEST_RESOURCE_PAIR_ALGORITHM:
+		base := BestResourcePairPolicy{algorithm:util.BEST_RESOURCE_PAIR_ALGORITHM,
+			sortedVMProfiles:sortedVMProfiles,currentState:currentState,mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies = base.CreatePolicies(processedForecast)
 
 	case util.SMALL_STEP_ALGORITHM:
@@ -81,8 +81,8 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration config.System
 									mapVMProfiles:mapVMProfiles, sortedVMProfiles:sortedVMProfiles, sysConfiguration: sysConfiguration, currentState:currentState}
 		policies = sstep.CreatePolicies(processedForecast)
 
-	case util.SEARCH_TREE_ALGORITHM:
-		tree := DeltaLoadPolicy{algorithm:util.SEARCH_TREE_ALGORITHM, currentState:currentState,
+	case util.ONLY_DELTA_ALGORITHM:
+		tree := DeltaLoadPolicy{algorithm:util.ONLY_DELTA_ALGORITHM, currentState:currentState,
 			sortedVMProfiles:sortedVMProfiles,mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration}
 		policies = tree.CreatePolicies(processedForecast)
 
@@ -97,7 +97,7 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration config.System
 		policies1 := naive.CreatePolicies(processedForecast)
 		policies = append(policies, policies1...)
 		//types
-		base := BestResourcePairPolicy{algorithm:util.BASE_INSTANCE_ALGORITHM,
+		base := BestResourcePairPolicy{algorithm:util.BEST_RESOURCE_PAIR_ALGORITHM,
 			currentState:currentState, sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies2 := base.CreatePolicies(processedForecast)
 		policies = append(policies, policies2...)
@@ -113,7 +113,7 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration config.System
 		policies = append(policies, policies4...)
 
 		//tree
-		tree := DeltaLoadPolicy{algorithm:util.SEARCH_TREE_ALGORITHM, currentState:currentState,
+		tree := DeltaLoadPolicy{algorithm:util.ONLY_DELTA_ALGORITHM, currentState:currentState,
 			sortedVMProfiles:sortedVMProfiles,mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration}
 		policies5 := tree.CreatePolicies(processedForecast)
 		policies = append(policies, policies5...)
@@ -224,11 +224,11 @@ func selectProfileByLimits(requests float64, limits types.Limit, underProvision 
 	overProvisionConfig, err1 := serviceProfileDAO.MatchByLimitsOver(limits.CPUCores, limits.MemoryGB, requests)
 	underProvisionConfig, err2 := serviceProfileDAO.MatchByLimitsUnder(limits.CPUCores, limits.MemoryGB, requests)
 
-	if underProvision && err2 == nil {
+	if underProvision && err2 == nil && false{
 		containerConfig = underProvisionConfig
-	} else if err1 == nil{
+	} else if err1 == nil && false{
 		containerConfig = overProvisionConfig
-	} else if err2 == nil {
+	} else if err2 == nil || true{
 		containerConfig = underProvisionConfig
 
 		url := systemConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILE_BY_MSC
@@ -241,6 +241,7 @@ func selectProfileByLimits(requests float64, limits types.Limit, underProvision 
 		if err == nil{
 			containerConfig.MSCSetting.Replicas = mscSetting.Replicas
 			containerConfig.MSCSetting.MSCPerSecond = mscSetting.MSCPerSecond.RegBruteForce
+			containerConfig.Limits = limits
 			newMSCSetting.Replicas = mscSetting.Replicas
 			newMSCSetting.MSCPerSecond = mscSetting.MSCPerSecond.RegBruteForce
 			if mscSetting.BootTimeMs > 0 {
@@ -659,6 +660,8 @@ func findConfigOptionByContainerResize(currentVMSet types.VMScale, totalLoad flo
 	allLimits,_ := storage.GetPerformanceProfileDAO(systemConfiguration.MainServiceName).FindAllUnderLimits(biggestVM.CPUCores, biggestVM.Memory)
 	optionFound := false
 	configurationOptionFound := types.ContainersConfig{}
+	sort.Slice(allLimits, func(i, j int) bool { return allLimits[i].Limit.CPUCores > allLimits[j].Limit.CPUCores })
+
 	for _, li := range allLimits {
 		configurationOption := selectProfileByLimits(totalLoad, li.Limit, false)
 		replicas := configurationOption.MSCSetting.Replicas
