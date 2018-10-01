@@ -38,7 +38,15 @@ func SelectPolicy(policies *[]types.Policy, sysConfig config.SystemConfiguration
 	}
 	//Sort policies based on price
 	sort.Slice(*policies, func(i, j int) bool {
-		return (*policies)[i].Metrics.Cost < (*policies)[j].Metrics.Cost
+		costi := (*policies)[i].Metrics.Cost
+		costj := (*policies)[j].Metrics.Cost
+
+		if costi < costj {
+			return true
+		}else  if costi == costj {
+			return (*policies)[i].Metrics.NumberContainerScalingActions < (*policies)[j].Metrics.NumberContainerScalingActions
+		}
+		return false
 	})
 
 	if len(*policies) >0 {
