@@ -118,6 +118,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 					}
 				}
 			} else if deltaLoad < 0 {
+					computeVMsCapacity(currentContainerLimits, &p.mapVMProfiles)
 					//case 2: Need to decrease resources
 					deltaLoad *= -1
 					profileCurrentLimits := selectProfileByLimits(totalLoad, currentContainerLimits, false)
