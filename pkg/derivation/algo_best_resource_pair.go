@@ -39,37 +39,14 @@ func (p BestResourcePairPolicy) CreatePolicies(processedForecast types.Processed
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
 	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
-	startAlgo := time.Now()
-	//Loops all the VM types and derive a policy using a single VMType
-	selectedResourceLimits := p.selectServiceProfilesLimits(processedForecast.CriticalIntervals, )
+	selectedLimits, selectedVMType := p.findBestPair(processedForecast.CriticalIntervals )
 
-	for vmType, vm := range p.mapVMProfiles {
-		vmLimits := types.Limit{ MemoryGB:vm.Memory, CPUCores:vm.CPUCores}
-		//Container limits that fit into the VM type
-		for _, li := range selectedResourceLimits {
-			vmTypeSuitable, newPolicy := p.deriveCandidatePolicy(processedForecast.CriticalIntervals,containerResizeEnabled, li, vmLimits, vmType, underProvisionAllowed, percentageUnderProvision )
-			if vmTypeSuitable {
-				policies = append(policies, newPolicy)
-			}
-		}
-	}
+	vm := p.mapVMProfiles[selectedVMType]
+	vmLimits := types.Limit{ MemoryGB:vm.Memory, CPUCores:vm.CPUCores}
+	_, newPolicy := p.deriveCandidatePolicy(processedForecast.CriticalIntervals,containerResizeEnabled, selectedLimits, vmLimits, selectedVMType, underProvisionAllowed, percentageUnderProvision )
 
-	for i := range policies {
-		cost := ComputePolicyCost((policies)[i],systemConfiguration.PricingModel.BillingUnit, p.mapVMProfiles)
-		(policies)[i].Metrics.Cost = math.Ceil(cost*100)/100
-	}
-
-	sort.Slice(policies, func(i, j int) bool {
-		order := (policies)[i].Metrics.Cost < (policies)[j].Metrics.Cost
-		return order
-	})
-	//return policies
-	timeEndAlgo := time.Now()
-	selectedOption := policies[0]
-	selectedOption.Metrics.StartTimeDerivation = startAlgo
-	selectedOption.Metrics.FinishTimeDerivation = timeEndAlgo
-	selectedOption.Metrics.DerivationDuration = selectedOption.Metrics.FinishTimeDerivation.Sub(selectedOption.Metrics.StartTimeDerivation).Seconds()
-	return []types.Policy{selectedOption}
+	policies = append(policies, newPolicy)
+	return policies
 }
 
 /*Calculate VM set able to host the required number of replicas
@@ -93,7 +70,9 @@ func (p BestResourcePairPolicy) FindSuitableVMs(numberReplicas int, resourcesLim
 	return vmScale,err
 }
 
-
+/*
+	Derive a policy
+*/
 func (p BestResourcePairPolicy) deriveCandidatePolicy(criticalIntervals []types.CriticalInterval, containerResizeEnabled bool,
 	containerLimits types.Limit, vmLimits types.Limit, vmType string, underProvisionAllowed bool,percentageUnderProvision float64 ) (bool, types.Policy) {
 
@@ -182,7 +161,13 @@ func (p BestResourcePairPolicy) optionWithUnderProvision(totalLoad float64, cont
 	return  containerConfigUnder
 }
 
-func (p BestResourcePairPolicy) selectServiceProfilesLimits(forecastedValues []types.CriticalInterval, ) [] types.Limit{
+/* Finds the cheapest combination between container limits(cpu,mem) and vm type
+	in:
+		@forecastedValues
+	out:
+		Limit, string - Best pair found
+*/
+func (p BestResourcePairPolicy) findBestPair(forecastedValues []types.CriticalInterval ) (types.Limit, string){
 	max := 0.0
 	for _,v := range forecastedValues {
 		if v.Requests > max {
@@ -190,7 +175,6 @@ func (p BestResourcePairPolicy) selectServiceProfilesLimits(forecastedValues []t
 		}
 	}
 
-	selectedLimits := []types.Limit{}
 	vmProfiles := p.sortedVMProfiles
 	sort.Slice(vmProfiles, func(i, j int) bool {
 		return vmProfiles[i].Pricing.Price >  vmProfiles[j].Pricing.Price
@@ -198,11 +182,34 @@ func (p BestResourcePairPolicy) selectServiceProfilesLimits(forecastedValues []t
 	biggestVMType := p.mapVMProfiles[vmProfiles[0].Type]
 	allLimits,_ := storage.GetPerformanceProfileDAO(p.sysConfiguration.MainServiceName).FindAllUnderLimits(biggestVMType.CPUCores, biggestVMType.Memory)
 
-	for _,v := range allLimits {
-		servicePerformanceProfile := selectProfileByLimits(max, v.Limit, false)
-		if servicePerformanceProfile.MSCSetting.MSCPerSecond >= max {
-			selectedLimits = append(selectedLimits,v.Limit)
+	var bestLimit types.Limit
+	var bestType string
+	bestCost :=  math.Inf(1)
+	numberReplicas := 999
+	for vmType, _ := range p.mapVMProfiles {
+		for _,vl := range allLimits {
+			servicePerformanceProfile := selectProfileByLimits(max, vl.Limit, false)
+			replicas := servicePerformanceProfile.MSCSetting.Replicas
+			vmSetCandidate,_ := p.FindSuitableVMs(replicas,vl.Limit, vmType)
+			vmSetCost := 0.0
+			if len(vmSetCandidate) > 0 {
+				for _,v := range vmSetCandidate {
+					vmSetCost += p.mapVMProfiles[vmType].Pricing.Price * float64(v)
+				}
+				if vmSetCost < bestCost {
+					bestLimit = vl.Limit
+					bestType = vmType
+					bestCost = vmSetCost
+					numberReplicas = replicas
+				} else if vmSetCost == bestCost && replicas < numberReplicas{
+					bestLimit = vl.Limit
+					bestType = vmType
+					bestCost = vmSetCost
+					numberReplicas = replicas
+				}
+			}
 		}
 	}
-	return selectedLimits
+	return bestLimit,bestType
 }
+
