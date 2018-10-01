@@ -526,7 +526,7 @@ func buildHomogeneousVMSet(numberReplicas int, limits types.Limit, mapVMProfiles
 			if costi < costj {
 				return true
 			} else if costi ==  costj {
-				return candidateVMSets[i].TotalVMs() >= candidateVMSets[j].TotalVMs()
+				return candidateVMSets[i].TotalVMs() < candidateVMSets[j].TotalVMs()
 			}
 			return false
 		})

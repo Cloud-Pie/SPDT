@@ -6,7 +6,6 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/config"
 	"strconv"
-	"errors"
 	"github.com/Cloud-Pie/SPDT/util"
 )
 
@@ -58,7 +57,7 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
 */
 func (p StepRepackPolicy) FindSuitableVMs(numberReplicas int, limits types.Limit) (types.VMScale,error) {
 	vmSet,err := buildHomogeneousVMSet(numberReplicas,limits, p.mapVMProfiles)
-	hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, limits, p.mapVMProfiles)
+	/*hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, limits, p.mapVMProfiles)
 	costi := hetVMSet.Cost(p.mapVMProfiles)
 	costj := vmSet.Cost(p.mapVMProfiles)
 	if costi < costj {
@@ -67,7 +66,7 @@ func (p StepRepackPolicy) FindSuitableVMs(numberReplicas int, limits types.Limit
 
 	if err!= nil {
 		return vmSet,errors.New("No suitable VM set found")
-	}
+	}*/
 	return vmSet,err
 }
 

@@ -57,6 +57,7 @@ func (p DeltaLoadPolicy) CreatePolicies(processedForecast types.ProcessedForecas
 			resourceLimits  = profileCurrentLimits.Limits
 			stateLoadCapacity = profileCurrentLimits.MSCSetting.MSCPerSecond
 			totalServicesBootingTime = profileCurrentLimits.MSCSetting.BootTimeSec
+			deltaNumberReplicas := newNumServiceReplicas - currentNumberReplicas
 
 			if deltaLoad > 0 {
 				//case 1: Increase resources
@@ -65,21 +66,11 @@ func (p DeltaLoadPolicy) CreatePolicies(processedForecast types.ProcessedForecas
 				if currentReplicasCapacity >= profileCurrentLimits.MSCSetting.Replicas {
 					//case 1.1: Increases number of replicas with the current limit resources but VMS remain the same
 					vmSet = p.currentState.VMs
-				} else {
-					//search for a different profile that fit into the current VM set and handle total load
-					/*profileNewLimits, candidateFound := findConfigOptionByContainerResize(p.currentState.VMs, totalLoad, p.mapVMProfiles)
-					if candidateFound {
-						//case 1.2: Change the configuration of limit resources for the containers but VMS remain the same
-						vmSet = p.currentState.VMs
-						profileCurrentLimits = profileNewLimits
-					}else{*/
-						//case 1.3: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.
-						//Keep the current resource limits for the containers
-						deltaNumberReplicas := newNumServiceReplicas - currentNumberReplicas
+				}else{
+						//case 1.2: Increases number of VMS. Find new suitable Vm(s) to cover the number of replicas missing.
+						//deltaNumberReplicas = deltaNumberReplicas - (currentReplicasCapacity - currentNumberReplicas)
 						vmSet = p.FindSuitableVMs(deltaNumberReplicas, profileCurrentLimits.Limits)
-
 						if underProvisionAllowed {
-							//ProfileCurrentLimitsUnder := selectProfileByLimits(deltaLoad, currentContainerLimits, underProvisionAllowed)
 							replicasUnder := deltaNumberReplicas-1
 							if replicasUnder > 1 {
 								vmSetUnder := p.FindSuitableVMs(replicasUnder,currentContainerLimits)
@@ -95,7 +86,6 @@ func (p DeltaLoadPolicy) CreatePolicies(processedForecast types.ProcessedForecas
 						}
 						//Merge the current configuration with configuration for the new replicas
 						vmSet.Merge(p.currentState.VMs)
-					//}
 				}
 			} else {
 				//case 2: delta load is negative, some resources should be terminated
@@ -109,7 +99,7 @@ func (p DeltaLoadPolicy) CreatePolicies(processedForecast types.ProcessedForecas
 		}
 
 		services :=  make(map[string]types.ServiceInfo)
-		services[ p.sysConfiguration.MainServiceName] = types.ServiceInfo{
+		services[ p.sysConfiguration.MainServiceName] = types.ServiceInfo {
 			Scale:  newNumServiceReplicas,
 			CPU:    resourceLimits.CPUCores,
 			Memory: resourceLimits.MemoryGB,
@@ -160,11 +150,11 @@ func (p DeltaLoadPolicy) FindSuitableVMs(numberReplicas int, limits types.Limit)
 	if costi < costj {
 		vmSet = hetVMSet
 	}
-*/
+	*/
 	return vmSet
 }
 
-//TODO: Delete after debugging
+
 func Drucken (n *Node, level int) {
 	fmt.Printf("%d - %s --%d\n", level,n.vmType, n.NReplicas)
 	for k,v := range n.vmScale {
@@ -220,37 +210,4 @@ func (p DeltaLoadPolicy)removeVMs(currentVMSet types.VMScale, numberReplicas int
 		}
 	}
 	return  newVMSet
-}
-
-
-/*
-	in:
-		@currentLimits
-		@profileCurrentLimits
-		@newLimits
-		@profileNewLimits
-		@vmType
-		@containerResize
-	out:
-		@ContainersConfig
-		@error
-*/
-func (p DeltaLoadPolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.MSCSimpleSetting,
-	newLimits types.Limit, profileNewLimits types.MSCSimpleSetting, containerResize bool) (MSCProfile, error) {
-
-	currentNumberReplicas := float64(profileCurrentLimits.Replicas)
-	utilizationCurrent := (currentNumberReplicas * currentLimits.CPUCores)+(currentNumberReplicas * currentLimits.MemoryGB)
-
-	newNumberReplicas := float64(profileNewLimits.Replicas)
-	utilizationNew := (newNumberReplicas * newLimits.CPUCores)+(newNumberReplicas * newLimits.MemoryGB)
-
-	if utilizationNew < utilizationCurrent && containerResize {
-		return MSCProfile{ResourceLimits:newLimits,
-			NumberReplicas:int(newNumberReplicas),
-			MSC:profileNewLimits.MSCPerSecond,}, nil
-	} else {
-		return MSCProfile{ResourceLimits:currentLimits,
-			NumberReplicas:int(currentNumberReplicas),
-			MSC:profileCurrentLimits.MSCPerSecond,}, nil
-	}
 }

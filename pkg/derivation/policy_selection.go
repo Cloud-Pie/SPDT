@@ -90,7 +90,7 @@ func ComputePolicyMetrics(scalingActions *[]types.ScalingStep, forecast []types.
 		scalingAction := (*scalingActions)[i]
 		var underProvision float64
 		var overProvision float64
-		var cost float64
+		cost := 0.0
 		var transitionTime float64
 		var elapsedTime float64
 		var shadowTime float64
@@ -142,9 +142,9 @@ func ComputePolicyMetrics(scalingActions *[]types.ScalingStep, forecast []types.
 			vmTypes[k] = true
 			totalCPUCoresInVMSet += mapVMProfiles[k].CPUCores * float64(v)
 			totalMemGBInVMSet += mapVMProfiles[k].Memory * float64(v)
-			cost +=  mapVMProfiles [k].Pricing.Price * float64(v) * deltaTime
-			totalCost += cost
+			cost +=  math.Ceil(mapVMProfiles [k].Pricing.Price * float64(v) * deltaTime *100)/100
 		}
+		totalCost += cost
 
 		if i>1 {
 			previousStateEndTime := (*scalingActions)[i-1].TimeEnd
