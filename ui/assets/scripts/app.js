@@ -505,7 +505,6 @@ function fillCandidateTable(policyCandidates) {
         $("#tCandidates > tbody").append("<tr>" +
             "<td width=\"50%\">"+policyCandidates[i].id+"</td>" +
             "<td>"+policyCandidates[i].algorithm+"</td>" +
-            "<td>"+policyCandidates[i].metrics.cost+"</td>" +
             "<td> <span class='label "+ label+" '>" +policyCandidates[i].status+ "</span> </td>" +
             "</tr>");
     }
@@ -518,16 +517,17 @@ function fillCandidateTable(policyCandidates) {
     });
 }
 
-function fillMetrics(policy){
+function fillMetrics(policy) {
     document.getElementById("costid").innerText = policy.metrics.cost;
     document.getElementById("overid").innerText = policy.metrics.over_provision;
     document.getElementById("underid").innerText = policy.metrics.under_provision;
     document.getElementById("durationId").innerText = policy.metrics.derivation_duration;
-    document.getElementById("reconfVMsid").innerText = policy.metrics.num_scale_vms;
-    document.getElementById("reconfContid").innerText = policy.metrics.num_scale_containers;
     document.getElementById("shadowTimeId").innerText = policy.metrics.avg_shadow_time_sec;
     document.getElementById("transitionTimeId").innerText = policy.metrics.avg_transition_time_sec;
     document.getElementById("timeBetweenStatesId").innerText = policy.metrics.avg_time_between_scaling_sec;
+    nScaleActionVMs = policy.metrics.num_scale_vms;
+    nScaleActionContainers = policy.metrics.num_scale_containers;
+    plotNScalingActions([[nScaleActionVMs],[nScaleActionContainers]], [["VMs"], ["Containers"]], "N° Scaling actions", "", "numScalingActionsDiv")
 }
 
 function fillDetailsTable(policy) {
@@ -567,21 +567,13 @@ function fillDetailsTable(policy) {
 
 function clickedCompareAll(){
     showMultiplePolicyPanels()
-
     units = getVirtualUnitsAll(allPolicies)
     plotCapacityAll(units.time,requestDemand, units.trnAll, units.tracesAll)
-   // plotVMsAll(units.time, units.vmsAll, units.tracesAll)
     plotReplicasAll(units.time, units.replicasAll,units.tracesAll)
-   // plotCPUAll(units.time, units.cpuCoresAll, units.tracesAll)
-   // plotMemAll(units.time, units.memGBAll, units.tracesAll)
     plotNScalingVMAll(units.nScalingVMsAll, units.nScalingContainersAll,units.tracesAll)
     plotOverUnderProvisionAll(units.overprovisionAll,units.underprovisionAll, units.tracesAll)
-    plotCostAll(units.costAll,units.tracesAll)
     plotAccumulatedCostAll(units.time, units.accumulatedCostAll, units.tracesAll)
-    //plotDerivationTimeAll(units.derivationDurationTimeAll, units.tracesAll)
-
-    //plotAvgShadowTimeAll(units.avgShadowTimeAll, units.tracesAll)
-    //plotTransitionTimeAll(units.avgTransitionTimeAll, units.tracesAll)
+    plotBarComparisonAll(units.time, units.tracesAll, 'Cost (s)', 'Cost', 'costAll')
     plotBarComparisonAll(units.derivationDurationTimeAll, units.tracesAll, 'Derivation Time (s)', 'Derivation Time', 'derivationTimeAll')
     plotBarComparisonAll(units.avgShadowTimeAll, units.tracesAll, 'Avg Shadow Time (s)', 'Avg Shadow Time', 'avgShadowTimeAll')
     plotBarComparisonAll(units.avgTransitionTimeAll, units.tracesAll, 'Avg Transition Time (s)', 'Avg Transition Time', 'avgTransitionTimeAll')
@@ -844,23 +836,25 @@ function plotReplicasAll(time, replicasAll, tracesAll) {
 
 function plotNScalingVMAll(nScalingVMs, nScalingContainers, tracesAll) {
     var trace1 = {
-        x: tracesAll,
-        y: nScalingVMs,
+        x: nScalingVMs,
+        y: tracesAll,
         type: 'bar',
         name: 'N° VM Scaling actions ',
+        orientation: 'h'
     };
 
     var trace2 = {
-        x: tracesAll,
-        y: nScalingContainers,
+        x: nScalingContainers,
+        y: tracesAll,
         type: 'bar',
         name: 'N° Container Scaling actions ',
+        orientation: 'h'
     };
 
     var data = [trace1, trace2];
     var layout = {
         autosize:true,
-        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        margin: {l: 150,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         legend: {
@@ -877,17 +871,19 @@ function plotNScalingVMAll(nScalingVMs, nScalingContainers, tracesAll) {
 function plotOverUnderProvisionAll(overAll, underAll, tracesAll) {
 
     var trace1 = {
-        x: tracesAll,
-        y: overAll,
+        x: overAll,
+        y: tracesAll,
         type: 'bar',
         name: '% Over Provision',
+        orientation: 'h'
     };
 
     var trace2 = {
-        x: tracesAll,
-        y: underAll,
+        x: underAll,
+        y: tracesAll,
         type: 'bar',
         name: '% Under Provision',
+        orientation: 'h'
     };
 
     var data = [trace1, trace2];
@@ -911,10 +907,12 @@ function plotOverUnderProvisionAll(overAll, underAll, tracesAll) {
 function plotCostAll(costAll, tracesAll) {
 
     var trace1 = {
-        x: tracesAll,
-        y: costAll,
-        type: 'bar',
+        x: costAll,
+        y: tracesAll,
         name: 'Cost $',
+        width: [0.2],
+        type: 'bar',
+        orientation: 'h'
     };
 
 
@@ -940,10 +938,11 @@ function plotCostAll(costAll, tracesAll) {
 function plotDerivationTimeAll(derivationTimeAll, tracesAll) {
 
     var trace1 = {
-        x: derivationTimeAll,
-        y: tracesAll,
+        x: tracesAll,
+        y: derivationTimeAll,
         type: 'bar',
         name: 'Cost $',
+        orientation: 'h'
     };
 
 
@@ -968,10 +967,11 @@ function plotDerivationTimeAll(derivationTimeAll, tracesAll) {
 function plotBarComparisonAll(values, tracesAll, title, varName, nameDiv) {
 
     var trace1 = {
-        x: tracesAll,
-        y: values,
+        x: values ,
+        y: tracesAll,
         type: 'bar',
         name: varName,
+        orientation: 'h'
     };
 
 
@@ -981,7 +981,41 @@ function plotBarComparisonAll(values, tracesAll, title, varName, nameDiv) {
         autosize:true,
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
+        margin: {l: 150,r: 50,b: 45,t: 45, pad: 4},
+    };
 
+    Plotly.newPlot(nameDiv, data,layout);
+}
+
+function plotNScalingActions(values, tracesAll, title, varName, nameDiv) {
+    var data = [];
+    var i = 0;
+   values.forEach(function (item) {
+        {
+            data.push(
+                {
+                    x: item,
+                    y: tracesAll[i],
+                    width: [0.2],
+                    type: 'bar',
+                    orientation: 'h'
+
+                }
+            )
+           i=i+1
+        }
+    })
+    var layout = {
+        title: title,
+        autosize:true,
+        paper_bgcolor:'rgba(0,0,0,0)',
+        plot_bgcolor:'rgba(0,0,0,0)',
+        height: 260,
+        margin: {l: 100,r: 50,b: 45,t: 45, pad: 4},
+        barmode: 'group',
+        bargap: 0.15,
+        bargroupgap: 0.1,
+        showlegend: false
     };
 
     Plotly.newPlot(nameDiv, data,layout);

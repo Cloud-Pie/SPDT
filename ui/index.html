@@ -90,28 +90,44 @@
                             <div class="row">
                                 <!-- CANDIDATES -->
                                 <div class="sidecand" id="candidatesDiv">
-                                    <section>
-                                        <h4><b>Policy Candidates</b></h4>
-                                        <div class="tbl-header">
-                                            <table>
-                                                <thead>
-                                                    <tr>
-                                                        <th width="40%">Policy ID</th>
-                                                        <th>Algorithm</th>
-                                                        <th>Cost</th>
-                                                        <th>Status</th>
-                                                    </tr>
-                                                </thead>
-                                            </table>
-                                        </div>
-                                        <div class="tbl-content">
-                                            <table class="table-hover" id="tCandidates">
-                                                <tbody id="tBodyCandidates"></tbody>
-                                            </table>
+
+                                    <div class="container-fluid">
+                                        <div class="row">
+                                        <section>
+                                            <h4><b>Policy Candidates</b></h4>
+                                            <div class="tbl-header">
+                                                <table>
+                                                    <thead>
+                                                        <tr>
+                                                            <th width="40%">Policy ID</th>
+                                                            <th>Algorithm</th>
+                                                            <th>Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                </table>
+                                            </div>
+                                            <div class="tbl-content">
+                                                <table class="table-hover" id="tCandidates">
+                                                    <tbody id="tBodyCandidates"></tbody>
+                                                </table>
+                                            </div>
+                                        </section>
                                         </div>
 
-                                        <button type="button" class="btn btn-default" onclick="clickedCompareAll()">Compare all</button>
-                                    </section>
+                                        <div class="row">
+                                    <button type="button" class="btn btn-default" onclick="clickedCompareAll()">Compare all</button>
+                                        </div>
+                                    <div class="row">
+                                        <div class="metric padding-5">
+                                            <span class="icon"><i class="fa fa-dollar"></i></span>
+                                            <p>
+                                                <span class="number"><label id="costid"></label></span>
+                                                <br>
+                                                <span class="title">Cost</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    </div>
                                 </div>
                                 <!-- END CANDIDATES -->
                                 <div class="plots">
@@ -167,59 +183,10 @@
                                             <div id="ui" class="tab-pane fade in active">
                                                 <!-- END METRICS--->
                                                 <div class="row" id="metricsDiv">
-                                                    <div class="col-md-2  padding-2">
+
+                                                    <div class="col-md-3">
                                                         <div class="metric">
-                                                            <span class="icon"><i class="fa fa-dollar"></i></span>
-                                                            <p>
-                                                                <span class="number"><label id="costid"></label></span>
-                                                                <br>
-                                                                <span class="title">Cost</span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-2  padding-2">
-                                                        <div class="metric">
-                                                            <span class="icon"><i class="fa fa-upload"></i></span>
-                                                            <p>
-                                                                <span class="number"><label id="overid"></label></span>
-                                                                <br>
-                                                                <span class="title">Overprovision</span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-2  padding-2">
-                                                        <div class="metric">
-                                                            <span class="icon"><i class="fa fa-download"></i></span>
-                                                            <p>
-                                                                <span class="number"><label id="underid"> </label></span>
-                                                                <br>
-                                                                <span class="title">Underprovision</span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-2 padding-2">
-                                                        <div class="metric">
-                                                            <span class="icon"><i class="fa fa-cogs"></i></span>
-                                                            <p>
-                                                                <span class="number"><label id="reconfVMsid"></label></span>
-                                                                <br>
-                                                                <span class="title">N° Scaling VMs</span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-2 padding-2">
-                                                        <div class="metric">
-                                                            <span class="icon"><i class="fa fa-cogs"></i></span>
-                                                            <p>
-                                                                <span class="number"><label id="reconfContid"></label></span>
-                                                                <br>
-                                                                <span class="title">N° Scaling Replicas</span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-2 padding-2">
-                                                        <div class="metric">
-                                                            <span class="icon"><i class="fa fa-cogs"></i></span>
+                                                            <span class="icon"><i class="fas fa-clock"></i></span>
                                                             <p>
                                                                 <span class="number"><label id="durationId"></label></span>
                                                                 <br>
@@ -227,7 +194,7 @@
                                                             </p>
                                                         </div>
                                                     </div>
-                                                    <div class="col-md-2 padding-2">
+                                                    <div class="col-md-3">
                                                         <div class="metric">
                                                             <span class="icon"><i class="fa fa-cogs"></i></span>
                                                             <p>
@@ -237,7 +204,7 @@
                                                             </p>
                                                         </div>
                                                     </div>
-                                                    <div class="col-md-2 padding-2">
+                                                    <div class="col-md-3">
                                                         <div class="metric">
                                                             <span class="icon"><i class="fa fa-cogs"></i></span>
                                                             <p>
@@ -247,7 +214,7 @@
                                                             </p>
                                                         </div>
                                                     </div>
-                                                    <div class="col-md-2 padding-2">
+                                                    <div class="col-md-3">
                                                         <div class="metric">
                                                             <span class="icon"><i class="fa fa-cogs"></i></span>
                                                             <p>
@@ -260,40 +227,74 @@
                                                 </div>
                                                 <!-- END METRICS--->
                                                 <div class="row">
+                                                    <div class="col-md-8 padding-2">
+                                                        <div class="panel">
+                                                            <div class="panel-body">
+                                                                <div id="requestsUnits" class="ct-chart"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4 padding-2">
+                                                        <div class="panel">
+                                                            <div class="panel-body">
+                                                                <div id="numScalingActionsDiv" class="ct-chart"></div>
+                                                            </div>
+                                                        </div>
+
+                                                            <div class="metric">
+                                                                <span class="icon"><i class="fa fa-upload"></i></span>
+                                                                <p>
+                                                                    <span class="number"><label id="overid"></label></span>
+                                                                    <br>
+                                                                    <span class="title">Overprovision</span>
+                                                                </p>
+                                                            </div>
+
+
+                                                            <div class="metric">
+                                                                <span class="icon"><i class="fa fa-download"></i></span>
+                                                                <p>
+                                                                    <span class="number"><label id="underid"> </label></span>
+                                                                    <br>
+                                                                    <span class="title">Underprovision</span>
+                                                                </p>
+                                                            </div>
+
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-6 padding-2">
                                                     <div class="panel">
                                                         <div class="panel-body">
                                                             <div id="vmUnits" class="ct-chart"></div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                                <div class="row">
-                                                    <div class="panel">
-                                                        <div class="panel-body">
-                                                            <div id="containerUnits" class="ct-chart"></div>
+                                                    </div>
+                                                    <div class="col-md-6 padding-2">
+                                                        <div class="panel">
+                                                            <div class="panel-body">
+                                                                <div id="containerUnits" class="ct-chart"></div>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
+
                                                 <div class="row">
-                                                    <div class="panel">
-                                                        <div class="panel-body">
-                                                            <div id="requestsUnits" class="ct-chart"></div>
+                                                    <div class="col-md-8 padding-2">
+                                                        <div class="panel">
+                                                            <div class="panel-body">
+                                                                <div id="resources" class="ct-chart"></div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                                <div class="row">
-                                                    <div class="panel">
-                                                        <div class="panel-body">
-                                                            <div id="resources" class="ct-chart"></div>
+                                                    <div class="col-md-4 padding-2">
+                                                        <div class="panel">
+                                                            <div class="panel-body">
+                                                                <div id="accumulatedCost" class="ct-chart"></div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                                <div class="row">
-                                                    <div class="panel">
-                                                        <div class="panel-body">
-                                                            <div id="accumulatedCost" class="ct-chart"></div>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                            </div>
                                             </div>
                                             <div id="menuJson" class="tab-pane fade">
 
@@ -339,6 +340,23 @@
                                                     <div class="col-md-6 padding-2">
                                                         <div class="panel">
                                                             <div class="panel-body">
+                                                                <div id="costAll" class="ct-chart"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6 padding-2">
+                                                        <div class="panel">
+                                                            <div class="panel-body">
+                                                                <div id="derivationTimeAll" class="ct-chart"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="row">
+                                                    <div class="col-md-6 padding-2">
+                                                        <div class="panel">
+                                                            <div class="panel-body">
                                                                 <div id="overUnderProvisionAll" class="ct-chart"></div>
                                                             </div>
                                                         </div>
@@ -352,22 +370,7 @@
                                                     </div>
                                                 </div>
 
-                                                <div class="row">
-                                                    <div class="col-md-6 padding-2">
-                                                        <div class="panel">
-                                                            <div class="panel-body">
-                                                                <div id="costAll" class="ct-chart"></div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-6 padding-2">
-                                                        <div class="panel">
-                                                            <div class="panel-body">
-                                                                <div id="derivationTimeAll" class="ct-chart"></div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
+
                                                 <div class="row">
                                                     <div class="col-md-6 padding-2">
                                                         <div class="panel">
