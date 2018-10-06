@@ -42,3 +42,11 @@ func Execute() {
 		os.Exit(-1)
 	}
 }
+
+func check(e error, msg string) {
+	if e != nil {
+		log.Fatalf(msg + " %s", e.Error())
+		fmt.Println("An error has occurred")
+		panic(e)
+	}
+}

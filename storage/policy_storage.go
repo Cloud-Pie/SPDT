@@ -107,11 +107,11 @@ func (p *PolicyDAO) DeleteById(id string) error {
 	return err
 }
 
-//Delete policy for the time window
-func (p *PolicyDAO) DeleteOneByTimeWindow(startTime time.Time, endTime time.Time) error {
+//Delete all policies for the time window
+func (p *PolicyDAO) DeleteAllByTimeWindow(startTime time.Time, endTime time.Time) error {
 	err := p.db.C(p.Collection).
-		Remove(bson.M{"window_time_start": bson.M{"$eq":startTime},
-		              "window_time_end": bson.M{"$eq":startTime}})
+		Remove(bson.M{"window_time_start": bson.M{"$gte":startTime},
+		              "window_time_end": bson.M{"$lte":startTime}})
 	return err
 }
 

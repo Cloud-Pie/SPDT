@@ -4,6 +4,9 @@ import (
 	db "github.com/Cloud-Pie/SPDT/storage"
 	"github.com/spf13/cobra"
 	"github.com/Cloud-Pie/SPDT/server"
+	"github.com/Cloud-Pie/SPDT/util"
+	"time"
+	"fmt"
 )
 
 // invalidateCmd represents the invalidate policies command
@@ -19,51 +22,52 @@ var forceInvalidation bool
 func init() {
 	invalidateCmd.Flags().String("start-time", "", "Start time of the horizon span")
 	invalidateCmd.Flags().String("end-time", "", "End time of the horizon span")
-	invalidateCmd.Flags().String("pId", "", "Policy ID")
 	invalidateCmd.Flags().String("config-file", "config.yml", "Configuration file path")
 	invalidateCmd.Flags().BoolVar(&forceInvalidation,"f", false, "Force the action")
 }
 
 func invalidate(cmd *cobra.Command, args []string) {
+	var(
+		timeStart time.Time
+		timeEnd   time.Time
+		err       error
+	)
 	if forceInvalidation {
-
-		id := cmd.Flag("pId").Value.String()
+		timeStart,err = time.Parse(util.UTC_TIME_LAYOUT,cmd.Flag("start-time").Value.String())
+		check(err, "Time start window no valid")
+		timeEnd,err = time.Parse(util.UTC_TIME_LAYOUT,cmd.Flag("end-time").Value.String())
+		check(err, "Time end window no valid")
 		configFile := cmd.Flag("config-file").Value.String()
 		systemConfiguration := server.ReadSysConfigurationFile(configFile)
 
 		policyDAO := db.GetPolicyDAO(systemConfiguration.MainServiceName)
-		policy,err := policyDAO.FindByID(id)
-		if err != nil {
-			log.Fatalf("Error %s", err.Error())
-		}
-
-		//Request invalidation to scheduler
-		err = server.InvalidateScalingStates(systemConfiguration, policy.TimeWindowStart)
-		if err != nil {
-			log.Fatalf("Error in request to invalidate states: %s", err.Error())
-		} else {
-			log.Info("Success invalidation request to scheduler")
+		currentPolicies,err := policyDAO.FindAllByTimeWindow(timeStart,timeEnd)
+		check(err, "No policies found for the specified window")
+		if len(currentPolicies) == 0 {
+			log.Fatalf("No policies found for the specified window")
+			fmt.Println("No policies found for the specified window")
 		}
 
 		//Recompute new set of policies
-		timeStart := systemConfiguration.ScalingHorizon.StartTime
-		timeEnd := systemConfiguration.ScalingHorizon.EndTime
-		err = server.StartPolicyDerivation(timeStart,timeEnd,configFile)
+		selectedPolicy,err2 := server.StartPolicyDerivation(timeStart,timeEnd,configFile)
+		check(err2, "New policy could not be derived")
 
-		if err != nil {
-			log.Fatalf("Error, new policy could not be derived %s", err.Error())
+		log.Info("New Policy derived")
+		err = server.InvalidateScalingStates(systemConfiguration, timeStart)
+		check(err, "States could not be invalidated")
+		log.Info("Invalidated previous scheduled states")
+		server.ScheduleScaling(systemConfiguration, selectedPolicy)
+		log.Info("Schedule new states")
 
-		} else {
-			log.Info("New Policy derived")
+		//Delete all policies created previously for that period
+		for _,p := range currentPolicies {
+			err = policyDAO.DeleteById(p.ID.Hex())
+			if err != nil {
+				log.Fatalf("Error, policy %s could not be removed from db: %s", id, err.Error())
+			}
 		}
+		log.Info("Policy %s invalidated successfully", id)
 
-		//Delete all policies for that period
-		err = policyDAO.DeleteById(id)
-		if err != nil {
-			log.Fatalf("Error, policy %s could not be removed from db: %s", id, err.Error())
-		} else {
-			log.Info("Policy %s invalidated successfully", id)
-		}
 	} else {
 		log.Warning("Are you sure you want to invalidate this policy?, use the flag --f=true to force it")
 	}

@@ -92,7 +92,7 @@ func getPolicies(c *gin.Context) {
 	c.JSON(http.StatusOK, policies)
 }
 
-// This handler delete policy that match the query paramenters
+// This handler delete policy that match the query parameters
 // The request responds to a policiesEndpoint matching:  /api/policies?start=2018-08-07T20:28:20&end=2018-08-07T20:28:20
 func deletePolicyWindow(c *gin.Context) {
 	windowTimeStart := c.DefaultQuery("start", "")
@@ -103,7 +103,7 @@ func deletePolicyWindow(c *gin.Context) {
 	if windowTimeStart != "" && windowTimeEnd != "" {
 		startTime, err := time.Parse(util.UTC_TIME_LAYOUT, windowTimeStart)
 		endTime, err := time.Parse(util.UTC_TIME_LAYOUT, windowTimeEnd)
-		err = policyDAO.DeleteOneByTimeWindow(startTime,endTime)
+		err = policyDAO.DeleteAllByTimeWindow(startTime,endTime)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, err.Error())
 		}

@@ -62,10 +62,16 @@ func Start(port string, configFile string) {
 //and derive a the correspondent new scaling policy
 func periodicPolicyDerivation() {
 	for {
-		err := StartPolicyDerivation(timeStart,timeEnd, ConfigFile)
+		sysConfiguration := ReadSysConfigurationFile(ConfigFile)
+		selectedPolicy,err := StartPolicyDerivation(timeStart,timeEnd, ConfigFile)
 		if err != nil {
 			log.Error("An error has occurred and policies have been not derived. Please try again. Details: %s", err)
 		}else{
+			//Schedule scaling states
+			ScheduleScaling(sysConfiguration, selectedPolicy)
+			//Subscribe to the notifications
+			//SubscribeForecastingUpdates(sysConfiguration, selectedPolicy, forecast.IDPrediction)
+
 			timeStart.Add(timeWindowSize)
 			timeEnd.Add(timeWindowSize)
 			time.Sleep(timeWindowSize)

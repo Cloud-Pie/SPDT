@@ -48,35 +48,30 @@ func retrieve (cmd *cobra.Command, args []string) {
 	} else if start != "" && end != "" {
 		layout := "2014-09-12 11:45:26"
 		startTime,err := time.Parse(layout , start)
-		check(err)
+		check(err, "Invalid start time")
 		endTime,err := time.Parse(layout , end)
-		check(err)
+		check(err, "Invalid end time")
 		policies,err := policyDAO.FindOneByTimeWindow(startTime, endTime)
-		check(err)
+		check(err, "No policies for the specified window")
 		writeToFile(policies)
 	}else if all {
 		policies,err := policyDAO.FindAll()
-		check(err)
+		check(err, "No policies for the specified window")
 		writeToFile(policies)
 	}
 }
 
 
 
-func check(e error) {
-	if e != nil {
-		fmt.Println("An error has occurred")
-		panic(e)
-	}
-}
+
 
 func writeToFile(out interface{}) {
 	data, err := json.Marshal(out)
-	check(err)
+	check(err, "Error writing File")
 	output := string(data)
 	f, err := os.Create("output.json")
-	check(err)
+	check(err, "Error writing File")
 	_,err = f.WriteString(output)
-	check(err)
+	check(err, "Error writing File")
 	fmt.Println("See the output of your query in the file output.json")
 }

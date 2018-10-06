@@ -7,12 +7,11 @@ import (
 	"time"
 	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/types"
-	"fmt"
 )
 
 var requestsCapacityPerState types.RequestCapacitySupply
 
-func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time, ConfigFile string) error {
+func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time, ConfigFile string) (types.Policy, error) {
 	sysConfiguration := ReadSysConfigurationFile(ConfigFile)
 	timeStart = sysConfiguration.ScalingHorizon.StartTime
 	timeEnd = sysConfiguration.ScalingHorizon.EndTime
@@ -28,7 +27,7 @@ func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time, ConfigFile st
 	if err != nil {
 		log.Error(err.Error())
 		log.Info("Error in the request to get the forecasting")
-		return err
+		return types.Policy{},err
 	} else {
 		log.Info("Finish request Forecasting")
 	}
@@ -51,22 +50,6 @@ func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time, ConfigFile st
 		forecast.IDdb = id
 		forecastDAO.Update(id, forecast)
 	}
-
-
-
 	selectedPolicy,err := setNewPolicy(forecast, sysConfiguration)
-
-	if err == nil {
-		//Schedule scaling states
-		ScheduleScaling(sysConfiguration, selectedPolicy)
-
-		//Subscribe to the notifications
-		SubscribeForecastingUpdates(sysConfiguration, selectedPolicy, forecast.IDPrediction)
-	} else {
-		//Send message to user
-		fmt.Println(err.Error())
-		log.Warning("Process stopped. %s", err.Error())
-	}
-
-	return err
+	return selectedPolicy,err
 }
