@@ -278,28 +278,18 @@ func estimatePodsConfiguration(requests float64, limits types.Limit) (types.Cont
 	out:
 		@ContainersConfig	- configuration with number of replicas and limits that best fit for the number of requests
 */
-func selectProfileUnderVMLimits(requests float64,  limits types.Limit, underProvision bool) (types.ContainersConfig, error){
+func selectProfileUnderVMLimits(requests float64,  limits types.Limit) (types.ContainersConfig, error) {
 	var profiles []types.ContainersConfig
 	var profile  types.ContainersConfig
 	serviceProfileDAO := storage.GetPerformanceProfileDAO(systemConfiguration.MainServiceName)
-	profilesUnder,err1:= serviceProfileDAO.MatchProfileFitLimitsUnder(limits.CPUCores, limits.MemoryGB, requests)
-	profilesOver,err2 := serviceProfileDAO.MatchProfileFitLimitsOver(limits.CPUCores, limits.MemoryGB, requests)
+	profiles,err2 := serviceProfileDAO.MatchProfileFitLimitsOver(limits.CPUCores, limits.MemoryGB, requests)
 
-	if underProvision && err1 == nil && len(profilesUnder) > 0 {
-		profiles = profilesUnder
+    if err2 == nil{
 		sort.Slice(profiles, func(i, j int) bool {
 			utilizationFactori := float64(profiles[i].MSCSetting.Replicas) * profiles[i].Limits.CPUCores +  float64(profiles[i].MSCSetting.Replicas) * profiles[i].Limits.MemoryGB
-			utilizationFactorj := float64(profiles[j].MSCSetting.Replicas) * profiles[j].Limits.CPUCores + float64(profiles[j].MSCSetting.Replicas) * profiles[i].Limits.MemoryGB
+			utilizationFactorj := float64(profiles[j].MSCSetting.Replicas) * profiles[j].Limits.CPUCores + float64(profiles[j].MSCSetting.Replicas) * profiles[j].Limits.MemoryGB
 			return utilizationFactori < utilizationFactorj
 		})
-
-	} else if err2 == nil{
-		profiles = profilesOver
-		sort.Slice(profiles, func(i, j int) bool {
-			return profiles[i].MSCSetting.MSCPerSecond < profiles[j].MSCSetting.MSCPerSecond
-		})
-	} else if err1 == nil {
-		profiles = profilesUnder
 	}
 	//defer serviceProfileDAO.Session.Close()
 
@@ -320,7 +310,7 @@ func selectProfileUnderVMLimits(requests float64,  limits types.Limit, underProv
 */
 func getStateLoadCapacity(numberReplicas int, limits types.Limit) types.MSCSimpleSetting {
 	serviceProfileDAO := storage.GetPerformanceProfileDAO(systemConfiguration.MainServiceName)
-	profile,_ := serviceProfileDAO.FindProfileTRN(limits.CPUCores, limits.MemoryGB, numberReplicas)
+	profile,_ := serviceProfileDAO.FindByLimitsAndReplicas(limits.CPUCores, limits.MemoryGB, numberReplicas)
 	newMSCSetting := types.MSCSimpleSetting{}
 	if len(profile.MSCSettings) > 0 {
 		return profile.MSCSettings[0]
@@ -341,7 +331,7 @@ func getStateLoadCapacity(numberReplicas int, limits types.Limit) types.MSCSimpl
 		}
 		//update in db
 
-		profile,_:= serviceProfileDAO.FindProfileTRN(limits.CPUCores, limits.MemoryGB, numberReplicas)
+		profile,_:= serviceProfileDAO.FindByLimitsAndReplicas(limits.CPUCores, limits.MemoryGB, numberReplicas)
 		if profile.ID == "" {
 			profile,_= serviceProfileDAO.FindProfileByLimits(limits)
 			profile.MSCSettings = append(profile.MSCSettings,newMSCSetting)
