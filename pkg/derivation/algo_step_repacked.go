@@ -9,13 +9,10 @@ import (
 	"github.com/Cloud-Pie/SPDT/util"
 )
 
-/*
-After each change in the workload it calculates the number of VMs in a heterogeneous cluster
-*/
 type StepRepackPolicy struct {
-	algorithm 		string				 //Algorithm's name
-	timeWindow 		TimeWindowDerivation //Algorithm used to process the forecasted time serie
-	sortedVMProfiles []types.VmProfile    			//List of VM profiles sorted by price
+	algorithm 		string
+	timeWindow 		TimeWindowDerivation
+	sortedVMProfiles []types.VmProfile
 	mapVMProfiles map[string]types.VmProfile
 	sysConfiguration	config.SystemConfiguration
 	currentState	types.State			 //Current State

@@ -227,6 +227,36 @@
                                                             </p>
                                                         </div>
                                                     </div>
+                                                    <div class="col-md-2 padding-2">
+                                                        <div class="metric">
+                                                            <span class="icon"><i class="fa fa-cogs"></i></span>
+                                                            <p>
+                                                                <span class="number"><label id="shadowTimeId"></label></span>
+                                                                <br>
+                                                                <span class="title">Shadow Time(s)</span>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-2 padding-2">
+                                                        <div class="metric">
+                                                            <span class="icon"><i class="fa fa-cogs"></i></span>
+                                                            <p>
+                                                                <span class="number"><label id="transitionTimeId"></label></span>
+                                                                <br>
+                                                                <span class="title">Avg Transition Time(s)</span>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-2 padding-2">
+                                                        <div class="metric">
+                                                            <span class="icon"><i class="fa fa-cogs"></i></span>
+                                                            <p>
+                                                                <span class="number"><label id="timeBetweenStatesId"></label></span>
+                                                                <br>
+                                                                <span class="title">Avg Time Between states(s)</span>
+                                                            </p>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                                 <!-- END METRICS--->
                                                 <div class="row">
@@ -330,6 +360,29 @@
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <div class="col-md-6 padding-2">
+                                                        <div class="panel">
+                                                            <div class="panel-body">
+                                                                <div id="derivationTimeAll" class="ct-chart"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-6 padding-2">
+                                                        <div class="panel">
+                                                            <div class="panel-body">
+                                                                <div id="avgTransitionTimeAll" class="ct-chart"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6 padding-2">
+                                                        <div class="panel">
+                                                            <div class="panel-body">
+                                                                <div id="avgShadowTimeAll" class="ct-chart"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                                 <div class="row">
                                                     <div class="panel">
@@ -348,17 +401,11 @@
                                                 <div class="row">
                                                     <div class="panel">
                                                         <div class="panel-body">
-                                                            <div id="cpuUtilizationAll" class="ct-chart"></div>
+                                                            <div id="accumulatedCostAll" class="ct-chart"></div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="row">
-                                                    <div class="panel">
-                                                        <div class="panel-body">
-                                                            <div id="memoryUtilizationAll" class="ct-chart"></div>
-                                                        </div>
-                                                    </div>
-                                                </div>
+
                                             </div>
                                             <div id="menuMultiJson" class="tab-pane fade">
 

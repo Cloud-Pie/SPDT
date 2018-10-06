@@ -21,8 +21,8 @@ html {
 
 body {
   background-color: #F3F5F8;
-  background: -webkit-linear-gradient(left, #25c481, #25b7c4);
-  background: linear-gradient(to right, #25c481, #25b7c4);
+ /* background: -webkit-linear-gradient(left, #25c481, #25b7c4);
+  background: linear-gradient(to right, #25c481, #25b7c4);*/
   /*font-family: "Source Sans Pro", sans-serif;*/
   font-family: 'Roboto', sans-serif;
   font-size: 12px;

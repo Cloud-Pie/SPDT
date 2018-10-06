@@ -22,35 +22,17 @@ func PointsOfInterest(forecast types.Forecast) ([]types.PoI, []float64, [] time.
 
 func WindowDerivation(forecast types.Forecast) (types.ProcessedForecast) {
 	intervals := []types.CriticalInterval{}
-	i:= 1
+	i:= 0
 	lenValues := len(forecast.ForecastedValues)
-	for i <= lenValues - 1  {
+	value := forecast.ForecastedValues[0]
+	interval := types.CriticalInterval{Requests: value.Requests, TimeStart:value.TimeStamp, TimeEnd:value.TimeStamp }
+	intervals = append(intervals, interval)
+
+	for i <= lenValues - 2  {
 		value := forecast.ForecastedValues[i]
-		lastTimestamp := forecast.ForecastedValues[i-1].TimeStamp
-		//TODO: Adjust
-		/*lastRequests := forecast.ForecastedValues[i-1].Requests
-		isCurrentScaleIn := (lastRequests - value.Requests) > 0
-		isNextScaleOut := false
-		if i + 1 < lenValues {
-			nextRequests := forecast.ForecastedValues[i+1].Requests
-			isNextScaleOut = (value.Requests - nextRequests) < 0
-		}
-		if value.TimeStamp.Sub(lastTimestamp).Minutes() < 20 && isCurrentScaleIn && isNextScaleOut {
-			lenIntervals := len(intervals)
-			if lenIntervals > 0 {
-				intervals[lenIntervals-1].TimeEnd = value.TimeStamp
-				lastRequest := intervals[lenIntervals-1].Requests
-				if lastRequest < value.Requests {
-					intervals[lenIntervals-1].Requests = value.Requests
-				}
-			} else {
-				interval := types.CriticalInterval{Requests: value.Requests, TimeStart:lastTimestamp, TimeEnd:value.TimeStamp }
-				intervals = append(intervals, interval)
-			}
-		} else {*/
-			interval := types.CriticalInterval{Requests: value.Requests, TimeStart:lastTimestamp, TimeEnd:value.TimeStamp }
+		lastTimestamp := forecast.ForecastedValues[i+1].TimeStamp
+			interval := types.CriticalInterval{Requests: value.Requests, TimeStart:value.TimeStamp, TimeEnd:lastTimestamp }
 			intervals = append(intervals, interval)
-		//}
 		i+=1
 	}
 	processedForecast := types.ProcessedForecast{}

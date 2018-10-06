@@ -525,6 +525,9 @@ function fillMetrics(policy){
     document.getElementById("durationId").innerText = policy.metrics.derivation_duration;
     document.getElementById("reconfVMsid").innerText = policy.metrics.num_scale_vms;
     document.getElementById("reconfContid").innerText = policy.metrics.num_scale_containers;
+    document.getElementById("shadowTimeId").innerText = policy.metrics.avg_shadow_time_sec;
+    document.getElementById("transitionTimeId").innerText = policy.metrics.avg_transition_time_sec;
+    document.getElementById("timeBetweenStatesId").innerText = policy.metrics.avg_time_between_scaling_sec;
 }
 
 function fillDetailsTable(policy) {
@@ -569,11 +572,19 @@ function clickedCompareAll(){
     plotCapacityAll(units.time,requestDemand, units.trnAll, units.tracesAll)
    // plotVMsAll(units.time, units.vmsAll, units.tracesAll)
     plotReplicasAll(units.time, units.replicasAll,units.tracesAll)
-    plotCPUAll(units.time, units.cpuCoresAll, units.tracesAll)
-    plotMemAll(units.time, units.memGBAll, units.tracesAll)
+   // plotCPUAll(units.time, units.cpuCoresAll, units.tracesAll)
+   // plotMemAll(units.time, units.memGBAll, units.tracesAll)
     plotNScalingVMAll(units.nScalingVMsAll, units.nScalingContainersAll,units.tracesAll)
     plotOverUnderProvisionAll(units.overprovisionAll,units.underprovisionAll, units.tracesAll)
     plotCostAll(units.costAll,units.tracesAll)
+    plotAccumulatedCostAll(units.time, units.accumulatedCostAll, units.tracesAll)
+    //plotDerivationTimeAll(units.derivationDurationTimeAll, units.tracesAll)
+
+    //plotAvgShadowTimeAll(units.avgShadowTimeAll, units.tracesAll)
+    //plotTransitionTimeAll(units.avgTransitionTimeAll, units.tracesAll)
+    plotBarComparisonAll(units.derivationDurationTimeAll, units.tracesAll, 'Derivation Time (s)', 'Derivation Time', 'derivationTimeAll')
+    plotBarComparisonAll(units.avgShadowTimeAll, units.tracesAll, 'Avg Shadow Time (s)', 'Avg Shadow Time', 'avgShadowTimeAll')
+    plotBarComparisonAll(units.avgTransitionTimeAll, units.tracesAll, 'Avg Transition Time (s)', 'Avg Transition Time', 'avgTransitionTimeAll')
 }
 
 function getVirtualUnitsAll(policies) {
@@ -588,6 +599,10 @@ function getVirtualUnitsAll(policies) {
     nScalingVMsAll = [];
     nScalingContainersAll = [];
     costAll = [];
+    accumulatedCostAll = [];
+    avgShadowTimeAll = [];
+    avgTransitionTimeAll = [];
+    derivationDurationTimeAll = [];
     policies.forEach(function (policy) {
         time = [];
         vms = [];
@@ -595,6 +610,7 @@ function getVirtualUnitsAll(policies) {
         MSC = [];
         utilizationCpuCores = [];
         utilizationMemGB = [];
+        accumulatedCost = [];
         tracesAll.push(policy.algorithm)
         arrayScalingActions = policy.scaling_actions
         arrayScalingActions.forEach(function (conf) {
@@ -611,6 +627,14 @@ function getVirtualUnitsAll(policies) {
                 utilizationMemGB.push(services[key].Mem_gb * services[key].Replicas)
             }
             MSC.push(conf.metrics.requests_capacity)
+
+            lenghtAccumulatedCost = accumulatedCost.length
+            if (accumulatedCost.length == 0) {
+                accumulatedCost.push(conf.metrics.cost)
+            }else {
+                cost = accumulatedCost[accumulatedCost.length-1] + conf.metrics.cost
+                accumulatedCost.push(cost)
+            }
         })
         vmsAll.push(vms)
         replicasAll.push(replicas)
@@ -622,6 +646,10 @@ function getVirtualUnitsAll(policies) {
         nScalingVMsAll.push(policy.metrics.num_scale_vms)
         nScalingContainersAll.push(policy.metrics.num_scale_containers)
         costAll.push(policy.metrics.cost)
+        accumulatedCostAll.push(accumulatedCost)
+        avgShadowTimeAll.push(policy.metrics.avg_shadow_time_sec)
+        avgTransitionTimeAll.push(policy.metrics.avg_transition_time_sec)
+        derivationDurationTimeAll.push(policy.metrics.derivation_duration)
     })
 
     return {
@@ -636,7 +664,11 @@ function getVirtualUnitsAll(policies) {
         underprovisionAll: underprovisionAll,
         nScalingVMsAll: nScalingVMsAll,
         nScalingContainersAll:nScalingContainersAll,
-        costAll: costAll
+        costAll: costAll,
+        accumulatedCostAll:accumulatedCostAll,
+        avgShadowTimeAll:avgShadowTimeAll,
+        avgTransitionTimeAll:avgTransitionTimeAll,
+        derivationDurationTimeAll:derivationDurationTimeAll
     }
 }
 
@@ -679,7 +711,7 @@ function plotCapacityAll(time, demand, supplyAll,tracesAll){
 
     Plotly.newPlot('requestsUnitsAll', data,layout);
 }
-
+/*
 function plotMemAll(time, memGBAll, tracesAll) {
 
     var data = [];
@@ -902,6 +934,88 @@ function plotCostAll(costAll, tracesAll) {
     };
 
     Plotly.newPlot('costAll', data,layout);
+}
+
+
+function plotDerivationTimeAll(derivationTimeAll, tracesAll) {
+
+    var trace1 = {
+        x: derivationTimeAll,
+        y: tracesAll,
+        type: 'bar',
+        name: 'Cost $',
+    };
+
+
+    var data = [trace1];
+    var layout = {
+        title: "Derivation time",
+        autosize:true,
+        paper_bgcolor:'rgba(0,0,0,0)',
+        plot_bgcolor:'rgba(0,0,0,0)',
+        legend: {
+            "orientation": "h",
+            xanchor: "center",
+            y: 1.088,
+            x: 0.2
+        },
+    };
+
+    Plotly.newPlot('derivationTimeAll', data,layout);
+}
+
+
+function plotBarComparisonAll(values, tracesAll, title, varName, nameDiv) {
+
+    var trace1 = {
+        x: tracesAll,
+        y: values,
+        type: 'bar',
+        name: varName,
+    };
+
+
+    var data = [trace1];
+    var layout = {
+        title: title,
+        autosize:true,
+        paper_bgcolor:'rgba(0,0,0,0)',
+        plot_bgcolor:'rgba(0,0,0,0)',
+
+    };
+
+    Plotly.newPlot(nameDiv, data,layout);
+}
+
+function plotAccumulatedCostAll(time, accumulatedCostAll, tracesAll) {
+    var data = [];
+    var i = 0;
+    accumulatedCostAll.forEach(function (item) {
+        {
+            data.push(
+                {
+                    x: time,
+                    y: item,
+                    type: 'scatter',
+                    name: tracesAll[i],
+                    line: {shape: 'hv'}
+
+                }
+            )
+            i=i+1
+        }
+    })
+
+    var layout = {
+        title: 'Accumulated cost',
+        autosize:true,
+        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        paper_bgcolor:'rgba(0,0,0,0)',
+        plot_bgcolor:'rgba(0,0,0,0)',
+        //height: 200
+    };
+
+    Plotly.newPlot('accumulatedCostAll', data,layout);
 }
 function showNoResultsPanel(){
     var x = document.getElementById("singlePolicyDiv");
