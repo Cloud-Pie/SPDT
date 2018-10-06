@@ -357,7 +357,7 @@ function plotAccumulatedCost(time, cost) {
     Plotly.newPlot('accumulatedCost', data,layout);
 }
 
-function plotProvidedResources(time, cpuCores, memGB) {
+function plotAllocatedResources(time, cpuCores, memGB) {
 
     var trace = {
         x: time,
@@ -431,7 +431,7 @@ function displayPolicyInformation(policy) {
     plotCapacity(timeRequestDemand, requestDemand, units.msc, units.time)
     plotVMUnitsPerType(units.time, units.vmScalesInTime,timeRequestDemand, units.labelsTypesVmSet, units.maxNumVMs)
     plotContainerUnits(units.time, units.replicas, units.limitsCpuCores, units.limitsMemGB, units.maxNumContainers)
-    plotProvidedResources(units.time, units.utilizationCpuCores, units.utilizationMemGB)
+    plotAllocatedResources(units.time, units.utilizationCpuCores, units.utilizationMemGB)
     plotAccumulatedCost(units.time, units.accumulatedCost)
     fillMetrics(policy)
     fillDetailsTable(policy)
@@ -568,20 +568,22 @@ function fillDetailsTable(policy) {
 function clickedCompareAll(){
     showMultiplePolicyPanels()
     units = getVirtualUnitsAll(allPolicies)
-    plotCapacityAll(units.time,requestDemand, units.trnAll, units.tracesAll)
-    plotReplicasAll(units.time, units.replicasAll,units.tracesAll)
-    plotNScalingVMAll(units.nScalingVMsAll, units.nScalingContainersAll,units.tracesAll)
-    plotOverUnderProvisionAll(units.overprovisionAll,units.underprovisionAll, units.tracesAll)
+    plotCapacityAll(requestDemand, units.trnAll, units.timesAll, units.tracesAll)
+    plotReplicasAll(units.replicasAll,units.timesAll, units.tracesAll)
     plotAccumulatedCostAll(units.time, units.accumulatedCostAll, units.tracesAll)
-    plotBarComparisonAll(units.time, units.tracesAll, 'Cost (s)', 'Cost', 'costAll')
-    plotBarComparisonAll(units.derivationDurationTimeAll, units.tracesAll, 'Derivation Time (s)', 'Derivation Time', 'derivationTimeAll')
-    plotBarComparisonAll(units.avgShadowTimeAll, units.tracesAll, 'Avg Shadow Time (s)', 'Avg Shadow Time', 'avgShadowTimeAll')
-    plotBarComparisonAll(units.avgTransitionTimeAll, units.tracesAll, 'Avg Transition Time (s)', 'Avg Transition Time', 'avgTransitionTimeAll')
+
+    plotBarComparisonAll([units.overprovisionAll,units.underprovisionAll], [units.tracesAll, units.tracesAll], 'Demand vs Capacity', ['over', 'under'], 'overUnderProvisionAll')
+    plotBarComparisonAll([units.nScalingVMsAll, units.nScalingContainersAll], [units.tracesAll, units.tracesAll], 'N° Scaling Actions', ['VMs', 'Containers'], 'nScalingVmsAll')
+    plotBarComparisonAll([units.costAll], [units.tracesAll], 'Cost (s)', ['Cost'], 'costAll')
+    plotBarComparisonAll([units.derivationDurationTimeAll], [units.tracesAll], 'Derivation Time (s)', ['Derivation Time'], 'derivationTimeAll')
+    plotBarComparisonAll([units.avgShadowTimeAll], [units.tracesAll], 'Avg Shadow Time (s)', ['Avg Shadow Time'], 'avgShadowTimeAll')
+    plotBarComparisonAll([units.avgTransitionTimeAll], [units.tracesAll], 'Avg Transition Time (s)', ['Avg Transition Time'], 'avgTransitionTimeAll')
 }
 
 function getVirtualUnitsAll(policies) {
     vmsAll = [];
     replicasAll = [];
+    timesAll =[];
     TRNAll = [];
     cpuCoresAll = [];
     memGBAll = [];
@@ -628,6 +630,12 @@ function getVirtualUnitsAll(policies) {
                 accumulatedCost.push(cost)
             }
         })
+
+        lastConf = arrayScalingActions[arrayScalingActions.length - 1]
+        time.push(lastConf.time_end)
+        MSC.push(lastConf.metrics.requests_capacity)
+        timesAll.push(time)
+
         vmsAll.push(vms)
         replicasAll.push(replicas)
         TRNAll.push(MSC)
@@ -646,6 +654,7 @@ function getVirtualUnitsAll(policies) {
 
     return {
         time: time,
+        timesAll:timesAll,
         tracesAll: tracesAll,
         vmsAll: vmsAll,
         replicasAll: replicasAll,
@@ -664,7 +673,7 @@ function getVirtualUnitsAll(policies) {
     }
 }
 
-function plotCapacityAll(time, demand, supplyAll,tracesAll){
+function plotCapacityAll(demand, supplyAll,timeAll, tracesAll){
 
     var data = [];
     data.push(
@@ -681,7 +690,7 @@ function plotCapacityAll(time, demand, supplyAll,tracesAll){
         {
             data.push(
                 {
-                    x: time,
+                    x: timeAll[i],
                     y: item,
                     name: tracesAll[i],
                     type: 'scatter',
@@ -703,114 +712,15 @@ function plotCapacityAll(time, demand, supplyAll,tracesAll){
 
     Plotly.newPlot('requestsUnitsAll', data,layout);
 }
-/*
-function plotMemAll(time, memGBAll, tracesAll) {
 
-    var data = [];
-    var i = 0
-    memGBAll.forEach(function (item) {
-        {
-            data.push(
-                {
-                    x: time,
-                    y: item,
-                    type: 'scatter',
-                    name: tracesAll[i],
-                    line: {shape: 'hv'}
-
-                }
-            )
-            i=i+1
-        }
-    })
-
-
-    var layout = {
-        title: 'Memory provisioned',
-        autosize:true,
-        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
-        paper_bgcolor:'rgba(0,0,0,0)',
-        plot_bgcolor:'rgba(0,0,0,0)',
-
-    };
-
-    Plotly.newPlot('memoryUtilizationAll', data,layout);
-}
-
-function plotCPUAll(time, cpuCoresAll, tracesAll) {
-
-    var data = [];
-    var i = 0;
-    cpuCoresAll.forEach(function (item) {
-        {
-            data.push(
-                {
-                    x: time,
-                    y: item,
-                    type: 'scatter',
-                    name: tracesAll[i],
-                    line: {shape: 'hv'}
-
-                }
-            )
-            i=i+1
-        }
-    })
-
-
-    var layout = {
-        title: 'CPU cores provisioned',
-        autosize:true,
-        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
-        paper_bgcolor:'rgba(0,0,0,0)',
-        plot_bgcolor:'rgba(0,0,0,0)',
-        //height: 200
-    };
-
-    Plotly.newPlot('cpuUtilizationAll', data,layout);
-}
-/*
-function plotVMsAll(time, vmsAll, tracesAll) {
-
-    var data = [];
-    var i = 0;
-    vmsAll.forEach(function (item) {
-        {
-            data.push(
-                {
-                    x: time,
-                    y: item,
-                    type: 'scatter',
-                    name: tracesAll[i],
-                    line: {shape: 'hv'}
-
-                }
-            )
-            i=i+1
-        }
-    })
-
-
-    var layout = {
-        title: 'N° VMs',
-        autosize:true,
-        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
-        paper_bgcolor:'rgba(0,0,0,0)',
-        plot_bgcolor:'rgba(0,0,0,0)',
-        //height: 200
-    };
-
-    Plotly.newPlot('vmUnitsAll', data,layout);
-}*/
-
-function plotReplicasAll(time, replicasAll, tracesAll) {
+function plotReplicasAll(replicasAll, timesAll, tracesAll) {
     var data = [];
     var i = 0;
     replicasAll.forEach(function (item) {
         {
             data.push(
                 {
-                    x: time,
+                    x: timesAll[i],
                     y: item,
                     type: 'scatter',
                     name: tracesAll[i],
@@ -834,154 +744,40 @@ function plotReplicasAll(time, replicasAll, tracesAll) {
     Plotly.newPlot('replicaUnitsAll', data,layout);
 }
 
-function plotNScalingVMAll(nScalingVMs, nScalingContainers, tracesAll) {
-    var trace1 = {
-        x: nScalingVMs,
-        y: tracesAll,
-        type: 'bar',
-        name: 'N° VM Scaling actions ',
-        orientation: 'h'
-    };
-
-    var trace2 = {
-        x: nScalingContainers,
-        y: tracesAll,
-        type: 'bar',
-        name: 'N° Container Scaling actions ',
-        orientation: 'h'
-    };
-
-    var data = [trace1, trace2];
-    var layout = {
-        autosize:true,
-        margin: {l: 150,r: 50,b: 45,t: 45, pad: 4},
-        paper_bgcolor:'rgba(0,0,0,0)',
-        plot_bgcolor:'rgba(0,0,0,0)',
-        legend: {
-            "orientation": "h",
-            xanchor: "center",
-            y: 1.088,
-            x: 0.2
-        },
-    };
-
-    Plotly.newPlot('nScalingVmsAll', data,layout);
-}
-
-function plotOverUnderProvisionAll(overAll, underAll, tracesAll) {
-
-    var trace1 = {
-        x: overAll,
-        y: tracesAll,
-        type: 'bar',
-        name: '% Over Provision',
-        orientation: 'h'
-    };
-
-    var trace2 = {
-        x: underAll,
-        y: tracesAll,
-        type: 'bar',
-        name: '% Under Provision',
-        orientation: 'h'
-    };
-
-    var data = [trace1, trace2];
-    var layout = {
-        autosize:true,
-        paper_bgcolor:'rgba(0,0,0,0)',
-        plot_bgcolor:'rgba(0,0,0,0)',
-        legend: {
-            "orientation": "h",
-            xanchor: "center",
-            y: 1.088,
-            x: 0.2
-        },
-        //height: 200
-    };
-
-    Plotly.newPlot('overUnderProvisionAll', data,layout);
-}
-
-
-function plotCostAll(costAll, tracesAll) {
-
-    var trace1 = {
-        x: costAll,
-        y: tracesAll,
-        name: 'Cost $',
-        width: [0.2],
-        type: 'bar',
-        orientation: 'h'
-    };
-
-
-    var data = [trace1];
-    var layout = {
-        title: "Cost $",
-        autosize:true,
-        paper_bgcolor:'rgba(0,0,0,0)',
-        plot_bgcolor:'rgba(0,0,0,0)',
-        legend: {
-            "orientation": "h",
-            xanchor: "center",
-            y: 1.088,
-            x: 0.2
-        },
-        //height: 200
-    };
-
-    Plotly.newPlot('costAll', data,layout);
-}
-
-
-function plotDerivationTimeAll(derivationTimeAll, tracesAll) {
-
-    var trace1 = {
-        x: tracesAll,
-        y: derivationTimeAll,
-        type: 'bar',
-        name: 'Cost $',
-        orientation: 'h'
-    };
-
-
-    var data = [trace1];
-    var layout = {
-        title: "Derivation time",
-        autosize:true,
-        paper_bgcolor:'rgba(0,0,0,0)',
-        plot_bgcolor:'rgba(0,0,0,0)',
-        legend: {
-            "orientation": "h",
-            xanchor: "center",
-            y: 1.088,
-            x: 0.2
-        },
-    };
-
-    Plotly.newPlot('derivationTimeAll', data,layout);
-}
-
-
 function plotBarComparisonAll(values, tracesAll, title, varName, nameDiv) {
 
-    var trace1 = {
-        x: values ,
-        y: tracesAll,
-        type: 'bar',
-        name: varName,
-        orientation: 'h'
-    };
+    var data = [];
+    var i = 0;
+    var j = 0;
+    widthArray = [];
 
-
-    var data = [trace1];
+    for (j = 0; j < tracesAll[0].length; j++) {
+        widthArray.push(0.2)
+    }
+    console.log(widthArray)
+    values.forEach(function (item) {
+        {
+            data.push(
+                {
+                    x: item,
+                    y: tracesAll[i],
+                    type: 'bar',
+                    orientation: 'h',
+                    name: varName[i],
+                    width: widthArray,
+                }
+            )
+            i=i+1
+        }
+    })
     var layout = {
         title: title,
         autosize:true,
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         margin: {l: 150,r: 50,b: 45,t: 45, pad: 4},
+        bargap: 0,
+
     };
 
     Plotly.newPlot(nameDiv, data,layout);
@@ -1088,6 +884,9 @@ function showSinglePolicyPanels() {
 
     var m = document.getElementById("metricsDiv");
     m.style.display = "block";
+
+    var n = document.getElementById("costDiv");
+    n.style.display = "block";
 }
 
 function showMultiplePolicyPanels() {
@@ -1097,8 +896,11 @@ function showMultiplePolicyPanels() {
     var m = document.getElementById("metricsDiv");
     m.style.display = "none";
 
-    var x = document.getElementById("candidatesDiv");
-    x.style.display = "block";
+    var n = document.getElementById("costDiv");
+    n.style.display = "none";
+
+    var z = document.getElementById("candidatesDiv");
+    z.style.display = "block";
 
     var y = document.getElementById("multiplePolicyDiv");
     if (y.style.display === "none") {
