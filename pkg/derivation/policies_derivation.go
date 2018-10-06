@@ -48,6 +48,7 @@ type TimeWindowDerivation interface {
 func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration config.SystemConfiguration, forecast types.Forecast) ([]types.Policy, error) {
 	var policies []types.Policy
 	systemConfiguration = sysConfiguration
+	mapVMProfiles := VMListToMap(sortedVMProfiles)
 
 	log.Info("Request current state" )
 	currentState,err := schedule.RetrieveCurrentState(sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_CURRENT_STATE)
@@ -60,10 +61,13 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration config.System
 	if currentState.Services[systemConfiguration.MainServiceName].Scale == 0 {
 		return policies, errors.New("Service "+ systemConfiguration.MainServiceName +" is not deployed")
 	}
+	if available, vmType := validateVMProfilesAvailable(currentState.VMs, mapVMProfiles); !available{
+		return policies, errors.New("Information not available for VM Type "+vmType )
+	}
 
 	processedForecast := forecast_processing.WindowDerivation(forecast)
 	initialState = currentState
-	mapVMProfiles := VMListToMap(sortedVMProfiles)
+
 
 	switch sysConfiguration.PreferredAlgorithm {
 	case util.NAIVE_ALGORITHM:
@@ -675,4 +679,13 @@ func findConfigOptionByContainerResize(currentVMSet types.VMScale, totalLoad flo
 		}
 	}
 	return configurationOptionFound, optionFound
+}
+
+func validateVMProfilesAvailable(vmSet types.VMScale, mapVMProfiles map[string]types.VmProfile ) (bool, string) {
+	for k,_ := range vmSet {
+		if _,ok := mapVMProfiles[k]; !ok {
+			return false, k
+		}
+	}
+	return true,""
 }
