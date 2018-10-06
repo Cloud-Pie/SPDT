@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"github.com/Cloud-Pie/SPDT/util"
 )
 
 // policiesCmd represents the policies command
@@ -46,13 +47,16 @@ func retrieve (cmd *cobra.Command, args []string) {
 			writeToFile(policy)
 		}
 	} else if start != "" && end != "" {
-		layout := "2014-09-12 11:45:26"
-		startTime,err := time.Parse(layout , start)
+		startTime,err := time.Parse(util.UTC_TIME_LAYOUT , start)
 		check(err, "Invalid start time")
-		endTime,err := time.Parse(layout , end)
+		endTime,err := time.Parse(util.UTC_TIME_LAYOUT , end)
 		check(err, "Invalid end time")
-		policies,err := policyDAO.FindOneByTimeWindow(startTime, endTime)
+		policies,err := policyDAO.FindAllByTimeWindow(startTime, endTime)
 		check(err, "No policies for the specified window")
+		if len(policies) == 0 {
+			log.Fatalf("No policies found for the specified window")
+			fmt.Println("No policies found for the specified window")
+		}
 		writeToFile(policies)
 	}else if all {
 		policies,err := policyDAO.FindAll()
@@ -60,10 +64,6 @@ func retrieve (cmd *cobra.Command, args []string) {
 		writeToFile(policies)
 	}
 }
-
-
-
-
 
 func writeToFile(out interface{}) {
 	data, err := json.Marshal(out)
