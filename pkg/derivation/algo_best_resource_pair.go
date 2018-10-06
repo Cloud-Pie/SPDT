@@ -84,7 +84,7 @@ func (p BestResourcePairPolicy) deriveCandidatePolicy(criticalIntervals []types.
 	}
 
 	for _, it := range criticalIntervals {
-		servicePerformanceProfile := selectProfileByLimits(it.Requests, containerLimits, false)
+		servicePerformanceProfile,_ := estimatePodsConfiguration(it.Requests, containerLimits)
 		vmSet,err := p.FindSuitableVMs(servicePerformanceProfile.MSCSetting.Replicas, servicePerformanceProfile.Limits, vmType)
 		if err !=  nil {
 			vmTypeSuitable = false
@@ -153,7 +153,7 @@ func (p BestResourcePairPolicy) deriveCandidatePolicy(criticalIntervals []types.
 		ContainersConfig -
 */
 func (p BestResourcePairPolicy) optionWithUnderProvision(totalLoad float64, containerLimits types.Limit, percentageUnderProvision float64, vmType string) types.ContainersConfig {
-	containerConfigUnder := selectProfileByLimits(totalLoad, containerLimits, true)
+	containerConfigUnder,_ := estimatePodsConfiguration(totalLoad, containerLimits)
 	vmSetUnder,_ := p.FindSuitableVMs(containerConfigUnder.MSCSetting.Replicas, containerConfigUnder.Limits, vmType)
 	costVMSetUnderProvision := vmSetUnder.Cost(p.mapVMProfiles)
 	containerConfigUnder.VMSet = vmSetUnder
@@ -188,7 +188,7 @@ func (p BestResourcePairPolicy) findBestPair(forecastedValues []types.CriticalIn
 	numberReplicas := 999
 	for vmType, _ := range p.mapVMProfiles {
 		for _,vl := range allLimits {
-			servicePerformanceProfile := selectProfileByLimits(max, vl.Limit, false)
+			servicePerformanceProfile,_ := estimatePodsConfiguration(max, vl.Limit)
 			replicas := servicePerformanceProfile.MSCSetting.Replicas
 			vmSetCandidate,_ := p.FindSuitableVMs(replicas,vl.Limit, vmType)
 			vmSetCost := 0.0

@@ -92,6 +92,16 @@ func (p *PerformanceProfileDAO) FindByLimitsOver(cores float64, memory float64, 
 	return performanceProfile,err
 }
 
+func (p *PerformanceProfileDAO) FindByLimitsAndReplicas(cores float64, memory float64, replicas int) (types.PerformanceProfile, error) {
+	//db.getCollection('trnProfiles').find({"limits.cpu_cores" : 1000,"limits.mem_gb" : 500, "mscs": {$elemMatch:{"replicas":2} } }, {_id: 0, "mscs.$":1})
+	var performanceProfile types.PerformanceProfile
+	err := p.db.C(p.Collection).Find(bson.M{
+		"limits.cpu_cores" : cores,
+		"limits.mem_gb" : memory,
+		"mscs": bson.M{"$elemMatch": bson.M{"replicas":replicas}}}).
+		Select(bson.M{"_id": 1, "limits":1, "mscs.$":1}).One(&performanceProfile)
+	return performanceProfile,err
+}
 
 func (p *PerformanceProfileDAO) FindByLimitsUnder(cores float64, memory float64, requests float64) (types.PerformanceProfile, error) {
 	var performanceProfile types.PerformanceProfile

@@ -52,7 +52,7 @@ func (p DeltaLoadPolicy) CreatePolicies(processedForecast types.ProcessedForecas
 			stateLoadCapacity = currentLoadCapacity
 		} else {
 			//Alternative configuration to handle the total load
-			profileCurrentLimits := selectProfileByLimits(totalLoad, currentContainerLimits, false)
+			profileCurrentLimits,_ := estimatePodsConfiguration(totalLoad, currentContainerLimits)
 			newNumServiceReplicas = profileCurrentLimits.MSCSetting.Replicas
 			resourceLimits  = profileCurrentLimits.Limits
 			stateLoadCapacity = profileCurrentLimits.MSCSetting.MSCPerSecond

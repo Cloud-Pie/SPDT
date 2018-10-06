@@ -48,7 +48,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 	for _, it := range processedForecast.CriticalIntervals {
 		var resourceLimits types.Limit
 		//Select the performance profile that fits better
-		containerConfigOver := selectProfileByLimits(it.Requests, currentContainerLimits, false)
+		containerConfigOver,_ := estimatePodsConfiguration(it.Requests, currentContainerLimits)
 		newNumServiceReplicas := containerConfigOver.MSCSetting.Replicas
 		vmSet := p.FindSuitableVMs(newNumServiceReplicas, containerConfigOver.Limits)
 		costVMSetOverProvision := vmSet.Cost(p.mapVMProfiles)
@@ -157,7 +157,7 @@ func (p NaivePolicy) currentVMType() string {
 		ContainersConfig -
 */
 func (p NaivePolicy) optionWithUnderProvision(totalLoad float64, containerLimits types.Limit, percentageUnderProvision float64) types.ContainersConfig {
-	containerConfigUnder := selectProfileByLimits(totalLoad, containerLimits, true)
+	containerConfigUnder,_ := estimatePodsConfiguration(totalLoad, containerLimits)
 	vmSetUnder := p.FindSuitableVMs(containerConfigUnder.MSCSetting.Replicas, containerConfigUnder.Limits)
 	costVMSetUnderProvision := vmSetUnder.Cost(p.mapVMProfiles)
 	containerConfigUnder.VMSet = vmSetUnder

@@ -78,7 +78,7 @@ func (p StepRepackPolicy)deriveCandidatePolicy(criticalIntervals []types.Critica
 	scalingSteps := []types.ScalingStep{}
 
 	for _, it := range criticalIntervals {
-		profileCurrentLimits := selectProfileByLimits(it.Requests, containerLimits, false)
+		profileCurrentLimits,_ := estimatePodsConfiguration(it.Requests, containerLimits)
 		var vmSet types.VMScale
 		if containerResizeEnabled {
 				ProfileNewLimits, _ := selectProfileUnderVMLimits(it.Requests, vmLimits, false)

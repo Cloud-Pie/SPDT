@@ -218,23 +218,23 @@ func maxReplicasCapacityInVM(vmProfile types.VmProfile, resourceLimit types.Limi
 	in:
 		@requests	float64 - number of requests that the service should serve
 		@limits types.Limits	- resource limits (cpu cores and memory gb) configured in the container
-		@underProvision bool	- flag that indicate if when searching for a service profile, the underprovision is allowed
 	out:
 		@ContainersConfig	- configuration with number of replicas and limits that best fit for the number of requests
 */
-func selectProfileByLimits(requests float64, limits types.Limit, underProvision bool) types.ContainersConfig {
+func estimatePodsConfiguration(requests float64, limits types.Limit) (types.ContainersConfig, error){
 	var containerConfig types.ContainersConfig
+	var err error
 	serviceProfileDAO := storage.GetPerformanceProfileDAO(systemConfiguration.MainServiceName)
-	overProvisionConfig, err1 := serviceProfileDAO.MatchByLimitsOver(limits.CPUCores, limits.MemoryGB, requests)
-	underProvisionConfig, err2 := serviceProfileDAO.MatchByLimitsUnder(limits.CPUCores, limits.MemoryGB, requests)
 
-	if underProvision && err2 == nil && false{
-		containerConfig = underProvisionConfig
-	} else if err1 == nil && false{
-		containerConfig = overProvisionConfig
-	} else if err2 == nil || true{
-		containerConfig = underProvisionConfig
+	performanceProfileBase,_ := serviceProfileDAO.FindByLimitsAndReplicas(limits.CPUCores, limits.MemoryGB, 1)
+	estimatedReplicas := int(requests / performanceProfileBase.MSCSettings[0].MSCPerSecond)
+	performanceProfileCandidate,err1 := serviceProfileDAO.FindByLimitsAndReplicas(limits.CPUCores, limits.MemoryGB, estimatedReplicas)
 
+	if err1 == nil && performanceProfileCandidate.MSCSettings[0].MSCPerSecond >= requests {
+		containerConfig.MSCSetting.Replicas = performanceProfileCandidate.MSCSettings[0].Replicas
+		containerConfig.MSCSetting.MSCPerSecond = performanceProfileCandidate.MSCSettings[0].MSCPerSecond
+		containerConfig.Limits = limits
+	} else {
 		url := systemConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_SERVICE_PROFILE_BY_MSC
 		appName := systemConfiguration.AppName
 		appType := systemConfiguration.AppType
@@ -242,10 +242,11 @@ func selectProfileByLimits(requests float64, limits types.Limit, underProvision 
 		mscSetting,err := performance_profiles.GetPredictedReplicas(url,appName,appType,mainServiceName,requests,limits.CPUCores, limits.MemoryGB)
 
 		newMSCSetting := types.MSCSimpleSetting{}
-		if err == nil{
+		if err == nil {
 			containerConfig.MSCSetting.Replicas = mscSetting.Replicas
 			containerConfig.MSCSetting.MSCPerSecond = mscSetting.MSCPerSecond.RegBruteForce
 			containerConfig.Limits = limits
+
 			newMSCSetting.Replicas = mscSetting.Replicas
 			newMSCSetting.MSCPerSecond = mscSetting.MSCPerSecond.RegBruteForce
 			if mscSetting.BootTimeMs > 0 {
@@ -253,27 +254,21 @@ func selectProfileByLimits(requests float64, limits types.Limit, underProvision 
 			} else {
 				newMSCSetting.BootTimeSec = util.DEFAULT_POD_BOOT_TIME
 			}
-			newMSCSetting.BootTimeSec = mscSetting.BootTimeMs / 1000
-
-		} else {
-			/*numberReplicas := float64(containerConfig.MSCSetting.Replicas) * requests / containerConfig.MSCSetting.MSCPerSecond
-			containerConfig.MSCSetting.Replicas = int(numberReplicas)
-			containerConfig.MSCSetting.MSCPerSecond = requests
-			newMSCSetting = types.MSCSimpleSetting{Replicas:int(numberReplicas), MSCPerSecond:requests, BootTimeSec:100}*/
-		}
-
-		profile,_:= serviceProfileDAO.FindProfileTRN(limits.CPUCores, limits.MemoryGB, newMSCSetting.Replicas)
-		if profile.ID == "" {
-			profile,_= serviceProfileDAO.FindProfileByLimits(limits)
-			profile.MSCSettings = append(profile.MSCSettings,newMSCSetting)
-			err3 := serviceProfileDAO.UpdateById(profile.ID, profile)
-			if err3 != nil{
-				log.Error("Performance profile not updated")
+			profile,err3 := serviceProfileDAO.FindByLimitsAndReplicas(limits.CPUCores, limits.MemoryGB, mscSetting.Replicas)
+			if err3 != nil {
+				profile,_= serviceProfileDAO.FindProfileByLimits(limits)
+				profile.MSCSettings = append(profile.MSCSettings,newMSCSetting)
+				err3 = serviceProfileDAO.UpdateById(profile.ID, profile)
+				if err3 != nil{
+					log.Error("Performance profile not updated")
+				}
 			}
+		} else {
+			return containerConfig, err
 		}
 	}
 	//defer serviceProfileDAO.Session.Close()
-	return containerConfig
+	return containerConfig, err
 }
 
 /* Select the service profile for any limit resources that satisfies the number of requests
@@ -667,7 +662,7 @@ func findConfigOptionByContainerResize(currentVMSet types.VMScale, totalLoad flo
 	sort.Slice(allLimits, func(i, j int) bool { return allLimits[i].Limit.CPUCores > allLimits[j].Limit.CPUCores })
 
 	for _, li := range allLimits {
-		configurationOption := selectProfileByLimits(totalLoad, li.Limit, false)
+		configurationOption,_ := estimatePodsConfiguration(totalLoad, li.Limit)
 		replicas := configurationOption.MSCSetting.Replicas
 		//Update the vm Profiles with the capacity for replicas with given limits
 		computeVMsCapacity(li.Limit, &mapVMProfiles)

@@ -121,7 +121,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 					computeVMsCapacity(currentContainerLimits, &p.mapVMProfiles)
 					//case 2: Need to decrease resources
 					deltaLoad *= -1
-					profileCurrentLimits := selectProfileByLimits(totalLoad, currentContainerLimits, false)
+					profileCurrentLimits,_ := estimatePodsConfiguration(totalLoad, currentContainerLimits)
 					deltaNumberReplicas := currentNumberReplicas - profileCurrentLimits.MSCSetting.Replicas
 
 					//Build new VM set releasing resources used by extra container replicas
@@ -361,7 +361,7 @@ func (p DeltaRepackedPolicy) onlyScaleOutContainers(currentVMSet types.VMScale, 
 	onlyScaleContainers := false
 
 	//Search the number of replicas with current resource limits for the total load
-	profileCurrentLimits := selectProfileByLimits(totalLoad, currentContainerLimits, false)
+	profileCurrentLimits,_ := estimatePodsConfiguration(totalLoad, currentContainerLimits)
 	computeVMsCapacity(currentContainerLimits, &p.mapVMProfiles)
 	currentReplicasCapacity := currentVMSet.ReplicasCapacity(p.mapVMProfiles)
 
@@ -396,7 +396,7 @@ func (p DeltaRepackedPolicy) onlyScaleOutContainers(currentVMSet types.VMScale, 
 		ContainersConfig -
 */
 func (p DeltaRepackedPolicy) optionWithUnderProvision(totalLoad float64, containerLimits types.Limit, percentageUnderProvision float64) types.ContainersConfig {
-	containerConfigUnder := selectProfileByLimits(totalLoad, containerLimits, true)
+	containerConfigUnder,_ := estimatePodsConfiguration(totalLoad, containerLimits)
 	vmSetUnder := p.FindSuitableVMs(containerConfigUnder.MSCSetting.Replicas, containerConfigUnder.Limits)
 	costVMSetUnderProvision := vmSetUnder.Cost(p.mapVMProfiles)
 	containerConfigUnder.VMSet = vmSetUnder
