@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func TriggerScheduler(policy types.Policy, endpoint string)([] scheduler.StateToSchedule,error){
+func TriggerScheduler(policy types.Policy, endpoint string)([] scheduler.StateToSchedule,error) {
 	var statesToSchedule  []scheduler.StateToSchedule
 	for _, conf := range policy.ScalingActions {
 		mapServicesToSchedule := make(map[string]scheduler.ServiceToSchedule)
@@ -23,12 +23,12 @@ func TriggerScheduler(policy types.Policy, endpoint string)([] scheduler.StateTo
 				Memory:memory,
 			}
 		}
-
+		vms := addRemovedKeys(conf.InitialState.VMs, conf.DesiredState.VMs)
 		stateToSchedule := scheduler.StateToSchedule{
 			LaunchTime:conf.TimeStartTransition,
 			Services:mapServicesToSchedule,
 			Name:state.Hash,
-			VMs:state.VMs,
+			VMs:vms,
 			ExpectedStart:conf.TimeStart,
 		}
 		statesToSchedule = append(statesToSchedule, stateToSchedule)
@@ -54,7 +54,6 @@ func memGBToBytes(value float64) int64 {
 	return memInt
 }
 
-
 func memBytesToGB(value int64) float64 {
 	memFloat := float64(value) / 1000000000
 	return memFloat
@@ -71,7 +70,7 @@ func stringToCPUCores(value string) float64 {
 	return cpu
 }
 
-func RetrieveCurrentState(endpoint string ) (types.State, error){
+func RetrieveCurrentState(endpoint string ) (types.State, error) {
 	var policyState types.State
 	stateScheduled, _ := scheduler.InfraCurrentState(endpoint)
 	mapServicesScheduled := stateScheduled.Services
@@ -93,4 +92,15 @@ func RetrieveCurrentState(endpoint string ) (types.State, error){
 		Services:policyServices,
 	}
 	return policyState,nil
+}
+
+//Note: Adjustment of keys required for PASSA
+//It should include the keys of the VM that should be removed
+func addRemovedKeys(initialVMSet types.VMScale, desiredVMSet types.VMScale) types.VMScale {
+	for k,_ := range initialVMSet {
+		if _,ok := desiredVMSet[k]; !ok {
+			desiredVMSet[k] = 0
+		}
+	}
+	return desiredVMSet
 }
