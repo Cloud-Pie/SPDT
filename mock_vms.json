@@ -4,7 +4,7 @@
     "cpu_cores": 1,
     "mem_gb": 0.5,
     "pricing":{
-      "price": 1,
+      "price": 0.0058,
       "unit": "Hour"
     }
   },
@@ -12,9 +12,9 @@
     "type": "t2.micro",
     "cpu_cores": 1,
     "mem_gb": 1,
-      "pricing":{
-        "price": 2,
-        "unit": "Hour"
+    "pricing":{
+      "price": 0.0116,
+      "unit": "Hour"
     }
   },
   {
@@ -22,7 +22,7 @@
     "cpu_cores": 1,
     "mem_gb": 2,
     "pricing":{
-      "price": 4,
+      "price": 0.023,
       "unit": "Hour"
     }
   },
@@ -31,7 +31,7 @@
     "cpu_cores": 2,
     "mem_gb": 4,
     "pricing":{
-      "price": 8,
+      "price": 0.0464,
       "unit": "Hour"
     }
   },
@@ -40,25 +40,7 @@
     "cpu_cores": 2,
     "mem_gb": 8,
     "pricing":{
-      "price": 16,
-      "unit": "Hour"
-    }
-  },
-  {
-    "type": "t2.xlarge",
-    "cpu_cores": 4,
-    "mem_gb": 16,
-    "pricing":{
-      "price": 32,
-      "unit": "Hour"
-    }
-  },
-  {
-    "type": "t2.2xlarge",
-    "cpu_cores": 8,
-    "mem_gb": 32,
-    "pricing":{
-      "price": 64,
+      "price": 0.0928,
       "unit": "Hour"
     }
   }
