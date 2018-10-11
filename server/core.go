@@ -25,14 +25,15 @@ import (
 )
 
 var (
-	FlagsVar = util.ParseFlags()
- 	log = logging.MustGetLogger("spdt")
-	policies				[]types.Policy
-	timeWindowSize			time.Duration
-	timeStart				time.Time
-	timeEnd					time.Time
-	ConfigFile				string
-	testJSON				[]Sservice.StateToSchedule
+	FlagsVar         = util.ParseFlags()
+ 	log              = logging.MustGetLogger("spdt")
+	policies        []types.Policy
+	pullingInterval time.Duration
+	timeWindowSize  time.Duration
+	timeStart       time.Time
+	timeEnd         time.Time
+	ConfigFile      string
+	testJSON        []Sservice.StateToSchedule
 )
 
 // Main function to start the scaling policy derivation
@@ -50,11 +51,11 @@ func Start(port string, configFile string) {
 	timeStart = sysConfiguration.ScalingHorizon.StartTime
 	timeEnd = sysConfiguration.ScalingHorizon.EndTime
 	timeWindowSize = timeEnd.Sub(timeStart)
-
+	pullingInterval = time.Duration(sysConfiguration.PullingInterval)
 	out := make(chan types.Forecast)
 	server := SetUpServer(out)
 	go updatePolicyDerivation(out)
-	//go periodicPolicyDerivation()
+	go periodicPolicyDerivation()
 	server.Run(":" + port)
 
 }
@@ -72,13 +73,16 @@ func periodicPolicyDerivation() {
 			ScheduleScaling(sysConfiguration, selectedPolicy)
 			//Subscribe to the notifications
 			//SubscribeForecastingUpdates(sysConfiguration, selectedPolicy, forecast.IDPrediction)
-
-			timeStart.Add(timeWindowSize)
-			timeEnd.Add(timeWindowSize)
-			time.Sleep(timeWindowSize)
+			nextTimeStart := timeEnd.Add(timeWindowSize).Add(-10 * time.Minute )
+			if time.Now().After(nextTimeStart) {
+				timeStart = timeStart.Add(timeWindowSize)
+				timeEnd = timeEnd.Add(timeWindowSize)
+			}
 		}
+		time.Sleep(pullingInterval * time.Minute)
 	}
 }
+
 
 func styleEntry() {
 	fmt.Println(`
@@ -134,7 +138,6 @@ func getVMProfiles()([]types.VmProfile, error) {
 
 	data, err := ioutil.ReadFile("./vm_profiles.json")
 	if err != nil {
-		fmt.Println(err)
 		log.Error(err.Error())
 		return vmProfiles,err
 	}
@@ -247,6 +250,8 @@ func setNewPolicy(forecast types.Forecast,sysConfiguration config.SystemConfigur
 	if err != nil {
 		log.Error("Error evaluation policies: %s", err.Error())
 	}else {
+		updateDerivedPolicies(sysConfiguration)
+
 		log.Info("Finish policies evaluation")
 		policyDAO := storage.GetPolicyDAO(sysConfiguration.MainServiceName)
 		for _,p := range policies {
@@ -288,6 +293,7 @@ func InvalidateScalingStates(sysConfiguration config.SystemConfiguration, timeIn
 	return err
 }
 
+//DEPRECATED
 func SubscribeForecastingUpdates(sysConfiguration config.SystemConfiguration, selectedPolicy types.Policy, idPrediction string){
 	//TODO:Improve for a better pub/sub system
 	log.Info("Start subscribe to prediction updates")
