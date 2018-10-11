@@ -131,7 +131,7 @@ func getVMProfiles()[]types.VmProfile {
 	log.Info("Start request VMs Profiles")
 	//vmProfiles, err = Pservice.GetVMsProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VMS_PROFILES)
 
-	data, err := ioutil.ReadFile("./mock_vms.json")
+	data, err := ioutil.ReadFile("./vm_profiles.json")
 	if err != nil {
 		fmt.Println(err)
 		panic(err)

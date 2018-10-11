@@ -17,7 +17,7 @@ var deriveCmd = &cobra.Command{
 
 func init() {
 	deriveCmd.Flags().String("config-file", "config.yml", "Configuration file path")
-	deriveCmd.Flags().String("vm-prices-file","mock_vms.json", "VM prices file path")
+	deriveCmd.Flags().String("vm-prices-file","vm_profiles.json", "VM prices file path")
 }
 
 func derive (cmd *cobra.Command, args []string) {

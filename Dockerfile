@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y vim
 WORKDIR /root
 
 # copy the binary and default config files from builder
-COPY --from=builder /go/src/spdt/config.yml /go/src/spdt/mock_vms.json /go/src/spdt/spdt ./
+COPY --from=builder /go/src/spdt/config.yml /go/src/spdt/vm_profiles.json /go/src/spdt/spdt ./
 COPY --from=builder /go/src/spdt/ui ./ui/
 
 # Document that the service listens on port 8080.
