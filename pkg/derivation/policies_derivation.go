@@ -556,41 +556,6 @@ func shouldResizeContainer(currentConfiguration types.ContainersConfig, newCandi
 	return false
 }
 
-func checkBillingPeriod(billingUnit string, nRemovedVMs int, startBillingTime time.Time, startScalingAction time.Time) (bool) {
-	switch billingUnit {
-		case util.SECOND :
-			return true
-		case util.HOUR:
-			deltaHours := startScalingAction.Sub(startBillingTime).Hours()
-			delta := deltaHours - math.Floor(deltaHours)
-			if delta == 0 || delta > 0.5 && nRemovedVMs > 0 {
-				return true
-			}
-	}
-	//TODO: change to false and modify how the billing is computed
-	return true
-}
-
-func updateStartBillingTime(lastStartBillingTime time.Time, startScalingAction time.Time) (time.Time) {
-	startBillingTime := lastStartBillingTime
-	billedPeriod := startScalingAction.Sub(lastStartBillingTime).Hours()
-
-	if billedPeriod >= 1{
-		bp := int(math.Floor(billedPeriod))
-		startBillingTime = startBillingTime.Add(time.Duration(bp)* time.Hour)
-	}
-	return startBillingTime
-}
-
-
-func updateEndBillingTime(startBillingTime time.Time, endScalingAction time.Time) (time.Time) {
-	deltaScalingAction := endScalingAction.Sub(startBillingTime).Hours()
-	ds := int(math.Ceil(deltaScalingAction))
-	endBillingTime := startBillingTime.Add(time.Duration(ds)*time.Hour)
-	return endBillingTime
-}
-
-
 /*
 	Calculate base on the expected start time for the new state, when the launch should start
 	in:
