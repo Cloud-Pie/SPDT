@@ -6,6 +6,7 @@ import (
 	"time"
 	"github.com/Cloud-Pie/SPDT/storage"
 	"github.com/Cloud-Pie/SPDT/pkg/policy_management"
+	"fmt"
 )
 
 func updatePolicyDerivation(forecastChannel chan types.Forecast) {
@@ -14,6 +15,9 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 		if shouldUpdate {
 			//Read Configuration File
 			sysConfiguration := ReadSysConfiguration()
+			if err := recover(); err != nil {
+				fmt.Println(err)
+			}
 
 			//Request Performance Profiles
 			getServiceProfile(sysConfiguration)

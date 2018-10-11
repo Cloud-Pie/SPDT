@@ -1,39 +1,42 @@
 ---
 version: v1
-service-name: primeapp
-service-type: compute
+app-name: primeapp
+main-service-name: primeapp
+app-type: compute
 CSP: AWS
 region: us-east-2
 pricing-model:
   monthly-budget: 12000
   billing-unit: second
 scaling-horizon:
-  start-time: 2018-08-25T00:00:00.000Z
-  end-time: 2018-08-31T07:00:00.1Z
+  start-time: 2018-11-01T07:00:00Z
+  end-time: 2018-11-08T07:00:00Z
 forecasting-component:
   endpoint: http://172.29.39.209:8081
   username:
   password:
   api-key:
 performance-profiles-component:
-  endpoint: http://10.155.208.168:8082
-  #endpoint: http://172.29.39.209:8081
+  #endpoint: http://141.40.254.24:8082
+  endpoint: http://10.155.208.160:8082
   username:
   password:
   api-key:
 scheduler-component:
-  endpoint: http://172.29.39.209:8081
+  #endpoint: http://172.29.39.209:8081
+  endpoint: http://172.29.39.209:5555
   username:
   password:
   api-key:
-preferred-algorithm: naive
+preferred-algorithm: all
 policy-settings:
   vm-scaling-method: horizontal
-  heterogeneous-vms-allowed: true
   underprovisioning-allowed: false
   percentage-max-underprovision: 20
   pods-resize-allowed: true
-  vm-family: all
+preferred-metric: cost
+update-time-min: 5
+
 
 
 

@@ -21,6 +21,7 @@ import (
 	"github.com/Cloud-Pie/SPDT/pkg/derivation"
 	"github.com/Cloud-Pie/SPDT/pkg/schedule"
 	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
+	"errors"
 )
 
 var (
@@ -125,7 +126,7 @@ func ReadSysConfigurationFile(ConfigFile string) config.SystemConfiguration {
 }
 
 //Fetch the profiles of the available Virtual Machines to generate the scaling policies
-func getVMProfiles()[]types.VmProfile {
+func getVMProfiles()([]types.VmProfile, error) {
 	var err error
 	var vmProfiles	[]types.VmProfile
 	log.Info("Start request VMs Profiles")
@@ -134,14 +135,14 @@ func getVMProfiles()[]types.VmProfile {
 	data, err := ioutil.ReadFile("./vm_profiles.json")
 	if err != nil {
 		fmt.Println(err)
-		panic(err)
+		log.Error(err.Error())
+		return vmProfiles,err
 	}
 	err = json.Unmarshal(data, &vmProfiles)
 
 	if err != nil {
 		log.Error(err.Error())
-		log.Info("Error in the request to get VMs Profiles")
-		return vmProfiles
+		return vmProfiles, err
 	} else {
 		log.Info("Finish request VMs Profiles")
 	}
@@ -149,7 +150,7 @@ func getVMProfiles()[]types.VmProfile {
 		return vmProfiles[i].Pricing.Price <=  vmProfiles[j].Pricing.Price
 	})
 
-	return vmProfiles
+	return vmProfiles,err
 }
 
 //Fetch the performance profile of the microservice that should be scaled
@@ -222,12 +223,16 @@ func getServiceProfile(sysConfiguration config.SystemConfiguration){
 //Start Derivation of a new scaling policy for the specified scaling horizon and correspondent forecast
 func setNewPolicy(forecast types.Forecast,sysConfiguration config.SystemConfiguration) (types.Policy, error){
 	//Get VM Profiles
-	vmProfiles := getVMProfiles()
+	var err error
+	var selectedPolicy types.Policy
+	vmProfiles,err := getVMProfiles()
+	if err != nil {
+		return  selectedPolicy, errors.New("VM profiles not found.")
+	}
 	//Get VM booting Profiles
 	getVMBootingProfile(sysConfiguration, vmProfiles)
 
-	var err error
-	var selectedPolicy types.Policy
+
 	//Derive Strategies
 	log.Info("Start policies derivation")
 	policies,err = derivation.Policies(vmProfiles, sysConfiguration, forecast)
