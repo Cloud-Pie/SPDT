@@ -317,7 +317,7 @@ function plotCapacity(time, demand, supply, timeSuply){
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
 
-        yaxis: {title: 'Requests/Sec'},
+        yaxis: {title: 'Requests/Hour'},
         legend: {
             "orientation": "h",
             xanchor: "center",
@@ -828,8 +828,6 @@ function plotAccumulatedCostAll(time, accumulatedCostAll, tracesAll) {
                     y: item,
                     type: 'scatter',
                     name: tracesAll[i],
-                    line: {shape: 'hv'}
-
                 }
             )
             i=i+1

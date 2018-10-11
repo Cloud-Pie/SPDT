@@ -30,8 +30,8 @@ func WindowDerivation(forecast types.Forecast) (types.ProcessedForecast) {
 
 	for i <= lenValues - 2  {
 		value := forecast.ForecastedValues[i]
-		lastTimestamp := forecast.ForecastedValues[i+1].TimeStamp
-			interval := types.CriticalInterval{Requests: value.Requests, TimeStart:value.TimeStamp, TimeEnd:lastTimestamp }
+		EndTimestamp := forecast.ForecastedValues[i+1].TimeStamp
+			interval := types.CriticalInterval{Requests: value.Requests, TimeStart:value.TimeStamp, TimeEnd: EndTimestamp}
 			intervals = append(intervals, interval)
 		i+=1
 	}
