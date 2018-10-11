@@ -288,7 +288,9 @@ func selectProfileUnderVMLimits(requests float64,  limits types.Limit) (types.Co
 		sort.Slice(profiles, func(i, j int) bool {
 			utilizationFactori := float64(profiles[i].MSCSetting.Replicas) * profiles[i].Limits.CPUCores +  float64(profiles[i].MSCSetting.Replicas) * profiles[i].Limits.MemoryGB
 			utilizationFactorj := float64(profiles[j].MSCSetting.Replicas) * profiles[j].Limits.CPUCores + float64(profiles[j].MSCSetting.Replicas) * profiles[j].Limits.MemoryGB
-			return utilizationFactori < utilizationFactorj
+			msci := profiles[i].MSCSetting.MSCPerSecond
+			mscj := profiles[j].MSCSetting.MSCPerSecond
+			return (utilizationFactori/msci) < (utilizationFactorj/mscj)
 		})
 	}
 	//defer serviceProfileDAO.Session.Close()
@@ -349,13 +351,8 @@ func getStateLoadCapacity(numberReplicas int, limits types.Limit) types.MSCSimpl
 */
 func setScalingSteps(scalingSteps *[]types.ScalingStep, currentState types.State,newState types.State, timeStart time.Time, timeEnd time.Time, totalServicesBootingTime float64, stateLoadCapacity float64) {
 	nScalingSteps := len(*scalingSteps)
-	timeStartBill := timeStart
-	timeEndBill := timeEnd
 	if nScalingSteps >= 1 && newState.Equal((*scalingSteps)[nScalingSteps-1].DesiredState) {
 		(*scalingSteps)[nScalingSteps-1].TimeEnd = timeEnd
-		timeBillingStarted := (*scalingSteps)[nScalingSteps-1].TimeStartBilling
-		timeEndBill = updateEndBillingTime(timeBillingStarted,timeEnd)
-		(*scalingSteps)[nScalingSteps-1].TimeEndBilling = timeEndBill
 	} else {
 		//var deltaTime int //time in seconds
 		var shutdownVMDuration float64
@@ -383,12 +380,7 @@ func setScalingSteps(scalingSteps *[]types.ScalingStep, currentState types.State
 			//case 3: Scale out
 			startTransitionTime = computeScaleOutTransitionTime(vmAdded, true, timeStart, totalServicesBootingTime)
 		}
-		/*removeBilledVMs := checkBillingPeriod(systemConfiguration.PricingModel.BillingUnit, nVMRemoved, lastBilledStartedTime,timeStart)
-		if !removeBilledVMs {
-			newVMSet := currentVMSet
-			newVMSet.Merge(vmAdded)
-			newState.VMs = newVMSet
-		}*/
+
 		//newState.LaunchTime = startTransitionTime
 		name,_ := structhash.Hash(newState, 1)
 		newState.Hash = strings.Replace(name, "v1_", "", -1)
@@ -399,8 +391,6 @@ func setScalingSteps(scalingSteps *[]types.ScalingStep, currentState types.State
 				TimeStart:           timeStart,
 				TimeEnd:             timeEnd,
 				Metrics:             types.ConfigMetrics{RequestsCapacity:stateLoadCapacity,},
-				TimeStartBilling:    timeStartBill,
-				TimeEndBilling:      timeEndBill,
 				TimeStartTransition: startTransitionTime,
 			})
 	}
@@ -650,6 +640,7 @@ func findConfigOptionByContainerResize(currentVMSet types.VMScale, totalLoad flo
 	optionFound := false
 	configurationOptionFound := types.ContainersConfig{}
 	sort.Slice(allLimits, func(i, j int) bool { return allLimits[i].Limit.CPUCores > allLimits[j].Limit.CPUCores })
+	options := []types.ContainersConfig{}
 
 	for _, li := range allLimits {
 		configurationOption,_ := estimatePodsConfiguration(totalLoad, li.Limit)
@@ -659,9 +650,21 @@ func findConfigOptionByContainerResize(currentVMSet types.VMScale, totalLoad flo
 		currentConfigurationReplicasCapacity := currentVMSet.ReplicasCapacity(mapVMProfiles)
 		if currentConfigurationReplicasCapacity >= replicas  && configurationOption.MSCSetting.MSCPerSecond >= totalLoad {
 			configurationOptionFound = configurationOption
+			options = append(options, configurationOptionFound)
 			optionFound = true
-			break
+			//break
 		}
+	}
+
+	sort.Slice(options, func(i, j int) bool {
+		utilizationFactori := float64(options[i].MSCSetting.Replicas) * options[i].Limits.CPUCores +  float64(options[i].MSCSetting.Replicas) * options[i].Limits.MemoryGB
+		utilizationFactorj := float64(options[j].MSCSetting.Replicas) * options[j].Limits.CPUCores + float64(options[j].MSCSetting.Replicas) * options[j].Limits.MemoryGB
+		msci := options[i].MSCSetting.MSCPerSecond
+		mscj := options[j].MSCSetting.MSCPerSecond
+		return (utilizationFactori/msci) < (utilizationFactorj/mscj)
+	})
+	if optionFound {
+		configurationOptionFound = options[0]
 	}
 	return configurationOptionFound, optionFound
 }
