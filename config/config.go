@@ -35,8 +35,9 @@ type PricingModel struct {
 type PolicySettings struct{
 	ScalingMethod            string  `yaml:"vm-scaling-method"`
 	UnderprovisioningAllowed bool    `yaml:"underprovisioning-allowed"`
-	MaxUnderprovisionPercentage        float64 `yaml:"percentage-max-underprovision"`
+	MaxUnderprovisionPercentage  float64 `yaml:"percentage-max-underprovision"`
 	PodsResizeAllowed        bool    `yaml:"pods-resize-allowed"`
+	PreferredMetric        string    `yaml:"preferred-metric"`
 }
 
 //Struct that models the system configuration to derive the scaling policies
@@ -53,7 +54,8 @@ type SystemConfiguration struct {
 	ScalingHorizon               ScalingHorizon `yaml:"scaling-horizon"`
 	PreferredAlgorithm           string         `yaml:"preferred-algorithm"`
 	PolicySettings               PolicySettings `yaml:"policy-settings"`
-						}
+	PullingInterval        int   `yaml:"pulling-interval"`
+}
 
 //Method that parses the configuration file into a struct type
 func ParseConfigFile(configFile string) (SystemConfiguration, error) {

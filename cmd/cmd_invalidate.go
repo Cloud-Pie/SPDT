@@ -63,10 +63,10 @@ func invalidate(cmd *cobra.Command, args []string) {
 		for _,p := range currentPolicies {
 			err = policyDAO.DeleteById(p.ID.Hex())
 			if err != nil {
-				log.Fatalf("Error, policy %s could not be removed from db: %s", id, err.Error())
+				log.Fatalf("Error, policies could not be removed from db: %s",  err.Error())
 			}
 		}
-		log.Info("Policy %s invalidated successfully", id)
+
 
 	} else {
 		log.Warning("Are you sure you want to invalidate this policy?, use the flag --f=true to force it")
