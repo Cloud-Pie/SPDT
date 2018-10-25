@@ -49,7 +49,7 @@ func invalidate(cmd *cobra.Command, args []string) {
 		}
 
 		//Recompute new set of policies
-		selectedPolicy,predictionID, err2 := server.StartPolicyDerivation(timeStart,timeEnd,configFile)
+		selectedPolicy,predictionID, err2 := server.StartPolicyDerivation(timeStart,timeEnd,systemConfiguration)
 		check(err2, "New policy could not be derived")
 
 		log.Info("New Policy derived")

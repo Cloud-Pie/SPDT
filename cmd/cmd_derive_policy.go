@@ -25,7 +25,7 @@ func derive (cmd *cobra.Command, args []string) {
 	sysConfiguration,_ := util.ReadConfigFile(configFile)
 	timeStart := sysConfiguration.ScalingHorizon.StartTime
 	timeEnd := sysConfiguration.ScalingHorizon.EndTime
-	selectedPolicy, predictionID, err := server.StartPolicyDerivation(timeStart,timeEnd,configFile)
+	selectedPolicy, predictionID, err := server.StartPolicyDerivation(timeStart,timeEnd,sysConfiguration)
 	if err != nil {
 		log.Error("An error has occurred and policies have been not derived. Please try again. Details: %s", err)
 	}else{

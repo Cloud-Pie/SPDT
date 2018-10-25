@@ -65,7 +65,7 @@ func Start(port string, configFile string) {
 //and derive a the correspondent new scaling policy
 func periodicPolicyDerivation(sysConfiguration util.SystemConfiguration) {
 	for {
-		selectedPolicy,forecastID, err := StartPolicyDerivation(timeStart,timeEnd, ConfigFile)
+		selectedPolicy,forecastID, err := StartPolicyDerivation(timeStart,timeEnd, sysConfiguration)
 		if err != nil {
 			log.Error("An error has occurred and policies have been not derived. Please try again. Details: %s", err)
 		}else{
@@ -147,7 +147,7 @@ func getVMProfiles()([]types.VmProfile, error) {
 }
 
 //Fetch the performance profile of the microservice that should be scaled
-func getVMBootingProfile(sysConfiguration util.SystemConfiguration, vmProfiles []types.VmProfile){
+func getVMBootingProfile(sysConfiguration util.SystemConfiguration, vmProfiles []types.VmProfile) error{
 	var err error
 	var vmBootingProfile types.InstancesBootShutdownTime
 	vmBootingProfileDAO := storage.GetVMBootingProfileDAO()
@@ -167,6 +167,7 @@ func getVMBootingProfile(sysConfiguration util.SystemConfiguration, vmProfiles [
 		}
 	}
 	//defer serviceProfileDAO.Session.Close()
+	return err
 }
 
 //Fetch the performance profile of the microservice that should be scaled
@@ -193,10 +194,10 @@ func getServiceProfile(sysConfiguration util.SystemConfiguration) error{
 			mscSettings := []types.MSCSimpleSetting{}
 			for _,msc := range p.MSCs {
 				setting := types.MSCSimpleSetting{
-					BootTimeSec: millisecondsToSeconds(msc.BootTimeMs),
+					BootTimeSec: util.MillisecondsToSeconds(msc.BootTimeMs),
 					MSCPerSecond: msc.MSCPerSecond.RegBruteForce,
 					Replicas: msc.Replicas,
-					StandDevBootTimeSec: millisecondsToSeconds(msc.StandDevBootTimeMS),
+					StandDevBootTimeSec: util.MillisecondsToSeconds(msc.StandDevBootTimeMS),
 				}
 				mscSettings = append(mscSettings, setting)
 			}
@@ -223,8 +224,10 @@ func setNewPolicy(forecast types.Forecast,sysConfiguration util.SystemConfigurat
 		return  selectedPolicy, errors.New("VM profiles not found.")
 	}
 	//Get VM booting Profiles
-	getVMBootingProfile(sysConfiguration, vmProfiles)
-
+	err = getVMBootingProfile(sysConfiguration, vmProfiles)
+	if err != nil {
+		return  selectedPolicy, err
+	}
 
 	//Derive Strategies
 	log.Info("Start policies derivation")
@@ -254,10 +257,7 @@ func setNewPolicy(forecast types.Forecast,sysConfiguration util.SystemConfigurat
 	return  selectedPolicy, err
 }
 
-//Utility function to convert from milliseconds to seconds
-func millisecondsToSeconds(m float64) float64{
-	return m/1000
-}
+
 
 func ScheduleScaling(sysConfiguration util.SystemConfiguration, selectedPolicy types.Policy) {
 	log.Info("Start request Scheduler")

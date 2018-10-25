@@ -1,7 +1,6 @@
 package derivation
 import (
 	"github.com/Cloud-Pie/SPDT/types"
-	"math"
 	"sort"
 	"errors"
 	"github.com/Cloud-Pie/SPDT/util"
@@ -32,7 +31,7 @@ func SelectPolicy(policies *[]types.Policy, sysConfig util.SystemConfiguration, 
 		policyMetrics.StartTimeDerivation = (*policies)[i].Metrics.StartTimeDerivation
 		policyMetrics.FinishTimeDerivation = (*policies)[i].Metrics.FinishTimeDerivation
 		duration := (*policies)[i].Metrics.FinishTimeDerivation.Sub((*policies)[i].Metrics.StartTimeDerivation).Seconds()
-		policyMetrics.DerivationDuration = math.Ceil(duration*100)/100
+		policyMetrics.DerivationDuration = util.RoundN(duration, 2.0)
 		(*policies)[i].Metrics = policyMetrics
 		(*policies)[i].Parameters[types.VMTYPES] = MapKeysToString(vmTypes)
 	}
@@ -114,11 +113,11 @@ func ComputePolicyMetrics(scalingActions *[]types.ScalingStep, forecast []types.
 			index++
 		}
 		if numSamplesUnder > 0 {
-			underProvision = math.Ceil(scaleActionUnderProvision/numSamplesUnder*100)/100
+			underProvision = util.RoundN(scaleActionUnderProvision/numSamplesUnder, 2.0)
 			totalUnder += scaleActionUnderProvision /numSamplesUnder
 		}
 		if numSamplesOver > 0 {
-			overProvision = math.Ceil(scaleActionOverProvision/numSamplesOver*100)/100
+			overProvision = util.RoundN(scaleActionOverProvision/numSamplesOver, 2.0)
 			totalOver += scaleActionOverProvision /numSamplesOver
 		}
 
@@ -142,7 +141,8 @@ func ComputePolicyMetrics(scalingActions *[]types.ScalingStep, forecast []types.
 			vmTypes[k] = true
 			totalCPUCoresInVMSet += mapVMProfiles[k].CPUCores * float64(v)
 			totalMemGBInVMSet += mapVMProfiles[k].Memory * float64(v)
-			cost +=  math.Ceil(mapVMProfiles [k].Pricing.Price * float64(v) * deltaTime *100)/100
+			totalPrice := mapVMProfiles [k].Pricing.Price * float64(v) * deltaTime
+			cost +=  util.RoundN(totalPrice, 2.0)
 		}
 		totalCost += cost
 
@@ -180,14 +180,14 @@ func ComputePolicyMetrics(scalingActions *[]types.ScalingStep, forecast []types.
 	avgShadowTime = totalShadowTime / float64(numberScalingActions)
 
 	return types.PolicyMetrics {
-		Cost:math.Ceil(totalCost*100)/100,
-		OverProvision:math.Ceil(avgOverProvision*100)/100,
-		UnderProvision:math.Ceil(avgUnderProvision*100)/100,
-		NumberVMScalingActions:numberVMScalingActions,
+		Cost:	util.RoundN(totalCost, 2.0),
+		OverProvision:	util.RoundN(avgOverProvision, 2.0),
+		UnderProvision:	util.RoundN(avgUnderProvision, 2.0),
+		NumberVMScalingActions:	numberVMScalingActions,
 		NumberContainerScalingActions:numberContainerScalingActions,
 		NumberScalingActions:numberVMScalingActions,
-		AvgElapsedTime:math.Ceil(avgElapsedTime*100)/100,
-		AvgShadowTime:math.Ceil(avgShadowTime*100)/100,
-		AvgTransitionTime:math.Ceil(avgTransitionTime*100)/100,
+		AvgElapsedTime:	util.RoundN(avgElapsedTime, 2.0),
+		AvgShadowTime:	util.RoundN(avgShadowTime, 2.0),
+		AvgTransitionTime:	util.RoundN(avgTransitionTime, 2.0),
 	}, vmTypes
 }

@@ -11,10 +11,7 @@ import (
 
 var requestsCapacityPerState types.RequestCapacitySupply
 
-func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time, configFile string) (types.Policy, string, error) {
-	sysConfiguration,_ := util.ReadConfigFile(configFile)
-	//pullingInterval = timeEnd.Sub(timeStart)
-
+func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time, sysConfiguration util.SystemConfiguration) (types.Policy, string, error) {
 	//Request Performance Profiles
 	error := getServiceProfile(sysConfiguration)
 	if error != nil {

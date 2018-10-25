@@ -129,13 +129,14 @@ func invalidatePolicyByID(c *gin.Context) {
 }
 
 func serverCall(c *gin.Context) {
-	sysConfiguration := ReadSysConfigurationFile("config.yml")
-	selectedPolicy, err := StartPolicyDerivation(timeStart,timeEnd,"config.yml")
+	sysConfiguration,_ := util.ReadConfigFile("config.yml")
+	selectedPolicy, predictionID, err := StartPolicyDerivation(timeStart,timeEnd,sysConfiguration)
 
 	if err != nil {
 		c.JSON(http.StatusOK, err.Error())
 	}else {
 		ScheduleScaling(sysConfiguration,selectedPolicy)
+		SubscribeForecastingUpdates(sysConfiguration, predictionID)
 		c.JSON(http.StatusOK, testJSON)
 	}
 }
