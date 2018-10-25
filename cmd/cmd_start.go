@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"fmt"
 	"github.com/Cloud-Pie/SPDT/server"
 )
 
@@ -21,7 +20,6 @@ func init() {
 }
 
 func startServer (cmd *cobra.Command, args []string) {
-	fmt.Print("called start")
 	port := cmd.Flag("http-port").Value.String()
 	configFile := cmd.Flag("config-file").Value.String()
 	server.Start(port,configFile)

@@ -7,34 +7,33 @@ import (
 	"time"
 	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/types"
-	"github.com/Cloud-Pie/SPDT/config"
 )
 
 var requestsCapacityPerState types.RequestCapacitySupply
 
-func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time, ConfigFile string) (types.Policy, error) {
-	sysConfiguration := ReadSysConfigurationFile(ConfigFile)
-	timeStart = sysConfiguration.ScalingHorizon.StartTime
-	timeEnd = sysConfiguration.ScalingHorizon.EndTime
+func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time, configFile string) (types.Policy, string, error) {
+	sysConfiguration,_ := util.ReadConfigFile(configFile)
 	//pullingInterval = timeEnd.Sub(timeStart)
 
 	//Request Performance Profiles
-	getServiceProfile(sysConfiguration)
-
+	error := getServiceProfile(sysConfiguration)
+	if error != nil {
+		return types.Policy{},"",error
+	}
 	//Request Forecasting
 	log.Info("Start request Forecasting")
 	forecastURL := sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_FORECAST
-	forecast,err := fetchForecast(forecastURL, sysConfiguration.MainServiceName)
+	forecast,err := fetchForecast(forecastURL, sysConfiguration.MainServiceName, timeStart, timeEnd)
 	if err != nil {
-		return types.Policy{},err
+		return types.Policy{},"",err
 	}
 
 	selectedPolicy,err := setNewPolicy(forecast, sysConfiguration)
 
-	return selectedPolicy,err
+	return selectedPolicy,forecast.IDPrediction, err
 }
 
-func fetchForecast(forecastURL string, mainService string) (types.Forecast, error) {
+func fetchForecast(forecastURL string, mainService string, timeStart time.Time, timeEnd time.Time) (types.Forecast, error) {
 	//Request Forecasting
 	log.Info("Start request Forecasting")
 	forecast,err := Fservice.GetForecast(forecastURL, timeStart, timeEnd)
@@ -67,7 +66,7 @@ func fetchForecast(forecastURL string, mainService string) (types.Forecast, erro
 	return forecast, nil
 }
 
-func updateDerivedPolicies(systemConfiguration config.SystemConfiguration){
+func updateDerivedPolicies(systemConfiguration util.SystemConfiguration){
 
 	policyDAO := storage.GetPolicyDAO(systemConfiguration.MainServiceName)
 

@@ -10,7 +10,6 @@ import (
 	"github.com/Cloud-Pie/SPDT/rest_clients/performance_profiles"
 	"github.com/op/go-logging"
 	"github.com/Cloud-Pie/SPDT/storage"
-	"github.com/Cloud-Pie/SPDT/config"
 	"errors"
 	"github.com/cnf/structhash"
 	"strings"
@@ -19,7 +18,7 @@ import (
 )
 
 var log = logging.MustGetLogger("spdt")
-var systemConfiguration config.SystemConfiguration
+var systemConfiguration util.SystemConfiguration
 var initialState types.State
 
 //Interface for strategies of how to scale
@@ -45,7 +44,7 @@ type TimeWindowDerivation interface {
 	out:
 		@[]types.Policy
 */
-func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration config.SystemConfiguration, forecast types.Forecast) ([]types.Policy, error) {
+func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration util.SystemConfiguration, forecast types.Forecast) ([]types.Policy, error) {
 	var policies []types.Policy
 	systemConfiguration = sysConfiguration
 	mapVMProfiles := VMListToMap(sortedVMProfiles)
@@ -132,7 +131,7 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration config.System
 	out:
 		@int	Time in seconds that the booting wil take
 */
-func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.SystemConfiguration) float64 {
+func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration util.SystemConfiguration) float64 {
 	bootTime := 0.0
 	//Check in db if already data is stored
 	vmBootingProfileDAO := storage.GetVMBootingProfileDAO()
@@ -168,7 +167,7 @@ func computeVMBootingTime(vmsScale types.VMScale, sysConfiguration config.System
 	out:
 		@int	Time in seconds that the termination wil take
 */
-func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration config.SystemConfiguration) float64 {
+func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration util.SystemConfiguration) float64 {
 	terminationTime := 0.0
 	//Check in db if already data is stored
 	vmBootingProfileDAO := storage.GetVMBootingProfileDAO()

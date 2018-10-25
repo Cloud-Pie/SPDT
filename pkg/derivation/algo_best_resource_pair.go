@@ -5,7 +5,6 @@ import (
 	"time"
 	"math"
 	"gopkg.in/mgo.v2/bson"
-	"github.com/Cloud-Pie/SPDT/config"
 	"strconv"
 	"github.com/Cloud-Pie/SPDT/util"
 	"errors"
@@ -23,7 +22,7 @@ type BestResourcePairPolicy struct {
 	currentState	types.State
 	sortedVMProfiles []types.VmProfile
 	mapVMProfiles   map[string]types.VmProfile
-	sysConfiguration	config.SystemConfiguration
+	sysConfiguration	util.SystemConfiguration
 }
 
 /* Derive a list of policies using the Best Instance Approach approach

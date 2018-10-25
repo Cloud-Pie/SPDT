@@ -11,6 +11,11 @@ import (
 	"github.com/Cloud-Pie/SPDT/util"
 )
 
+type RequestSubscription struct {
+	IDPrediction      string                `json:"predictions_id"`
+	URL				  string				`json:"url"`
+}
+
 func GetForecast(endpoint string, startTime time.Time, endTime time.Time) (types.Forecast, error){
 
 	forecast := types.Forecast{}
@@ -43,6 +48,13 @@ func GetForecast(endpoint string, startTime time.Time, endTime time.Time) (types
 
 func PostMaxRequestCapacities(loadCapacitiesPerState types.RequestCapacitySupply, endpoint string) error {
 	jsonValue, _ := json.Marshal(loadCapacitiesPerState)
+	_, err := http.Post(endpoint, "application/json", bytes.NewBuffer(jsonValue))
+	return err
+}
+
+func SubscribeNotifications(urlNotification string, idPrediction string, endpoint string) error {
+	requestBody := RequestSubscription{IDPrediction: idPrediction, URL:urlNotification}
+	jsonValue, _ := json.Marshal(requestBody)
 	_, err := http.Post(endpoint, "application/json", bytes.NewBuffer(jsonValue))
 	return err
 }

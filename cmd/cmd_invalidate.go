@@ -38,7 +38,7 @@ func invalidate(cmd *cobra.Command, args []string) {
 		timeEnd,err = time.Parse(util.UTC_TIME_LAYOUT,cmd.Flag("end-time").Value.String())
 		check(err, "Time end window no valid")
 		configFile := cmd.Flag("config-file").Value.String()
-		systemConfiguration := server.ReadSysConfigurationFile(configFile)
+		systemConfiguration,_ := util.ReadConfigFile(configFile)
 
 		policyDAO := db.GetPolicyDAO(systemConfiguration.MainServiceName)
 		currentPolicies,err := policyDAO.FindAllByTimeWindow(timeStart,timeEnd)
@@ -49,7 +49,7 @@ func invalidate(cmd *cobra.Command, args []string) {
 		}
 
 		//Recompute new set of policies
-		selectedPolicy,err2 := server.StartPolicyDerivation(timeStart,timeEnd,configFile)
+		selectedPolicy,predictionID, err2 := server.StartPolicyDerivation(timeStart,timeEnd,configFile)
 		check(err2, "New policy could not be derived")
 
 		log.Info("New Policy derived")
@@ -58,6 +58,8 @@ func invalidate(cmd *cobra.Command, args []string) {
 		log.Info("Invalidated previous scheduled states")
 		server.ScheduleScaling(systemConfiguration, selectedPolicy)
 		log.Info("Schedule new states")
+		server.SubscribeForecastingUpdates(systemConfiguration, predictionID)
+		log.Info("Subscribed for notifications")
 
 		//Delete all policies created previously for that period
 		for _,p := range currentPolicies {

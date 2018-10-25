@@ -5,7 +5,6 @@ import (
 	Fservice "github.com/Cloud-Pie/SPDT/rest_clients/forecast"
 	Sservice "github.com/Cloud-Pie/SPDT/rest_clients/scheduler"
 	"github.com/Cloud-Pie/SPDT/util"
-	"github.com/Cloud-Pie/SPDT/config"
 	"github.com/Cloud-Pie/SPDT/storage"
 	"fmt"
 	"github.com/Cloud-Pie/SPDT/types"
@@ -20,7 +19,6 @@ import (
 	"sort"
 	"github.com/Cloud-Pie/SPDT/pkg/derivation"
 	"github.com/Cloud-Pie/SPDT/pkg/schedule"
-	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
 	"errors"
 )
 
@@ -47,7 +45,10 @@ func Start(port string, configFile string) {
 
 	//Read Configuration File
 	ConfigFile = configFile
-	sysConfiguration := ReadSysConfigurationFile(configFile)
+	sysConfiguration,err := util.ReadConfigFile(configFile)
+	if err != nil {
+		log.Error("%s", err)
+	}
 	timeStart = sysConfiguration.ScalingHorizon.StartTime
 	timeEnd = sysConfiguration.ScalingHorizon.EndTime
 	timeWindowSize = timeEnd.Sub(timeStart)
@@ -55,24 +56,23 @@ func Start(port string, configFile string) {
 	out := make(chan types.Forecast)
 	server := SetUpServer(out)
 	go updatePolicyDerivation(out)
-	go periodicPolicyDerivation()
+	go periodicPolicyDerivation(sysConfiguration)
 	server.Run(":" + port)
 
 }
 
 //Periodically pull a new forecast for a new time window
 //and derive a the correspondent new scaling policy
-func periodicPolicyDerivation() {
+func periodicPolicyDerivation(sysConfiguration util.SystemConfiguration) {
 	for {
-		sysConfiguration := ReadSysConfigurationFile(ConfigFile)
-		selectedPolicy,err := StartPolicyDerivation(timeStart,timeEnd, ConfigFile)
+		selectedPolicy,forecastID, err := StartPolicyDerivation(timeStart,timeEnd, ConfigFile)
 		if err != nil {
 			log.Error("An error has occurred and policies have been not derived. Please try again. Details: %s", err)
 		}else{
 			//Schedule scaling states
 			ScheduleScaling(sysConfiguration, selectedPolicy)
 			//Subscribe to the notifications
-			//SubscribeForecastingUpdates(sysConfiguration, selectedPolicy, forecast.IDPrediction)
+			SubscribeForecastingUpdates(sysConfiguration, forecastID)
 			nextTimeStart := timeEnd.Add(timeWindowSize).Add(-10 * time.Minute )
 			if time.Now().After(nextTimeStart) {
 				timeStart = timeStart.Add(timeWindowSize)
@@ -110,19 +110,9 @@ func setLogger() {
 }
 
 //Read the configuration file with the setting to derive the scaling policies
-func ReadSysConfiguration() config.SystemConfiguration {
+func ReadSysConfiguration() util.SystemConfiguration {
 	//var err error
-	sysConfiguration, err := config.ParseConfigFile(ConfigFile)
-	if err != nil {
-		log.Errorf("Configuration file could not be processed %s", err)
-	}
-	return sysConfiguration
-}
-
-//Read the configuration file with the setting to derive the scaling policies
-func ReadSysConfigurationFile(ConfigFile string) config.SystemConfiguration {
-	//var err error
-	sysConfiguration, err := config.ParseConfigFile(ConfigFile)
+	sysConfiguration, err := util.ReadConfigFile(ConfigFile)
 	if err != nil {
 		log.Errorf("Configuration file could not be processed %s", err)
 	}
@@ -157,7 +147,7 @@ func getVMProfiles()([]types.VmProfile, error) {
 }
 
 //Fetch the performance profile of the microservice that should be scaled
-func getVMBootingProfile(sysConfiguration config.SystemConfiguration, vmProfiles []types.VmProfile){
+func getVMBootingProfile(sysConfiguration util.SystemConfiguration, vmProfiles []types.VmProfile){
 	var err error
 	var vmBootingProfile types.InstancesBootShutdownTime
 	vmBootingProfileDAO := storage.GetVMBootingProfileDAO()
@@ -180,7 +170,7 @@ func getVMBootingProfile(sysConfiguration config.SystemConfiguration, vmProfiles
 }
 
 //Fetch the performance profile of the microservice that should be scaled
-func getServiceProfile(sysConfiguration config.SystemConfiguration){
+func getServiceProfile(sysConfiguration util.SystemConfiguration) error{
 	var err error
 	var servicePerformanceProfile types.ServicePerformanceProfile
 	serviceProfileDAO := storage.GetPerformanceProfileDAO(sysConfiguration.MainServiceName)
@@ -219,12 +209,12 @@ func getServiceProfile(sysConfiguration config.SystemConfiguration){
 			}
 		}
 	}
-
+	return err
 	//defer serviceProfileDAO.Session.Close()
 }
 
 //Start Derivation of a new scaling policy for the specified scaling horizon and correspondent forecast
-func setNewPolicy(forecast types.Forecast,sysConfiguration config.SystemConfiguration) (types.Policy, error){
+func setNewPolicy(forecast types.Forecast,sysConfiguration util.SystemConfiguration) (types.Policy, error){
 	//Get VM Profiles
 	var err error
 	var selectedPolicy types.Policy
@@ -269,7 +259,7 @@ func millisecondsToSeconds(m float64) float64{
 	return m/1000
 }
 
-func ScheduleScaling(sysConfiguration config.SystemConfiguration, selectedPolicy types.Policy) {
+func ScheduleScaling(sysConfiguration util.SystemConfiguration, selectedPolicy types.Policy) {
 	log.Info("Start request Scheduler")
 	schedulerURL := sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES
 	tset,err := schedule.TriggerScheduler(selectedPolicy, schedulerURL)
@@ -281,7 +271,7 @@ func ScheduleScaling(sysConfiguration config.SystemConfiguration, selectedPolicy
 	}
 }
 
-func InvalidateScalingStates(sysConfiguration config.SystemConfiguration, timeInvalidation time.Time) error {
+func InvalidateScalingStates(sysConfiguration util.SystemConfiguration, timeInvalidation time.Time) error {
 	log.Info("Start request Scheduler to invalidate states")
 	statesInvalidationURL := sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_INVALIDATE_STATES
 	err := Sservice.InvalidateStates(timeInvalidation, statesInvalidationURL)
@@ -293,15 +283,13 @@ func InvalidateScalingStates(sysConfiguration config.SystemConfiguration, timeIn
 	return err
 }
 
-//DEPRECATED
-func SubscribeForecastingUpdates(sysConfiguration config.SystemConfiguration, selectedPolicy types.Policy, idPrediction string){
+
+func SubscribeForecastingUpdates(sysConfiguration util.SystemConfiguration, idPrediction string){
 	//TODO:Improve for a better pub/sub system
 	log.Info("Start subscribe to prediction updates")
 	forecastUpdatesURL := sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_SUBSCRIBE_NOTIFICATIONS
-	requestsCapacityPerState := forecast_processing.GetMaxRequestCapacity(selectedPolicy)
-	requestsCapacityPerState.IDPrediction = idPrediction
-	requestsCapacityPerState.URL = util.ENDPOINT_RECIVE_NOTIFICATIONS
-	err := Fservice.PostMaxRequestCapacities(requestsCapacityPerState, forecastUpdatesURL)
+	urlNotifications := util.ENDPOINT_RECIVE_NOTIFICATIONS
+	err := Fservice.SubscribeNotifications(urlNotifications, idPrediction, forecastUpdatesURL)
 	if err != nil {
 		log.Error("The subscription to prediction updates failed with error %s\n", err)
 	} else {

@@ -4,7 +4,7 @@ import (
 	db "github.com/Cloud-Pie/SPDT/storage"
 	"github.com/spf13/cobra"
 	"fmt"
-	"github.com/Cloud-Pie/SPDT/server"
+	"github.com/Cloud-Pie/SPDT/util"
 )
 
 // policiesCmd represents the delete policies command
@@ -29,7 +29,7 @@ func init() {
 func delete(cmd *cobra.Command, args []string) {
 	if force {
 		configFile := cmd.Flag("config-file").Value.String()
-		systemConfiguration := server.ReadSysConfigurationFile(configFile)
+		systemConfiguration,_ := util.ReadConfigFile(configFile)
 		policyDAO := db.GetPolicyDAO(systemConfiguration.MainServiceName)
 		err := policyDAO.DeleteById(id)
 		if err != nil {

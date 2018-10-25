@@ -6,7 +6,6 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"math"
 	"sort"
-	"github.com/Cloud-Pie/SPDT/config"
 	"strconv"
 	"github.com/Cloud-Pie/SPDT/util"
 )
@@ -21,7 +20,7 @@ type DeltaRepackedPolicy struct {
 	currentState     types.State          			//Current State
 	sortedVMProfiles []types.VmProfile    			//List of VM profiles sorted by price
 	mapVMProfiles    map[string]types.VmProfile		//Map with VM profiles with VM.Type as key
-	sysConfiguration	config.SystemConfiguration
+	sysConfiguration	util.SystemConfiguration
 }
 
 /* Derive a list of policies
@@ -43,6 +42,8 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 	configurations := []types.ScalingStep{}
 	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
 	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
+	biggestVM := p.sortedVMProfiles[len(p.sortedVMProfiles)-1]
+	vmLimits := types.Limit{ MemoryGB:biggestVM.Memory, CPUCores:biggestVM.CPUCores}
 
 	for i, it := range processedForecast.CriticalIntervals {
 		resourcesConfiguration := types.ContainersConfig{}
@@ -145,6 +146,22 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
 						resourcesConfiguration = newConfig
 					} else {
 						resourcesConfiguration = rConfigDeltaLoad
+					}
+
+					ProfileNewLimits, _ := selectProfileUnderVMLimits(it.Requests, vmLimits)
+					vmSet := p.FindSuitableVMs(ProfileNewLimits.MSCSetting.Replicas, ProfileNewLimits.Limits)
+
+					optimalConfigTLoad := types.ContainersConfig {
+						Limits:     ProfileNewLimits.Limits,
+						MSCSetting: ProfileNewLimits.MSCSetting,
+						VMSet:      vmSet,
+					}
+
+					//Validate if a complete migration is better
+					if newConfig,ok := p.shouldRepackVMSet(resourcesConfiguration, optimalConfigTLoad,i,processedForecast.CriticalIntervals); ok {
+						resourcesConfiguration = newConfig
+					} else {
+						resourcesConfiguration = resourcesConfiguration
 					}
 				}
 		}

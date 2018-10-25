@@ -2,7 +2,7 @@ package derivation
 
 import (
 	"github.com/Cloud-Pie/SPDT/types"
-	"github.com/Cloud-Pie/SPDT/config"
+	"github.com/Cloud-Pie/SPDT/util"
 )
 
 type MSCProfile struct {
@@ -21,7 +21,7 @@ type DeltaLoadPolicy struct {
 	currentState	types.State			 //Current State
 	sortedVMProfiles []types.VmProfile    			//List of VM profiles sorted by price
 	mapVMProfiles map[string]types.VmProfile
-	sysConfiguration	config.SystemConfiguration
+	sysConfiguration	util.SystemConfiguration
 }
 
 /*

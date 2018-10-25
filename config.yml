@@ -1,17 +1,18 @@
 ---
 version: v1
-app-name: primeapp
-main-service-name: primeapp
-app-type: compute
+app-name: movieapp
+main-service-name: movieapp
+app-type: dbaccess
 CSP: AWS
 region: us-east-2
 pricing-model:
   monthly-budget: 12000
-  billing-unit: second
+  billing-unit: s
 scaling-horizon:
-  start-time: 2018-11-01T07:00:00Z
-  end-time: 2018-11-08T07:00:00Z
+  start-time: 2018-12-09T07:00:00Z
+  end-time: 2018-12-23T07:00:00Z
 forecasting-component:
+  granularity: h
   endpoint: http://172.29.39.209:8081
   username:
   password:
@@ -28,14 +29,16 @@ scheduler-component:
   username:
   password:
   api-key:
-preferred-algorithm: all
+preferred-algorithm: only-delta-load
+pulling-interval: 10
+storage-time-interval: 10M
 policy-settings:
   vm-scaling-method: horizontal
   underprovisioning-allowed: false
   percentage-max-underprovision: 20
   pods-resize-allowed: true
-preferred-metric: cost
-update-time-min: 5
+  preferred-metric: cost
+
 
 
 

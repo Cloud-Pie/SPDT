@@ -4,7 +4,6 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"time"
 	"gopkg.in/mgo.v2/bson"
-	"github.com/Cloud-Pie/SPDT/config"
 	"strconv"
 	"github.com/Cloud-Pie/SPDT/util"
 )
@@ -14,7 +13,7 @@ type StepRepackPolicy struct {
 	timeWindow 		TimeWindowDerivation
 	sortedVMProfiles []types.VmProfile
 	mapVMProfiles map[string]types.VmProfile
-	sysConfiguration	config.SystemConfiguration
+	sysConfiguration	util.SystemConfiguration
 	currentState	types.State			 //Current State
 }
 

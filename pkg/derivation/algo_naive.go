@@ -2,7 +2,6 @@ package derivation
 
 import (
 	"github.com/Cloud-Pie/SPDT/types"
-	"github.com/Cloud-Pie/SPDT/config"
 	"time"
 	"strconv"
 	"gopkg.in/mgo.v2/bson"
@@ -19,7 +18,7 @@ type NaivePolicy struct {
 	timeWindow 		TimeWindowDerivation
 	currentState	types.State
 	mapVMProfiles   map[string]types.VmProfile
-	sysConfiguration	config.SystemConfiguration
+	sysConfiguration	util.SystemConfiguration
 }
 
 /* Derive a list of policies using the Naive approach

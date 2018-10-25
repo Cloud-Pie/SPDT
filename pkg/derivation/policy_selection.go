@@ -1,10 +1,10 @@
 package derivation
 import (
 	"github.com/Cloud-Pie/SPDT/types"
-	"github.com/Cloud-Pie/SPDT/config"
 	"math"
 	"sort"
 	"errors"
+	"github.com/Cloud-Pie/SPDT/util"
 )
 
 /*Evaluates and select the most suitable policy for the given system configurations and forecast
@@ -23,7 +23,7 @@ import (
 	@error
 			- Error in case of any
 */
-func SelectPolicy(policies *[]types.Policy, sysConfig config.SystemConfiguration, vmProfiles []types.VmProfile, forecast types.Forecast)(types.Policy, error) {
+func SelectPolicy(policies *[]types.Policy, sysConfig util.SystemConfiguration, vmProfiles []types.VmProfile, forecast types.Forecast)(types.Policy, error) {
 
 	mapVMProfiles := VMListToMap(vmProfiles)
 	//Calculate total cost of the policy
@@ -65,7 +65,7 @@ func SelectPolicy(policies *[]types.Policy, sysConfig config.SystemConfiguration
 
 //Compute the metrics related to the policy and its scaling actions
 func ComputePolicyMetrics(scalingActions *[]types.ScalingStep, forecast []types.ForecastedValue,
-	sysConfiguration config.SystemConfiguration, mapVMProfiles map[string]types.VmProfile) (types.PolicyMetrics, map[string]bool) {
+	sysConfiguration util.SystemConfiguration, mapVMProfiles map[string]types.VmProfile) (types.PolicyMetrics, map[string]bool) {
 
 	var avgOverProvision float64
 	var avgUnderProvision float64

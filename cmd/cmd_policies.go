@@ -2,7 +2,7 @@ package cmd
 
 import (
 	db "github.com/Cloud-Pie/SPDT/storage"
-	"github.com/Cloud-Pie/SPDT/server"
+
 	"encoding/json"
 	"github.com/spf13/cobra"
 	"fmt"
@@ -34,7 +34,7 @@ func retrieve (cmd *cobra.Command, args []string) {
 	start := cmd.Flag("start-time").Value.String()
 	end := cmd.Flag("end-time").Value.String()
 	configFile := cmd.Flag("config-file").Value.String()
-	systemConfiguration := server.ReadSysConfigurationFile(configFile)
+	systemConfiguration,_ := util.ReadConfigFile(configFile)
 	policyDAO := db.GetPolicyDAO(systemConfiguration.MainServiceName)
 
 	if id != "" {
