@@ -80,7 +80,7 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration util.SystemCo
 		policies = base.CreatePolicies(processedForecast)
 
 	case util.SMALL_STEP_ALGORITHM:
-		sstep := StepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM,
+		sstep := AlwaysResizePolicy{algorithm:util.SMALL_STEP_ALGORITHM,
 									mapVMProfiles:mapVMProfiles, sortedVMProfiles:sortedVMProfiles, sysConfiguration: sysConfiguration, currentState:currentState}
 		policies = sstep.CreatePolicies(processedForecast)
 
@@ -90,7 +90,7 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration util.SystemCo
 		policies = tree.CreatePolicies(processedForecast)
 
 	case util.DELTA_REPACKED:
-		algorithm := DeltaRepackedPolicy {algorithm:util.DELTA_REPACKED, currentState:currentState,
+		algorithm := ResizeWhenBeneficialPolicy{algorithm:util.DELTA_REPACKED, currentState:currentState,
 		sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies = algorithm.CreatePolicies(processedForecast)
 	default:
@@ -105,17 +105,17 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration util.SystemCo
 		policies2 := base.CreatePolicies(processedForecast)
 		policies = append(policies, policies2...)
 		//sstep
-		sstep := StepRepackPolicy{algorithm:util.SMALL_STEP_ALGORITHM,
+		sstep := AlwaysResizePolicy{algorithm:util.SMALL_STEP_ALGORITHM,
 			sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration, currentState:currentState}
 		policies3 := sstep.CreatePolicies(processedForecast)
 		policies = append(policies, policies3...)
-		//delta repack
-		algorithm := DeltaRepackedPolicy {algorithm:util.DELTA_REPACKED, currentState:currentState,
+		//resize when beneficial
+		algorithm := ResizeWhenBeneficialPolicy{algorithm:util.DELTA_REPACKED, currentState:currentState,
 			sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies4 := algorithm.CreatePolicies(processedForecast)
 		policies = append(policies, policies4...)
 
-		//tree
+		//delta load
 		tree := DeltaLoadPolicy{algorithm:util.ONLY_DELTA_ALGORITHM, currentState:currentState,
 			sortedVMProfiles:sortedVMProfiles,mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration}
 		policies5 := tree.CreatePolicies(processedForecast)
@@ -249,7 +249,7 @@ func estimatePodsConfiguration(requests float64, limits types.Limit) (types.Cont
 			newMSCSetting.Replicas = mscSetting.Replicas
 			newMSCSetting.MSCPerSecond = mscSetting.MSCPerSecond.RegBruteForce
 			if mscSetting.BootTimeMs > 0 {
-				newMSCSetting.BootTimeSec = mscSetting.BootTimeMs / 1000
+				newMSCSetting.BootTimeSec = util.MillisecondsToSeconds(mscSetting.BootTimeMs)
 			} else {
 				newMSCSetting.BootTimeSec = util.DEFAULT_POD_BOOT_TIME
 			}

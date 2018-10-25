@@ -2,26 +2,12 @@ package derivation
 
 import (
 	"github.com/Cloud-Pie/SPDT/types"
-	"github.com/Cloud-Pie/SPDT/util"
 )
 
 type MSCProfile struct {
 	ResourceLimits types.Limit
 	NumberReplicas int
 	MSC            float64
-}
-
-/*
-	Constructs different VM clusters (heterogeneous included) to add resources every time the workload
-	increases in a factor of deltaLoad.
- */
-type DeltaLoadPolicy struct {
-	algorithm  		string               //Algorithm's name
-	timeWindow 		TimeWindowDerivation //Algorithm used to process the forecasted time serie
-	currentState	types.State			 //Current State
-	sortedVMProfiles []types.VmProfile    			//List of VM profiles sorted by price
-	mapVMProfiles map[string]types.VmProfile
-	sysConfiguration	util.SystemConfiguration
 }
 
 /*

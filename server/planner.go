@@ -2,7 +2,6 @@ package server
 
 import (
 	Pservice "github.com/Cloud-Pie/SPDT/rest_clients/performance_profiles"
-	Fservice "github.com/Cloud-Pie/SPDT/rest_clients/forecast"
 	Sservice "github.com/Cloud-Pie/SPDT/rest_clients/scheduler"
 	"github.com/Cloud-Pie/SPDT/util"
 	"github.com/Cloud-Pie/SPDT/storage"
@@ -171,7 +170,7 @@ func getVMBootingProfile(sysConfiguration util.SystemConfiguration, vmProfiles [
 }
 
 //Fetch the performance profile of the microservice that should be scaled
-func getServiceProfile(sysConfiguration util.SystemConfiguration) error{
+func fetchApplicationProfile(sysConfiguration util.SystemConfiguration) error {
 	var err error
 	var servicePerformanceProfile types.ServicePerformanceProfile
 	serviceProfileDAO := storage.GetPerformanceProfileDAO(sysConfiguration.MainServiceName)
@@ -243,9 +242,9 @@ func setNewPolicy(forecast types.Forecast,sysConfiguration util.SystemConfigurat
 	if err != nil {
 		log.Error("Error evaluation policies: %s", err.Error())
 	}else {
-		updateDerivedPolicies(sysConfiguration)
-
 		log.Info("Finish policies evaluation")
+
+		invalidateOldPolicies(sysConfiguration)
 		policyDAO := storage.GetPolicyDAO(sysConfiguration.MainServiceName)
 		for _,p := range policies {
 			err = policyDAO.Insert(p)
@@ -256,8 +255,6 @@ func setNewPolicy(forecast types.Forecast,sysConfiguration util.SystemConfigurat
 	}
 	return  selectedPolicy, err
 }
-
-
 
 func ScheduleScaling(sysConfiguration util.SystemConfiguration, selectedPolicy types.Policy) {
 	log.Info("Start request Scheduler")
@@ -271,28 +268,3 @@ func ScheduleScaling(sysConfiguration util.SystemConfiguration, selectedPolicy t
 	}
 }
 
-func InvalidateScalingStates(sysConfiguration util.SystemConfiguration, timeInvalidation time.Time) error {
-	log.Info("Start request Scheduler to invalidate states")
-	statesInvalidationURL := sysConfiguration.SchedulerComponent.Endpoint+util.ENDPOINT_INVALIDATE_STATES
-	err := Sservice.InvalidateStates(timeInvalidation, statesInvalidationURL)
-	if err != nil {
-		log.Error("The scheduler request failed with error %s\n", err)
-	} else {
-		log.Info("Finish request Scheduler to invalidate states")
-	}
-	return err
-}
-
-
-func SubscribeForecastingUpdates(sysConfiguration util.SystemConfiguration, idPrediction string){
-	//TODO:Improve for a better pub/sub system
-	log.Info("Start subscribe to prediction updates")
-	forecastUpdatesURL := sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_SUBSCRIBE_NOTIFICATIONS
-	urlNotifications := util.ENDPOINT_RECIVE_NOTIFICATIONS
-	err := Fservice.SubscribeNotifications(urlNotifications, idPrediction, forecastUpdatesURL)
-	if err != nil {
-		log.Error("The subscription to prediction updates failed with error %s\n", err)
-	} else {
-		log.Info("Finish subscribe to prediction updates")
-	}
-}

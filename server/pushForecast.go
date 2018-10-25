@@ -9,7 +9,7 @@ import (
 	"fmt"
 )
 
-func updatePolicyDerivation(forecastChannel chan types.Forecast) {
+func updatePolicyDerivation2(forecastChannel chan types.Forecast) {
 	for forecast := range forecastChannel {
 		shouldUpdate, newForecast, timeConflict := forecast_processing.UpdateForecast(forecast)
 		if shouldUpdate {
@@ -61,9 +61,29 @@ func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 				ScheduleScaling(sysConfiguration, selectedPolicy)
 			}
 			//Subscribe to the notifications
-			SubscribeForecastingUpdates(sysConfiguration, selectedPolicy, forecast.IDPrediction)
+			SubscribeForecastingUpdates(sysConfiguration, forecast.IDPrediction)
 		} else {
 			log.Info("Updated forecast received but policies did not change")
 		}
+	}
+}
+
+
+func updatePolicyDerivation(forecastChannel chan types.Forecast) {
+	for forecast := range forecastChannel {
+
+			//Read Configuration File
+			sysConfiguration := ReadSysConfiguration()
+			if err := recover(); err != nil {
+				fmt.Println(err)
+			}
+
+			//Request Performance Profiles
+			getServiceProfile(sysConfiguration)
+
+			selectedPolicy,_ := setNewPolicy(forecast, sysConfiguration)
+			ScheduleScaling(sysConfiguration, selectedPolicy)
+			//Subscribe to the notifications
+			//SubscribeForecastingUpdates(sysConfiguration, forecast.IDPrediction)
 	}
 }

@@ -13,7 +13,7 @@ var requestsCapacityPerState types.RequestCapacitySupply
 
 func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time, sysConfiguration util.SystemConfiguration) (types.Policy, string, error) {
 	//Request Performance Profiles
-	error := getServiceProfile(sysConfiguration)
+	error := fetchApplicationProfile(sysConfiguration)
 	if error != nil {
 		return types.Policy{},"",error
 	}
@@ -63,24 +63,15 @@ func fetchForecast(forecastURL string, mainService string, timeStart time.Time, 
 	return forecast, nil
 }
 
-func updateDerivedPolicies(systemConfiguration util.SystemConfiguration){
-
-	policyDAO := storage.GetPolicyDAO(systemConfiguration.MainServiceName)
-
-	currentPolicies,err := policyDAO.FindAllByTimeWindow(timeStart,timeEnd)
-
-	if len(currentPolicies) == 0 {
-		log.Error("No policies found for the specified window")
+func SubscribeForecastingUpdates(sysConfiguration util.SystemConfiguration, idPrediction string){
+	//TODO:Improve for a better pub/sub system
+	log.Info("Start subscribe to prediction updates")
+	forecastUpdatesURL := sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_SUBSCRIBE_NOTIFICATIONS
+	urlNotifications := util.ENDPOINT_RECIVE_NOTIFICATIONS
+	err := Fservice.SubscribeNotifications(urlNotifications, idPrediction, forecastUpdatesURL)
+	if err != nil {
+		log.Error("The subscription to prediction updates failed with error %s\n", err)
+	} else {
+		log.Info("Finish subscribe to prediction updates")
 	}
-
-	err = InvalidateScalingStates(systemConfiguration, timeStart)
-
-	//Delete all policies created previously for that period
-	for _,p := range currentPolicies {
-		err = policyDAO.DeleteById(p.ID.Hex())
-		if err != nil {
-			log.Fatalf("Error, policies could not be removed from db: %s",  err.Error())
-		}
-	}
-	log.Info("Deleted previous scheduled states")
 }

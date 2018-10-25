@@ -14,7 +14,7 @@ import (
 After each change in the workload it calculates the number of VMs of a predefined size needed
 Repeat the process for all the vm types available
 */
-type DeltaRepackedPolicy struct {
+type ResizeWhenBeneficialPolicy struct {
 	algorithm        string              			 //Algorithm's name
 	timeWindow       TimeWindowDerivation 			//Algorithm used to process the forecasted time serie
 	currentState     types.State          			//Current State
@@ -32,7 +32,7 @@ type DeltaRepackedPolicy struct {
 	out:
 		[] Policy. List of type Policy
 */
-func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedForecast) [] types.Policy {
+func (p ResizeWhenBeneficialPolicy) CreatePolicies(processedForecast types.ProcessedForecast) [] types.Policy {
 	log.Info("Derive policies with %s algorithm", p.algorithm)
 	policies := []types.Policy{}
 	newPolicy := types.Policy{}
@@ -214,7 +214,7 @@ func (p DeltaRepackedPolicy) CreatePolicies(processedForecast types.ProcessedFor
  out:
 	@VMScale with the suggested number of VMs
 */
-func (p DeltaRepackedPolicy) FindSuitableVMs(numberReplicas int, resourceLimits types.Limit) types.VMScale {
+func (p ResizeWhenBeneficialPolicy) FindSuitableVMs(numberReplicas int, resourceLimits types.Limit) types.VMScale {
 	vmSet, _ := buildHomogeneousVMSet(numberReplicas,resourceLimits, p.mapVMProfiles)
 	/*hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, resourceLimits, p.mapVMProfiles)
 	costi := hetVMSet.Cost(p.mapVMProfiles)
@@ -246,7 +246,7 @@ func buildHeterogeneousSet(nReplicas int, typeVM1 string, capacityVM1 int, typeV
 
 //Remove the virtual machines that are supporting the deployment of nReplicas from the current configuration.
 //If is not possible to remove vms without risk of high underprovisioning, no vm is released
-func (p DeltaRepackedPolicy) releaseResources(nReplicas int, currentVMSet types.VMScale) types.VMScale {
+func (p ResizeWhenBeneficialPolicy) releaseResources(nReplicas int, currentVMSet types.VMScale) types.VMScale {
 	var newVMSet types.VMScale
 	newVMSet = copyMap(currentVMSet)
 
@@ -282,7 +282,7 @@ func (p DeltaRepackedPolicy) releaseResources(nReplicas int, currentVMSet types.
 }
 
 //Calculate the cost of a reconfiguration
-func(p DeltaRepackedPolicy) calculateReconfigurationCost(newSet types.VMScale) float64 {
+func(p ResizeWhenBeneficialPolicy) calculateReconfigurationCost(newSet types.VMScale) float64 {
 	//Compute reconfiguration cost
 	_, deletedVMS := DeltaVMSet(p.currentState.VMs, newSet)
 	reconfigTime := computeVMTerminationTime(deletedVMS, p.sysConfiguration)
@@ -303,7 +303,7 @@ func(p DeltaRepackedPolicy) calculateReconfigurationCost(newSet types.VMScale) f
 		@error
 
 */
-func (p DeltaRepackedPolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.MSCSimpleSetting,
+func (p ResizeWhenBeneficialPolicy) selectContainersConfig(currentLimits types.Limit, profileCurrentLimits types.MSCSimpleSetting,
 	newLimits types.Limit, profileNewLimits types.MSCSimpleSetting, containerResize bool) (MSCProfile, error) {
 
 	currentNumberReplicas := float64(profileCurrentLimits.Replicas)
@@ -325,7 +325,7 @@ func (p DeltaRepackedPolicy) selectContainersConfig(currentLimits types.Limit, p
 
 //Evaluate if the current configuration of VMS should be changed to a new configuration
 //searching a optimal vm set for the total Load
-func(p DeltaRepackedPolicy) shouldRepackVMSet(currentOption types.ContainersConfig, candidateOption types.ContainersConfig, indexTimeInterval int, timeIntervals[]types.CriticalInterval) (types.ContainersConfig, bool) {
+func(p ResizeWhenBeneficialPolicy) shouldRepackVMSet(currentOption types.ContainersConfig, candidateOption types.ContainersConfig, indexTimeInterval int, timeIntervals[]types.CriticalInterval) (types.ContainersConfig, bool) {
 	currentCost := currentOption.VMSet.Cost(p.mapVMProfiles)
 	candidateCost := candidateOption.VMSet.Cost(p.mapVMProfiles)
 
@@ -373,7 +373,7 @@ func(p DeltaRepackedPolicy) shouldRepackVMSet(currentOption types.ContainersConf
 	either using the current limit constrains or finding other (cpu, mem) configuration that meet the requirement
 	and still fit into the current VM set.
 */
-func (p DeltaRepackedPolicy) onlyScaleOutContainers(currentVMSet types.VMScale, totalLoad float64, currentContainerLimits types.Limit) (types.ContainersConfig, bool){
+func (p ResizeWhenBeneficialPolicy) onlyScaleOutContainers(currentVMSet types.VMScale, totalLoad float64, currentContainerLimits types.Limit) (types.ContainersConfig, bool){
 	containersResourceConfig :=  types.ContainersConfig{}
 	onlyScaleContainers := false
 
@@ -412,7 +412,7 @@ func (p DeltaRepackedPolicy) onlyScaleOutContainers(currentVMSet types.VMScale, 
 	out:
 		ContainersConfig -
 */
-func (p DeltaRepackedPolicy) optionWithUnderProvision(totalLoad float64, containerLimits types.Limit, percentageUnderProvision float64) types.ContainersConfig {
+func (p ResizeWhenBeneficialPolicy) optionWithUnderProvision(totalLoad float64, containerLimits types.Limit, percentageUnderProvision float64) types.ContainersConfig {
 	containerConfigUnder,_ := estimatePodsConfiguration(totalLoad, containerLimits)
 	vmSetUnder := p.FindSuitableVMs(containerConfigUnder.MSCSetting.Replicas, containerConfigUnder.Limits)
 	costVMSetUnderProvision := vmSetUnder.Cost(p.mapVMProfiles)

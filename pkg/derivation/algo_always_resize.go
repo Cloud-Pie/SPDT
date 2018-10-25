@@ -8,7 +8,7 @@ import (
 	"github.com/Cloud-Pie/SPDT/util"
 )
 
-type StepRepackPolicy struct {
+type AlwaysResizePolicy struct {
 	algorithm 		string
 	timeWindow 		TimeWindowDerivation
 	sortedVMProfiles []types.VmProfile
@@ -25,7 +25,7 @@ type StepRepackPolicy struct {
 	out:
 		[] Policy. List of type Policy
 */
-func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForecast) [] types.Policy {
+func (p AlwaysResizePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [] types.Policy {
 	log.Info("Derive policies with %s algorithm", p.algorithm)
 	policies := []types.Policy{}
 	//Compute results for cluster of each type
@@ -51,7 +51,7 @@ func (p StepRepackPolicy) CreatePolicies(processedForecast types.ProcessedForeca
  out:
 	@VMScale with the suggested number of VMs for that type
 */
-func (p StepRepackPolicy) FindSuitableVMs(numberReplicas int, limits types.Limit) (types.VMScale,error) {
+func (p AlwaysResizePolicy) FindSuitableVMs(numberReplicas int, limits types.Limit) (types.VMScale,error) {
 	vmSet,err := buildHomogeneousVMSet(numberReplicas,limits, p.mapVMProfiles)
 	/*hetVMSet,_ := buildHeterogeneousVMSet(numberReplicas, limits, p.mapVMProfiles)
 	costi := hetVMSet.Cost(p.mapVMProfiles)
@@ -67,7 +67,7 @@ func (p StepRepackPolicy) FindSuitableVMs(numberReplicas int, limits types.Limit
 }
 
 
-func (p StepRepackPolicy)deriveCandidatePolicy(criticalIntervals []types.CriticalInterval, containerLimits types.Limit,
+func (p AlwaysResizePolicy)deriveCandidatePolicy(criticalIntervals []types.CriticalInterval, containerLimits types.Limit,
 	vmLimits types.Limit, containerResizeEnabled bool,underProvisionAllowed bool,percentageUnderProvision float64) types.Policy {
 
 	newPolicy := types.Policy{}
