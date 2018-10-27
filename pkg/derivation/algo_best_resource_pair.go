@@ -18,7 +18,6 @@ Repeat the process for all the vm types available
 */
 type BestResourcePairPolicy struct {
 	algorithm  string
-	timeWindow TimeWindowDerivation
 	currentState	types.State
 	sortedVMProfiles []types.VmProfile
 	mapVMProfiles   map[string]types.VmProfile

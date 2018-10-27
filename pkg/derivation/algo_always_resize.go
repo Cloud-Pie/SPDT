@@ -10,7 +10,6 @@ import (
 
 type AlwaysResizePolicy struct {
 	algorithm 		string
-	timeWindow 		TimeWindowDerivation
 	sortedVMProfiles []types.VmProfile
 	mapVMProfiles map[string]types.VmProfile
 	sysConfiguration	util.SystemConfiguration

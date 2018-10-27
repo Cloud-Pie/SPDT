@@ -15,7 +15,6 @@ Based on the unique VM type and its capacity to host a number of replicas it inc
 */
 type NaivePolicy struct {
 	algorithm  		string
-	timeWindow 		TimeWindowDerivation
 	currentState	types.State
 	mapVMProfiles   map[string]types.VmProfile
 	sysConfiguration	util.SystemConfiguration

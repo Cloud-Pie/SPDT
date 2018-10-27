@@ -16,7 +16,6 @@ Repeat the process for all the vm types available
 */
 type ResizeWhenBeneficialPolicy struct {
 	algorithm        string              			 //Algorithm's name
-	timeWindow       TimeWindowDerivation 			//Algorithm used to process the forecasted time serie
 	currentState     types.State          			//Current State
 	sortedVMProfiles []types.VmProfile    			//List of VM profiles sorted by price
 	mapVMProfiles    map[string]types.VmProfile		//Map with VM profiles with VM.Type as key

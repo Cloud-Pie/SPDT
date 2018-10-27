@@ -27,13 +27,6 @@ type PolicyDerivation interface {
 	FindSuitableVMs (numberReplicas int, limits types.Limit) types.VMScale
 }
 
-//Interface for strategies of when to scale
-type TimeWindowDerivation interface {
-	NumberIntervals()	int
-	WindowDerivation(values []float64, times [] time.Time)	types.ProcessedForecast
-}
-
-
 /* Derive scaling policies
 	in:
 		@poiList []types.PoI
