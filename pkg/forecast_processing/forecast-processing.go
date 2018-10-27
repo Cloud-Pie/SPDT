@@ -20,23 +20,43 @@ func PointsOfInterest(forecast types.Forecast) ([]types.PoI, []float64, [] time.
 }
 
 
-func WindowDerivation(forecast types.Forecast) (types.ProcessedForecast) {
+func WindowDerivation(forecast types.Forecast, granularity string) (types.ProcessedForecast) {
+	var factor float64
+
+	switch granularity {
+		case util.HOUR:
+			factor = 3600
+		case util.MINUTE:
+			factor = 60
+		case util.SECOND:
+			factor = 1
+		default:
+			factor = 3600
+	}
+
 	intervals := []types.CriticalInterval{}
 	i:= 0
 	lenValues := len(forecast.ForecastedValues)
 	value := forecast.ForecastedValues[0]
-	interval := types.CriticalInterval{Requests: value.Requests, TimeStart:value.TimeStamp, TimeEnd:value.TimeStamp }
+	interval := types.CriticalInterval{
+		Requests: value.Requests / factor,
+		TimeStart:value.TimeStamp,
+		TimeEnd:value.TimeStamp,
+	}
 	intervals = append(intervals, interval)
 
 	for i <= lenValues - 2  {
 		value := forecast.ForecastedValues[i]
 		EndTimestamp := forecast.ForecastedValues[i+1].TimeStamp
-			interval := types.CriticalInterval{Requests: value.Requests, TimeStart:value.TimeStamp, TimeEnd: EndTimestamp}
+			interval := types.CriticalInterval{
+				Requests: value.Requests/factor,
+				TimeStart:value.TimeStamp,
+				TimeEnd: EndTimestamp,
+			}
 			intervals = append(intervals, interval)
 		i+=1
 	}
 	processedForecast := types.ProcessedForecast{}
 	processedForecast.CriticalIntervals = intervals
-
 	return  processedForecast
 }

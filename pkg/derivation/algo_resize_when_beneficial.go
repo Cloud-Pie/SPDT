@@ -182,6 +182,7 @@ func (p ResizeWhenBeneficialPolicy) CreatePolicies(processedForecast types.Proce
 		timeEnd := it.TimeEnd
 		totalServicesBootingTime := resourcesConfiguration.MSCSetting.BootTimeSec
 		stateLoadCapacity := resourcesConfiguration.MSCSetting.MSCPerSecond
+		stateLoadCapacity = adjustGranularity(systemConfiguration.ForecastComponent.Granularity, stateLoadCapacity)
 		setScalingSteps(&configurations,p.currentState, state,timeStart,timeEnd, totalServicesBootingTime,stateLoadCapacity)
 		//Update current state
 		p.currentState = state

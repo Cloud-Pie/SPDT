@@ -82,6 +82,7 @@ func (p NaivePolicy) CreatePolicies(processedForecast types.ProcessedForecast) [
 		//update state before next iteration
 		timeStart := it.TimeStart
 		timeEnd := it.TimeEnd
+		stateLoadCapacity = adjustGranularity(systemConfiguration.ForecastComponent.Granularity, stateLoadCapacity)
 		setScalingSteps(&configurations, p.currentState, state, timeStart, timeEnd, totalServicesBootingTime, stateLoadCapacity)
 		p.currentState = state
 	}

@@ -7,6 +7,7 @@ import (
 	"time"
 	"gopkg.in/mgo.v2/bson"
 	"github.com/Cloud-Pie/SPDT/types"
+	"fmt"
 )
 
 var requestsCapacityPerState types.RequestCapacitySupply
@@ -19,7 +20,7 @@ func StartPolicyDerivation(timeStart time.Time, timeEnd time.Time, sysConfigurat
 	}
 	//Request Forecasting
 	log.Info("Start request Forecasting")
-	forecastURL := sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_FORECAST
+	forecastURL := sysConfiguration.ForecastComponent.Endpoint + util.ENDPOINT_FORECAST
 	forecast,err := fetchForecast(forecastURL, sysConfiguration.MainServiceName, timeStart, timeEnd)
 	if err != nil {
 		return types.Policy{},"",err
@@ -35,8 +36,6 @@ func fetchForecast(forecastURL string, mainService string, timeStart time.Time, 
 	log.Info("Start request Forecasting")
 	forecast,err := Fservice.GetForecast(forecastURL, timeStart, timeEnd)
 	if err != nil {
-		log.Error(err.Error())
-		log.Info("Error in the request to get the forecasting")
 		return types.Forecast{},err
 	} else {
 		log.Info("Finish request Forecasting")
@@ -64,10 +63,10 @@ func fetchForecast(forecastURL string, mainService string, timeStart time.Time, 
 }
 
 func SubscribeForecastingUpdates(sysConfiguration util.SystemConfiguration, idPrediction string){
-	//TODO:Improve for a better pub/sub system
 	log.Info("Start subscribe to prediction updates")
-	forecastUpdatesURL := sysConfiguration.ForecastingComponent.Endpoint + util.ENDPOINT_SUBSCRIBE_NOTIFICATIONS
-	urlNotifications := util.ENDPOINT_RECIVE_NOTIFICATIONS
+	forecastUpdatesURL := sysConfiguration.ForecastComponent.Endpoint + util.ENDPOINT_SUBSCRIBE_NOTIFICATIONS
+	urlNotifications := sysConfiguration.Host+"/api/forecast"
+	fmt.Println(urlNotifications)
 	err := Fservice.SubscribeNotifications(urlNotifications, idPrediction, forecastUpdatesURL)
 	if err != nil {
 		log.Error("The subscription to prediction updates failed with error %s\n", err)

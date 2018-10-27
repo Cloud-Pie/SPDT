@@ -66,7 +66,7 @@ func periodicPolicyDerivation(sysConfiguration util.SystemConfiguration) {
 	for {
 		selectedPolicy,forecastID, err := StartPolicyDerivation(timeStart,timeEnd, sysConfiguration)
 		if err != nil {
-			log.Error("An error has occurred and policies have been not derived. Please try again. Details: %s", err)
+			log.Error("An error has occurred and policies have been not derived. Details: %s", err)
 		}else{
 			//Schedule scaling states
 			ScheduleScaling(sysConfiguration, selectedPolicy)

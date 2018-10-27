@@ -64,7 +64,8 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration util.SystemCo
 		return policies, errors.New("Information not available for VM Type "+vmType )
 	}
 
-	processedForecast := forecast_processing.WindowDerivation(forecast)
+	granularity := systemConfiguration.ForecastComponent.Granularity
+	processedForecast := forecast_processing.WindowDerivation(forecast, granularity)
 	initialState = currentState
 
 
@@ -226,7 +227,7 @@ func estimatePodsConfiguration(requests float64, limits types.Limit) (types.Cont
 	serviceProfileDAO := storage.GetPerformanceProfileDAO(systemConfiguration.MainServiceName)
 
 	performanceProfileBase,_ := serviceProfileDAO.FindByLimitsAndReplicas(limits.CPUCores, limits.MemoryGB, 1)
-	estimatedReplicas := int(requests / performanceProfileBase.MSCSettings[0].MSCPerSecond)
+	estimatedReplicas := int(math.Ceil(requests / performanceProfileBase.MSCSettings[0].MSCPerSecond))
 	performanceProfileCandidate,err1 := serviceProfileDAO.FindByLimitsAndReplicas(limits.CPUCores, limits.MemoryGB, estimatedReplicas)
 
 	if err1 == nil && performanceProfileCandidate.MSCSettings[0].MSCPerSecond >= requests {
@@ -640,4 +641,20 @@ func validateVMProfilesAvailable(vmSet types.VMScale, mapVMProfiles map[string]t
 		}
 	}
 	return true,""
+}
+
+func adjustGranularity(granularity string, capacityInSeconds float64) float64{
+	var factor float64
+
+	switch granularity {
+	case util.HOUR:
+		factor = 3600
+	case util.MINUTE:
+		factor = 60
+	case util.SECOND:
+		factor = 1
+	default:
+		factor = 3600
+	}
+	return factor * capacityInSeconds
 }

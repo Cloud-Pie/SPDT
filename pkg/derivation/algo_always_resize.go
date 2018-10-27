@@ -108,6 +108,7 @@ func (p AlwaysResizePolicy)deriveCandidatePolicy(criticalIntervals []types.Criti
 
 		timeStart := it.TimeStart
 		timeEnd := it.TimeEnd
+		stateLoadCapacity = adjustGranularity(systemConfiguration.ForecastComponent.Granularity, stateLoadCapacity)
 		setScalingSteps(&scalingSteps, p.currentState, state, timeStart, timeEnd, totalServicesBootingTime, stateLoadCapacity)
 		p.currentState = state
 	}
