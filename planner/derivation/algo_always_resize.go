@@ -29,15 +29,12 @@ func (p AlwaysResizePolicy) CreatePolicies(processedForecast types.ProcessedFore
 	policies := []types.Policy{}
 	//Compute results for cluster of each type
 
-	underProvisionAllowed := p.sysConfiguration.PolicySettings.UnderprovisioningAllowed
-	containerResizeEnabled := p.sysConfiguration.PolicySettings.PodsResizeAllowed
-	percentageUnderProvision := p.sysConfiguration.PolicySettings.MaxUnderprovisionPercentage
 	biggestVM := p.sortedVMProfiles[len(p.sortedVMProfiles)-1]
 	vmLimits := types.Limit{ MemoryGB:biggestVM.Memory, CPUCores:biggestVM.CPUCores}
 
 	serviceToScale := p.currentState.Services[p.sysConfiguration.MainServiceName]
-	currentContainerLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
-	newPolicy := p.deriveCandidatePolicy(processedForecast.CriticalIntervals,currentContainerLimits, vmLimits, containerResizeEnabled, underProvisionAllowed, percentageUnderProvision )
+	currentPodLimits := types.Limit{ MemoryGB:serviceToScale.Memory, CPUCores:serviceToScale.CPU }
+	newPolicy := p.deriveCandidatePolicy(processedForecast.CriticalIntervals, currentPodLimits, vmLimits)
 	policies = append(policies, newPolicy)
 
 	return policies
@@ -66,37 +63,27 @@ func (p AlwaysResizePolicy) FindSuitableVMs(numberReplicas int, limits types.Lim
 }
 
 
-func (p AlwaysResizePolicy)deriveCandidatePolicy(criticalIntervals []types.CriticalInterval, containerLimits types.Limit,
-	vmLimits types.Limit, containerResizeEnabled bool,underProvisionAllowed bool,percentageUnderProvision float64) types.Policy {
+func (p AlwaysResizePolicy)deriveCandidatePolicy(criticalIntervals []types.CriticalInterval, podLimits types.Limit,
+	vmLimits types.Limit) types.Policy {
 
 	newPolicy := types.Policy{}
 	newPolicy.Metrics = types.PolicyMetrics{
 		StartTimeDerivation: time.Now(),
 	}
-	scalingSteps := []types.ScalingStep{}
+	scalingSteps := []types.ScalingAction{}
 
 	for _, it := range criticalIntervals {
-		profileCurrentLimits,_ := estimatePodsConfiguration(it.Requests, containerLimits)
-		var vmSet types.VMScale
-		if containerResizeEnabled {
-				ProfileNewLimits, _ := selectProfileUnderVMLimits(it.Requests, vmLimits)
-				resize := shouldResizeContainer(profileCurrentLimits, ProfileNewLimits)
-				if resize {
-					profileCurrentLimits = ProfileNewLimits
-				}
-				vmSet, _ = p.FindSuitableVMs(profileCurrentLimits.MSCSetting.Replicas, profileCurrentLimits.Limits)
-		} else {
-			vmSet, _ = p.FindSuitableVMs(profileCurrentLimits.MSCSetting.Replicas, profileCurrentLimits.Limits)
-		}
-
-		newNumServiceReplicas := profileCurrentLimits.MSCSetting.Replicas
-		stateLoadCapacity := profileCurrentLimits.MSCSetting.MSCPerSecond
-		totalServicesBootingTime := profileCurrentLimits.MSCSetting.BootTimeSec
-		limits := profileCurrentLimits.Limits
+		totalLoad := it.Requests
+		performanceProfile, _ := selectProfileUnderVMLimits(totalLoad, vmLimits)
+		vmSet, _ := p.FindSuitableVMs(performanceProfile.MSCSetting.Replicas, performanceProfile.Limits)
+		newNumPods := performanceProfile.MSCSetting.Replicas
+		stateLoadCapacity := performanceProfile.MSCSetting.MSCPerSecond
+		totalServicesBootingTime := performanceProfile.MSCSetting.BootTimeSec
+		limits := performanceProfile.Limits
 
 		services := make(map[string]types.ServiceInfo)
 		services[ p.sysConfiguration.MainServiceName] = types.ServiceInfo{
-			Scale:  newNumServiceReplicas,
+			Scale:  newNumPods,
 			CPU:    limits.CPUCores,
 			Memory: limits.MemoryGB,
 		}
@@ -116,8 +103,7 @@ func (p AlwaysResizePolicy)deriveCandidatePolicy(criticalIntervals []types.Criti
 	parameters := make(map[string]string)
 	parameters[types.METHOD] = util.SCALE_METHOD_HORIZONTAL
 	parameters[types.ISHETEREOGENEOUS] = strconv.FormatBool(true)
-	parameters[types.ISUNDERPROVISION] = strconv.FormatBool(underProvisionAllowed)
-	parameters[types.ISRESIZEPODS] = strconv.FormatBool(containerResizeEnabled)
+	parameters[types.ISRESIZEPODS] = strconv.FormatBool(true)
 	numConfigurations := len(scalingSteps)
 	newPolicy.ScalingActions = scalingSteps
 	newPolicy.Algorithm = p.algorithm

@@ -3,6 +3,7 @@ package util
 import (
 	"strings"
 	"math"
+	"strconv"
 )
 
 /* Parses the parameters given in the endpoint template and replaces them for real values
@@ -40,4 +41,22 @@ func RoundN(value float64, decimals float64) float64 {
 	factor := math.Pow(10, decimals)
 	roundedValue := math.Ceil(value*factor)/factor
 	return roundedValue
+}
+
+func ParseIntervalToSeconds(interval string) int64 {
+	l := len(interval)
+	granularity := string(interval[l-1])
+	value := string(interval[:l-1])
+	number,_ :=  strconv.ParseInt(value, 10, 64)
+
+	var factor int64
+	switch granularity {
+		case MONTH: factor = 2629746
+		case DAY: factor = 86400
+		case HOUR:	factor = 3600
+		case MINUTE: factor = 60
+		case SECOND: factor = 1
+		default: factor = 3600
+	}
+	return number * factor
 }

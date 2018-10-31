@@ -95,6 +95,16 @@ func (p *PolicyDAO) FindOneByTimeWindow(startTime time.Time, endTime time.Time) 
 	return policy,err
 }
 
+//Retrieve the policy selected for the given time window
+func (p *PolicyDAO) FindSelectedByTimeWindow(startTime time.Time, endTime time.Time) (types.Policy, error) {
+	var policy types.Policy
+	err := p.db.C(p.Collection).
+		Find(bson.M{"window_time_start": bson.M{"$eq":startTime},
+		"window_time_end": bson.M{"$eq":endTime},
+		"status": "selected" }).One(&policy)
+	return policy,err
+}
+
 //Insert a new Performance Profile
 func (p *PolicyDAO) Insert(policies types.Policy) error {
 	err := p.db.C(p.Collection).Insert(&policies)
@@ -111,7 +121,7 @@ func (p *PolicyDAO) DeleteById(id string) error {
 func (p *PolicyDAO) DeleteAllByTimeWindow(startTime time.Time, endTime time.Time) error {
 	err := p.db.C(p.Collection).
 		Remove(bson.M{"window_time_start": bson.M{"$gte":startTime},
-		              "window_time_end": bson.M{"$lte":startTime}})
+		              "window_time_end": bson.M{"$lte":endTime}})
 	return err
 }
 

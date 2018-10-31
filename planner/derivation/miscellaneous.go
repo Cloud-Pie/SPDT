@@ -27,24 +27,6 @@ type Tree struct {
 	Root *Node
 }
 
-
-/* Compute the maximum capacity regarding the number of replicas hosted in each VM type
-	in:
-		@listVMProfiles
-		@limits
-		@mapVMProfiles
-*/
-func computeCapacity(listVMProfiles *[]types.VmProfile, limits types.Limit,  mapVMProfiles *map[string]types.VmProfile) {
-	//calculate the capacity of services replicas to each VM type
-	for i,v := range *listVMProfiles {
-		cap := maxReplicasCapacityInVM(v,limits)
-		(*listVMProfiles)[i].ReplicasCapacity = cap
-		profile := (*mapVMProfiles)[v.Type]
-		profile.ReplicasCapacity = cap
-		(*mapVMProfiles)[v.Type] = profile
-	}
-}
-
 /* Compute the maximum capacity regarding the number of replicas hosted in each VM type
 	in:
 		@limits
@@ -52,7 +34,7 @@ func computeCapacity(listVMProfiles *[]types.VmProfile, limits types.Limit,  map
 */
 func computeVMsCapacity(limits types.Limit,  mapVMProfiles *map[string]types.VmProfile) {
 	for _,v := range *mapVMProfiles {
-		cap := maxReplicasCapacityInVM(v,limits)
+		cap := maxPodsCapacityInVM(v,limits)
 		profile := (*mapVMProfiles)[v.Type]
 		profile.ReplicasCapacity = cap
 		(*mapVMProfiles)[v.Type] = profile
@@ -150,14 +132,6 @@ func cleanKeys(m map[string]int){
 	}
 }
 
-func vmTypesList(mapVMProfiles map[string]types.VmProfile) string{
-	var vmTypes string
-	for k,_ := range mapVMProfiles {
-		vmTypes += k + ", "
-	}
-
-	return  vmTypes
-}
 
 func MapKeysToString(keys map[string] bool)string {
 	var vmTypes string

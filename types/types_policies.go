@@ -142,15 +142,15 @@ func (currentState State) Equal(candidateState State) bool {
 
 
 type ConfigMetrics struct {
-	Cost             				float64 				`json:"cost" bson:"cost"`
-	OverProvision    				float64 				`json:"over_provision" bson:"over_provision"`
-	UnderProvision   				float64 				`json:"under_provision" bson:"under_provision"`
-	RequestsCapacity 				float64 				`json:"requests_capacity" bson:"requests_capacity"`
-	CPUUtilization   				float64 				`json:"cpu_utilization" bson:"cpu_utilization"`
-	MemoryUtilization 				float64 				`json:"mem_utilization" bson:"mem_utilization"`
-	ShadowTimeSec					float64					`json:"shadow_time_sec" bson:"shadow_time_sec"`
-	TransitionTimeSec				float64					`json:"transition_time_sec" bson:"transition_time_sec"`
-	ElapsedTimeSec					float64					`json:"elapsed_time_sec" bson:"elapsed_time_sec"`
+	Cost               float64 `json:"cost" bson:"cost"`
+	OverProvision      float64 `json:"over_provision" bson:"over_provision"`
+	UnderProvision     float64 `json:"under_provision" bson:"under_provision"`
+	RequestsCapacity   float64 `json:"requests_capacity" bson:"requests_capacity"`
+	CPUUtilization     float64 `json:"cpu_utilization" bson:"cpu_utilization"`
+	MemoryUtilization  float64 `json:"mem_utilization" bson:"mem_utilization"`
+	ShadowTimeSec      float64 `json:"shadow_time_sec" bson:"shadow_time_sec"`
+	TransitionTimeSec  float64 `json:"transition_time_sec" bson:"transition_time_sec"`
+	ElapsedTimeSec     float64 `json:"elapsed_time_sec" bson:"elapsed_time_sec"`
 }
 
 type PolicyMetrics struct {
@@ -169,15 +169,13 @@ type PolicyMetrics struct {
 }
 
 /*Resource configuration*/
-type ScalingStep struct {
+type ScalingAction struct {
 	TimeStartTransition	time.Time	`json:"time_start_transition" bson:"time_start_transition"`
 	InitialState	 State		   `json:"initial_state" bson:"initial_state"`
 	DesiredState     State         `json:"desired_state" bson:"desired_state"`
 	TimeStart        time.Time     `json:"time_start" bson:"time_start"`
 	TimeEnd          time.Time     `json:"time_end" bson:"time_end"`
 	Metrics          ConfigMetrics `json:"metrics" bson:"metrics"`
-	TimeStartBilling time.Time     `json:"time_start_billing" bson:"time_start_billing"`
-	TimeEndBilling   time.Time     `json:"time_end_billing" bson:"time_end_billing"`
 }
 
 
@@ -206,7 +204,7 @@ type Policy struct {
 	Metrics         PolicyMetrics     `json:"metrics" bson:"metrics"`
 	Status          string            `json:"status" bson:"status"`
 	Parameters      map[string]string `json:"parameters" bson:"parameters"`
-	ScalingActions  []ScalingStep     `json:"scaling_actions" bson:"scaling_actions"`
+	ScalingActions  []ScalingAction   `json:"scaling_actions" bson:"scaling_actions"`
 	TimeWindowStart time.Time         `json:"window_time_start"  bson:"window_time_start"`
 	TimeWindowEnd   time.Time         `json:"window_time_end"  bson:"window_time_end"`
 

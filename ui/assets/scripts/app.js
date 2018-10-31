@@ -182,6 +182,7 @@ function plotVMUnitsPerType(time, vms, timeRequests, textHover, maxNumberVMs) {
            overlaying: 'y',
            side: 'right'
         },
+        xaxis: {title: 'Time'},
         legend: {
             "orientation": "h",
             xanchor: "center",
@@ -238,7 +239,7 @@ function plotContainerUnits(time, replicas, cpuCores, memGB, maxNumContainers) {
         x: time,
         y: replicas,
         type: 'scatter',
-        name: 'N° Replicas',
+        name: 'N° Pods',
         line: {shape: 'hv'},
         fill: 'tonexty'
     };
@@ -262,11 +263,11 @@ function plotContainerUnits(time, replicas, cpuCores, memGB, maxNumContainers) {
     };
 
     var layout = {
-        title: '<b>N° Containers</b>',
+        title: '<b>N° Pods</b>',
         titlefont: {
            size:18, color: '#092e20'
         },
-        yaxis: {title: 'N° Containers', range: [0, maxNumContainers]},
+        yaxis: {title: 'N° Pods', range: [0, maxNumContainers]},
         yaxis2: {
             title: 'Resources',
             titlefont: {color: 'rgb(148, 103, 189)'},
@@ -274,6 +275,7 @@ function plotContainerUnits(time, replicas, cpuCores, memGB, maxNumContainers) {
             overlaying: 'y',
             side: 'right'
         },
+        xaxis: {title: 'Time'},
         autosize:true,
         //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
@@ -302,7 +304,7 @@ function plotCapacity(time, demand, supply, timeSuply){
     var trace2 = {
         x: timeSuply,
         y: supply,
-        name: 'Supply',
+        name: 'Capacity',
         type: 'scatter',
         line: {shape: 'hv'}
     };
@@ -318,6 +320,7 @@ function plotCapacity(time, demand, supply, timeSuply){
         plot_bgcolor:'rgba(0,0,0,0)',
 
         yaxis: {title: 'Requests/Hour'},
+        xaxis: {title: 'Time'},
         legend: {
             "orientation": "h",
             xanchor: "center",
@@ -341,6 +344,8 @@ function plotAccumulatedCost(time, cost) {
         titlefont: {
             size:18, color: '#092e20'
         },
+        xaxis: {title: 'Cost ($)'},
+        xaxis: {title: 'Time'},
         autosize:true,
         //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
@@ -379,6 +384,7 @@ function plotAllocatedResources(time, cpuCores, memGB) {
            size:18, color: '#092e20'
         },
         yaxis: {range: [0, 100]},
+        xaxis: {title: 'Time'},
         autosize:true,
         //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
@@ -407,8 +413,8 @@ function searchByID(policyId) {
     fetch(requestURL)
         .then((response) => response.json())
         .then(function (policy){
-            var timeStart = new Date(policy.window_time_start).toISOString();
-            var timeEnd = new Date( policy.window_time_end).toISOString();
+            var timeStart = new Date(policy.window_time_start).toISOString().slice(0,-5)+"Z";
+            var timeEnd = new Date( policy.window_time_end).toISOString().slice(0,-5)+"Z";
             //fetchLoadPredicted(timeStart,timeEnd)
             displayPolicyInformation(policy)
         })
@@ -420,8 +426,8 @@ function searchByID(policyId) {
 
 function displayPolicyInformation(policy) {
     showSinglePolicyPanels()
-    var timeStart = new Date(policy.window_time_start).toISOString();
-    var timeEnd = new Date( policy.window_time_end).toISOString();
+    var timeStart = new Date(policy.window_time_start).toISOString().slice(0,-5)+"Z";;
+    var timeEnd = new Date( policy.window_time_end).toISOString().slice(0,-5)+"Z";;
     var units = computeUnits(policy)
     document.getElementById("jsonId").innerText = JSON.stringify(policy,undefined, 5);
 
@@ -461,8 +467,8 @@ function fetchLoadPredicted(timeStart, timeEnd){
 }
 
 function searchByTimestamp() {
-    var timeStart = new Date(document.getElementById("datetimestart").value).toISOString();
-    var timeEnd = new Date(document.getElementById("datetimeend").value).toISOString();
+    var timeStart = new Date(document.getElementById("datetimestart").value).toISOString().slice(0,-5)+"Z";;
+    var timeEnd = new Date(document.getElementById("datetimeend").value).toISOString().slice(0,-5)+"Z";;
     let params = {
         "start": timeStart,
         "end": timeEnd
@@ -527,7 +533,7 @@ function fillMetrics(policy) {
     document.getElementById("timeBetweenStatesId").innerText = policy.metrics.avg_time_between_scaling_sec;
     nScaleActionVMs = policy.metrics.num_scale_vms;
     nScaleActionContainers = policy.metrics.num_scale_containers;
-    plotNScalingActions([[nScaleActionVMs],[nScaleActionContainers]], [["VMs"], ["Containers"]], "N° Scaling actions", "", "numScalingActionsDiv")
+    plotNScalingActions([[nScaleActionVMs],[nScaleActionContainers]], [["VMs"], ["Pods"]], "N° Scaling actions", "", "numScalingActionsDiv")
 }
 
 function fillDetailsTable(policy) {

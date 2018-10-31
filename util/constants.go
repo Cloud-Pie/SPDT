@@ -1,11 +1,14 @@
 package util
 
 const (
-	HOUR = "hour"
-	SECOND = "second"
+	HOUR = "h"
+	SECOND = "s"
+	MINUTE = "m"
+	MONTH = "M"
+	DAY = "D"
 )
 
-const UTC_TIME_LAYOUT = "2006-01-02T15:04:05.000Z"
+const UTC_TIME_LAYOUT = "2006-01-02T15:04:00Z"
 const CONFIG_FILE = "config.yml"
 const DEFAULT_LOGFILE = "Logs.log"
 const DEFAULT_VM_SHUTDOWN_TIME = 35
@@ -15,3 +18,4 @@ const PERCENTAGE_REQUIRED_k8S_INSTALLATION_CPU = 0.06
 const PERCENTAGE_REQUIRED_k8S_INSTALLATION_MEM = 0.25
 const TIME_ADD_NODE_TO_K8S = 120
 const TIME_CONTAINER_START = 10
+

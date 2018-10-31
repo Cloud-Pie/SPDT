@@ -63,7 +63,7 @@ func SelectPolicy(policies *[]types.Policy, sysConfig util.SystemConfiguration, 
 
 
 //Compute the metrics related to the policy and its scaling actions
-func ComputePolicyMetrics(scalingActions *[]types.ScalingStep, forecast []types.ForecastedValue,
+func ComputePolicyMetrics(scalingActions *[]types.ScalingAction, forecast []types.ForecastedValue,
 	sysConfiguration util.SystemConfiguration, mapVMProfiles map[string]types.VmProfile) (types.PolicyMetrics, map[string]bool) {
 
 	var avgOverProvision float64

@@ -2,88 +2,74 @@ package server
 
 import (
 	"github.com/Cloud-Pie/SPDT/types"
-	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
-	"time"
+	"github.com/Cloud-Pie/SPDT/planner/updatesHandler"
 	"github.com/Cloud-Pie/SPDT/storage"
-	"github.com/Cloud-Pie/SPDT/pkg/policy_management"
+	"github.com/Cloud-Pie/SPDT/util"
 	"fmt"
+	"gopkg.in/mgo.v2/bson"
 )
 
-func updatePolicyDerivation2(forecastChannel chan types.Forecast) {
+func updatePolicyDerivation(forecastChannel chan types.Forecast) {
 	for forecast := range forecastChannel {
-		shouldUpdate, newForecast, timeConflict := forecast_processing.UpdateForecast(forecast)
+		timeStart := forecast.TimeWindowStart
+		timeEnd := forecast.TimeWindowEnd
+		mainService := sysConfiguration.MainServiceName
+
+		//Read Configuration File
+		sysConfiguration,_ := util.ReadConfigFile(util.CONFIG_FILE)
+		if err := recover(); err != nil {
+			fmt.Println(err)
+		}
+		//Request Performance Profiles
+		FetchApplicationProfile(sysConfiguration)
+		//Get VM Profiles
+		vmProfiles,err := ReadVMProfiles()
+		if err != nil {
+			fmt.Println(err)
+		}
+		//Get VM booting Profiles
+		err = FetchVMBootingProfiles(sysConfiguration, vmProfiles)
+		if err != nil {
+			fmt.Println(err)
+		}
+		updateForecastInDB(forecast, sysConfiguration)
+		policyDAO := storage.GetPolicyDAO(mainService)
+		storedPolicy, err := policyDAO.FindSelectedByTimeWindow(timeStart, timeEnd)
+		shouldUpdate := updatesHandler.ValidateMSCThresholds(forecast,storedPolicy, sysConfiguration)
 		if shouldUpdate {
-			//Read Configuration File
-			sysConfiguration := ReadSysConfiguration()
-			if err := recover(); err != nil {
-				fmt.Println(err)
-			}
-
-			//Request Performance Profiles
-			getServiceProfile(sysConfiguration)
-
-
-
-			var timeInvalidation time.Time
-			var oldPolicy types.Policy
-			var indexConflict int
-			var selectedPolicy types.Policy
-			var err error
-			policyDAO := storage.GetPolicyDAO(sysConfiguration.MainServiceName)
-
-			//verify if current time is greater than start window
-			if time.Now().After(forecast.TimeWindowStart) {
-				selectedPolicy, err = setNewPolicy(newForecast, sysConfiguration)
-				oldPolicy, indexConflict = policy_management.ConflictTimeOldPolicy(forecast,timeConflict)
-				timeInvalidation = oldPolicy.ScalingActions[indexConflict].TimeEnd
-				selectedPolicy.ScalingActions[0].TimeStart = timeInvalidation
-				//update policy
-				oldPolicy.ScalingActions = append(oldPolicy.ScalingActions[:indexConflict], selectedPolicy.ScalingActions...)
-
-			}else{
-				//Invalidate completely old policy and create new one
-				selectedPolicy, err = setNewPolicy(forecast, sysConfiguration)
-				po, _ := policyDAO.FindOneByTimeWindow(forecast.TimeWindowStart, forecast.TimeWindowEnd)
-				selectedPolicy.ID = po.ID
-				oldPolicy = selectedPolicy
-				timeInvalidation = forecast.TimeWindowStart
-			}
-
-			err = policyDAO.UpdateById(oldPolicy.ID,oldPolicy)
-			if err != nil {
-				log.Error("The policy could not be updated. Error %s\n", err)
-			}
-
-			//Invalidate States
-			err = InvalidateScalingStates(sysConfiguration, timeInvalidation)
-			if err == nil {
-				//Schedule scaling steps
-				ScheduleScaling(sysConfiguration, selectedPolicy)
-			}
-			//Subscribe to the notifications
-			SubscribeForecastingUpdates(sysConfiguration, forecast.IDPrediction)
+			updatesHandler.InvalidateOldPolicies(sysConfiguration, timeStart, timeEnd )
+			selectedPolicy,_ := setNewPolicy(forecast, sysConfiguration, vmProfiles)
+			ScheduleScaling(sysConfiguration, selectedPolicy)
 		} else {
-			log.Info("Updated forecast received but policies did not change")
+			log.Info("Forecast updated. Scaling policy is still valid")
 		}
 	}
 }
 
+func updateForecastInDB(forecast types.Forecast, sysConfiguration util.SystemConfiguration) error {
+	timeStart := forecast.TimeWindowStart
+	timeEnd := forecast.TimeWindowEnd
+	mainService := sysConfiguration.MainServiceName
 
-func updatePolicyDerivation(forecastChannel chan types.Forecast) {
-	for forecast := range forecastChannel {
+	//Retrieve data access to the database for forecasting
+	forecastDAO := storage.GetForecastDAO(mainService)
+	//Check if already exist, then update
+	resultQuery,err := forecastDAO.FindOneByTimeWindow(timeStart, timeEnd)
 
-			//Read Configuration File
-			sysConfiguration := ReadSysConfiguration()
-			if err := recover(); err != nil {
-				fmt.Println(err)
-			}
-
-			//Request Performance Profiles
-			getServiceProfile(sysConfiguration)
-
-			selectedPolicy,_ := setNewPolicy(forecast, sysConfiguration)
-			ScheduleScaling(sysConfiguration, selectedPolicy)
-			//Subscribe to the notifications
-			//SubscribeForecastingUpdates(sysConfiguration, forecast.IDPrediction)
+	if err != nil && resultQuery.IDdb == "" {
+		//In case it is not already stored
+		forecast.IDdb = bson.NewObjectId()
+		err = forecastDAO.Insert(forecast)
+		if err != nil {
+			log.Error(err.Error())
+		}
+	} else if resultQuery.IDdb != "" {
+		id := resultQuery.IDdb
+		forecast.IDdb = id
+		if resultQuery.IDPrediction != forecast.IDPrediction {
+			subscribeForecastingUpdates(sysConfiguration, forecast.IDPrediction)
+		}
+		forecastDAO.Update(id, forecast)
 	}
+	return err
 }

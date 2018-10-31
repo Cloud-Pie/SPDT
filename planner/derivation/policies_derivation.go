@@ -4,7 +4,7 @@ import (
 	"github.com/Cloud-Pie/SPDT/types"
 	"github.com/Cloud-Pie/SPDT/util"
 	"time"
-	"github.com/Cloud-Pie/SPDT/pkg/schedule"
+	"github.com/Cloud-Pie/SPDT/planner/execution"
 	"math"
 	"sort"
 	"github.com/Cloud-Pie/SPDT/rest_clients/performance_profiles"
@@ -14,7 +14,7 @@ import (
 	"github.com/cnf/structhash"
 	"strings"
 	"fmt"
-	"github.com/Cloud-Pie/SPDT/pkg/forecast_processing"
+	"github.com/Cloud-Pie/SPDT/planner/forecast_processing"
 )
 
 var log = logging.MustGetLogger("spdt")
@@ -43,7 +43,7 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration util.SystemCo
 	mapVMProfiles := VMListToMap(sortedVMProfiles)
 
 	log.Info("Request current state" )
-	currentState,err := schedule.RetrieveCurrentState(sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_CURRENT_STATE)
+	currentState,err := execution.RetrieveCurrentState(sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_CURRENT_STATE)
 
 	if err != nil {
 		log.Error("Error to get current state %s", err.Error() )
@@ -58,7 +58,7 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration util.SystemCo
 	}
 
 	granularity := systemConfiguration.ForecastComponent.Granularity
-	processedForecast := forecast_processing.WindowDerivation(forecast, granularity)
+	processedForecast := forecast_processing.ScalingIntervals(forecast, granularity)
 	initialState = currentState
 
 
@@ -73,18 +73,18 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration util.SystemCo
 			sortedVMProfiles:sortedVMProfiles,currentState:currentState,mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies = base.CreatePolicies(processedForecast)
 
-	case util.SMALL_STEP_ALGORITHM:
-		sstep := AlwaysResizePolicy{algorithm:util.SMALL_STEP_ALGORITHM,
+	case util.ALWAYS_RESIZE_ALGORITHM:
+		alwaysResize := AlwaysResizePolicy{algorithm:util.ALWAYS_RESIZE_ALGORITHM,
 									mapVMProfiles:mapVMProfiles, sortedVMProfiles:sortedVMProfiles, sysConfiguration: sysConfiguration, currentState:currentState}
-		policies = sstep.CreatePolicies(processedForecast)
+		policies = alwaysResize.CreatePolicies(processedForecast)
 
 	case util.ONLY_DELTA_ALGORITHM:
 		tree := DeltaLoadPolicy{algorithm:util.ONLY_DELTA_ALGORITHM, currentState:currentState,
-			sortedVMProfiles:sortedVMProfiles,mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration}
+			mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration}
 		policies = tree.CreatePolicies(processedForecast)
 
-	case util.DELTA_REPACKED:
-		algorithm := ResizeWhenBeneficialPolicy{algorithm:util.DELTA_REPACKED, currentState:currentState,
+	case util.RESIZE_WHEN_BENEFICIAL:
+		algorithm := ResizeWhenBeneficialPolicy{algorithm:util.RESIZE_WHEN_BENEFICIAL, currentState:currentState,
 		sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies = algorithm.CreatePolicies(processedForecast)
 	default:
@@ -98,22 +98,22 @@ func Policies(sortedVMProfiles []types.VmProfile, sysConfiguration util.SystemCo
 			currentState:currentState, sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies2 := base.CreatePolicies(processedForecast)
 		policies = append(policies, policies2...)
-		//sstep
-		sstep := AlwaysResizePolicy{algorithm:util.SMALL_STEP_ALGORITHM,
-			sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration, currentState:currentState}
-		policies3 := sstep.CreatePolicies(processedForecast)
+		//always resize
+		alwaysResize := AlwaysResizePolicy{algorithm:util.ALWAYS_RESIZE_ALGORITHM,
+			mapVMProfiles:mapVMProfiles, sortedVMProfiles:sortedVMProfiles, sysConfiguration: sysConfiguration, currentState:currentState}
+		policies3 := alwaysResize.CreatePolicies(processedForecast)
 		policies = append(policies, policies3...)
 		//resize when beneficial
-		algorithm := ResizeWhenBeneficialPolicy{algorithm:util.DELTA_REPACKED, currentState:currentState,
+		algorithm := ResizeWhenBeneficialPolicy{algorithm:util.RESIZE_WHEN_BENEFICIAL, currentState:currentState,
 			sortedVMProfiles:sortedVMProfiles, mapVMProfiles:mapVMProfiles, sysConfiguration: sysConfiguration}
 		policies4 := algorithm.CreatePolicies(processedForecast)
 		policies = append(policies, policies4...)
 
 		//delta load
 		tree := DeltaLoadPolicy{algorithm:util.ONLY_DELTA_ALGORITHM, currentState:currentState,
-			sortedVMProfiles:sortedVMProfiles,mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration}
-		policies5 := tree.CreatePolicies(processedForecast)
-		policies = append(policies, policies5...)
+			mapVMProfiles:mapVMProfiles,sysConfiguration: sysConfiguration}
+		policies6 := tree.CreatePolicies(processedForecast)
+		policies = append(policies, policies6...)
 	}
 	return policies, err
 }
@@ -189,14 +189,14 @@ func computeVMTerminationTime(vmsScale types.VMScale, sysConfiguration util.Syst
 	return terminationTime
 }
 
-/* Compute the max number of service replicas (Replicas capacity) that a VM can host
+/* Compute the max number of pod replicas (Replicas capacity) that a VM can host
 	in:
 		@vmProfile types.VmProfile
 		@resourceLimit types.Limits
 	out:
 		@int	Number of replicas
 */
-func maxReplicasCapacityInVM(vmProfile types.VmProfile, resourceLimit types.Limit) int {
+func maxPodsCapacityInVM(vmProfile types.VmProfile, resourceLimit types.Limit) int {
 	//For memory resources, Kubernetes Engine reserves aprox 6% of cores and 25% of Mem
 		cpuCoresAvailable := vmProfile.CPUCores  *(1-util.PERCENTAGE_REQUIRED_k8S_INSTALLATION_CPU)
 		memGBAvailable := vmProfile.Memory * (1-util.PERCENTAGE_REQUIRED_k8S_INSTALLATION_MEM)
@@ -260,14 +260,13 @@ func estimatePodsConfiguration(requests float64, limits types.Limit) (types.Cont
 			return containerConfig, err
 		}
 	}
-	//defer serviceProfileDAO.Session.Close()
+
 	return containerConfig, err
 }
 
 /* Select the service profile for any limit resources that satisfies the number of requests
 	in:
 		@requests	float64 - number of requests that the service should serve
-		@underProvision bool	- flag that indicate if when searching for a service profile, the underprovision is allowed
 	out:
 		@ContainersConfig	- configuration with number of replicas and limits that best fit for the number of requests
 */
@@ -283,11 +282,16 @@ func selectProfileUnderVMLimits(requests float64,  limits types.Limit) (types.Co
 			utilizationFactorj := float64(profiles[j].MSCSetting.Replicas) * profiles[j].Limits.CPUCores + float64(profiles[j].MSCSetting.Replicas) * profiles[j].Limits.MemoryGB
 			msci := profiles[i].MSCSetting.MSCPerSecond
 			mscj := profiles[j].MSCSetting.MSCPerSecond
-			return (utilizationFactori/msci) < (utilizationFactorj/mscj)
+			if msci == mscj {
+				if utilizationFactori != utilizationFactorj {
+					return utilizationFactori < utilizationFactorj
+				} else {
+					return 	profiles[i].MSCSetting.Replicas < profiles[j].MSCSetting.Replicas
+				}
+			}
+			return   math.Abs(requests - msci) <  math.Abs(requests - mscj)
 		})
 	}
-	//defer serviceProfileDAO.Session.Close()
-
 	if len(profiles) > 0{
 		profile = profiles[0]
 		return profile, nil
@@ -342,7 +346,7 @@ func getStateLoadCapacity(numberReplicas int, limits types.Limit) types.MSCSimpl
 
 /* Utility method to set up each scaling configuration
 */
-func setScalingSteps(scalingSteps *[]types.ScalingStep, currentState types.State,newState types.State, timeStart time.Time, timeEnd time.Time, totalServicesBootingTime float64, stateLoadCapacity float64) {
+func setScalingSteps(scalingSteps *[]types.ScalingAction, currentState types.State,newState types.State, timeStart time.Time, timeEnd time.Time, totalServicesBootingTime float64, stateLoadCapacity float64) {
 	nScalingSteps := len(*scalingSteps)
 	if nScalingSteps >= 1 && newState.Equal((*scalingSteps)[nScalingSteps-1].DesiredState) {
 		(*scalingSteps)[nScalingSteps-1].TimeEnd = timeEnd
@@ -378,7 +382,7 @@ func setScalingSteps(scalingSteps *[]types.ScalingStep, currentState types.State
 		name,_ := structhash.Hash(newState, 1)
 		newState.Hash = strings.Replace(name, "v1_", "", -1)
 		*scalingSteps = append(*scalingSteps,
-			types.ScalingStep{
+			types.ScalingAction{
 				InitialState:currentState,
 				DesiredState:        newState,
 				TimeStart:           timeStart,
@@ -484,7 +488,7 @@ func buildHomogeneousVMSet(numberReplicas int, limits types.Limit, mapVMProfiles
 	candidateVMSets := []types.VMScale{}
 	for _,v := range mapVMProfiles {
 		vmScale :=  make(map[string]int)
-		replicasCapacity :=  maxReplicasCapacityInVM(v, limits)
+		replicasCapacity :=  maxPodsCapacityInVM(v, limits)
 		if replicasCapacity > 0 {
 			numVMs := math.Ceil(float64(numberReplicas) / float64(replicasCapacity))
 			vmScale[v.Type] = int(numVMs)
@@ -508,46 +512,6 @@ func buildHomogeneousVMSet(numberReplicas int, limits types.Limit, mapVMProfiles
 	}
 }
 
-/* Validate if the supplied load with under provision does not exceed the maximum percentage of under provision allowed
-	in:
-		@demandedRequests	float64 - Demanded load in terms of requests
-		@suppliedRequests float64 - Supplied under provisioned load
-		@percentageAllowed float64 - Max percentage under provision allowed
-	out:
-		@bool	- boolean flag that indicates that the supplied load even though under provision
-					is still in the allowed under provision range
-*/
-func isUnderProvisionInRange(demandedRequests float64, suppliedRequests float64, percentageAllowed float64) bool{
-	underProvisionedPercentage := (demandedRequests - suppliedRequests) * demandedRequests / suppliedRequests
-	if underProvisionedPercentage <= percentageAllowed {
-		return true
-	} else {
-		return false
-	}
-}
-
-/*
-	in:
-		@currentConfiguration types.ContainersConfig
-							- Current container configuration
-		@newCandidateConfiguration types.ContainersConfig
-							- Candidate container configuration with different limits and number of replicas
-	out:
-		@bool	- Flag to indicate if it is convenient to resize the containers
-*/
-func shouldResizeContainer(currentConfiguration types.ContainersConfig, newCandidateConfiguration types.ContainersConfig) bool{
-
-	utilizationFactorCurrent :=  currentConfiguration.Limits.MemoryGB * float64(currentConfiguration.MSCSetting.Replicas) +
-		currentConfiguration.Limits.CPUCores* float64(currentConfiguration.MSCSetting.Replicas)
-
-	utilizationFactorNew := newCandidateConfiguration.Limits.MemoryGB * float64(newCandidateConfiguration.MSCSetting.Replicas) +
-		newCandidateConfiguration.Limits.CPUCores* float64(newCandidateConfiguration.MSCSetting.Replicas)
-
-	if utilizationFactorNew < utilizationFactorCurrent {
-		return true
-	}
-	return false
-}
 
 /*
 	Calculate base on the expected start time for the new state, when the launch should start
@@ -576,55 +540,6 @@ func computeScaleOutTransitionTime(vmAdded types.VMScale, podResize bool, timeSt
 		transitionTime = transitionTime.Add(-1 * time.Duration(util.TIME_CONTAINER_START) * time.Second)
 	}
 	return transitionTime
-}
-
-
-/*
-	Try to find a containers configuration (num replicas, limit constraints) that fits in the current VM set and meet the load requirement
-	in:
-		@currentVMSet types.VMScale
-							- map of VM of the current state
-		@totalLoad float
-							- load in terms of requests
-		@mapVMProfiles map[string]types.VmProfile
-							- map with the profiles of vms available
-	out:
-		@time.Time	- Time when the launch should start
-*/
-func findConfigOptionByContainerResize(currentVMSet types.VMScale, totalLoad float64, mapVMProfiles map[string]types.VmProfile) (types.ContainersConfig, bool){
-	biggestType := biggestVMTypeInSet(currentVMSet, mapVMProfiles)
-	biggestVM := mapVMProfiles[biggestType]
-	allLimits,_ := storage.GetPerformanceProfileDAO(systemConfiguration.MainServiceName).FindAllUnderLimits(biggestVM.CPUCores, biggestVM.Memory)
-	optionFound := false
-	configurationOptionFound := types.ContainersConfig{}
-	sort.Slice(allLimits, func(i, j int) bool { return allLimits[i].Limit.CPUCores > allLimits[j].Limit.CPUCores })
-	options := []types.ContainersConfig{}
-
-	for _, li := range allLimits {
-		configurationOption,_ := estimatePodsConfiguration(totalLoad, li.Limit)
-		replicas := configurationOption.MSCSetting.Replicas
-		//Update the vm Profiles with the capacity for replicas with given limits
-		computeVMsCapacity(li.Limit, &mapVMProfiles)
-		currentConfigurationReplicasCapacity := currentVMSet.ReplicasCapacity(mapVMProfiles)
-		if currentConfigurationReplicasCapacity >= replicas  && configurationOption.MSCSetting.MSCPerSecond >= totalLoad {
-			configurationOptionFound = configurationOption
-			options = append(options, configurationOptionFound)
-			optionFound = true
-			//break
-		}
-	}
-
-	sort.Slice(options, func(i, j int) bool {
-		utilizationFactori := float64(options[i].MSCSetting.Replicas) * options[i].Limits.CPUCores +  float64(options[i].MSCSetting.Replicas) * options[i].Limits.MemoryGB
-		utilizationFactorj := float64(options[j].MSCSetting.Replicas) * options[j].Limits.CPUCores + float64(options[j].MSCSetting.Replicas) * options[j].Limits.MemoryGB
-		msci := options[i].MSCSetting.MSCPerSecond
-		mscj := options[j].MSCSetting.MSCPerSecond
-		return (utilizationFactori/msci) < (utilizationFactorj/mscj)
-	})
-	if optionFound {
-		configurationOptionFound = options[0]
-	}
-	return configurationOptionFound, optionFound
 }
 
 func validateVMProfilesAvailable(vmSet types.VMScale, mapVMProfiles map[string]types.VmProfile ) (bool, string) {

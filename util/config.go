@@ -33,15 +33,8 @@ type PricingModel struct {
 	BillingUnit string  `yaml:"billing-unit"`
 }
 
-//Parameters of the scaling policies
-//Scaling Method have three valid values: horizonzal, vertical, hybrid
-//The parameter HeterogeneosAllowed is only used if Scaling Method is Horizonzal or Hybrid
-//Max Underprovision is only used if Underprovisioning is allowed
 type PolicySettings struct{
 	ScalingMethod            string  `yaml:"vm-scaling-method"`
-	UnderprovisioningAllowed bool    `yaml:"underprovisioning-allowed"`
-	MaxUnderprovisionPercentage  float64 `yaml:"percentage-max-underprovision"`
-	PodsResizeAllowed        bool    `yaml:"pods-resize-allowed"`
 	PreferredMetric        string    `yaml:"preferred-metric"`
 }
 
@@ -61,6 +54,7 @@ type SystemConfiguration struct {
 	PreferredAlgorithm           string            `yaml:"preferred-algorithm"`
 	PolicySettings               PolicySettings    `yaml:"policy-settings"`
 	PullingInterval              int               `yaml:"pulling-interval"`
+	StorageInterval              string            `yaml:"storage-interval"`
 }
 
 //Method that parses the configuration file into a struct type

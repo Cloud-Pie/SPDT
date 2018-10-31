@@ -1,7 +1,7 @@
 {
     "HostInstanceType":"",
     "ServiceType":"compute",
-    "ServiceName":"primeapp",
+    "ServiceName":"relax_web",
     "TestAPI":"/api/prime",
     "Profiles":[
       {

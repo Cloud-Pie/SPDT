@@ -1,42 +1,32 @@
----
-version: v1
 app-name: movieapp
 main-service-name: movieapp
 app-type: dbaccess
+host: http://172.29.39.209:8083
 CSP: AWS
 region: us-east-2
 pricing-model:
   monthly-budget: 12000
   billing-unit: s
 scaling-horizon:
-  start-time: 2018-12-09T07:00:00Z
-  end-time: 2018-12-23T07:00:00Z
+  start-time: 2018-11-01T07:00:00Z
+  end-time: 2018-11-03T06:00:00Z
 forecasting-component:
   granularity: h
+  #endpoint: http://7449253b.ngrok.io
   endpoint: http://172.29.39.209:8081
-  username:
-  password:
-  api-key:
 performance-profiles-component:
   #endpoint: http://141.40.254.24:8082
   endpoint: http://10.155.208.160:8082
-  username:
-  password:
-  api-key:
 scheduler-component:
   #endpoint: http://172.29.39.209:8081
   endpoint: http://172.29.39.209:5555
-  username:
-  password:
-  api-key:
-preferred-algorithm: only-delta-load
-pulling-interval: 10
-storage-time-interval: 10M
+preferred-algorithm: all
+pulling-interval: 60
+storage-interval: 1M
 policy-settings:
   vm-scaling-method: horizontal
   underprovisioning-allowed: false
   percentage-max-underprovision: 20
-  pods-resize-allowed: true
   preferred-metric: cost
 
 

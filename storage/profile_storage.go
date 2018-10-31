@@ -73,6 +73,12 @@ func (p *PerformanceProfileDAO) Delete(performanceProfile types.PerformanceProfi
 	return err
 }
 
+//Delete the specified item
+func (p *PerformanceProfileDAO) DeleteAll() error {
+	_,err := p.db.C(p.Collection).RemoveAll(bson.M{})
+	return err
+}
+
 //Update by id
 func (p *PerformanceProfileDAO) UpdateById(id bson.ObjectId, performanceProfile types.PerformanceProfile) error {
 	err := p.db.C(p.Collection).
@@ -103,7 +109,7 @@ func (p *PerformanceProfileDAO) FindByLimitsAndReplicas(cores float64, memory fl
 func (p *PerformanceProfileDAO) MatchProfileFitLimitsOver(cores float64, memory float64, requests float64) ([]types.ContainersConfig, error) {
 	var result []types.ContainersConfig
 	query := []bson.M{
-		bson.M{ "$match" : bson.M{"limits.cpu_cores" : bson.M{"$lte": cores}, "limits.mem_gb" : bson.M{"$lte":memory}}},
+		bson.M{ "$match" : bson.M{"limits.cpu_cores" : bson.M{"$lt": cores}, "limits.mem_gb" : bson.M{"$lt":memory}}},
 		bson.M{"$unwind": "$mscs" },
 		bson.M{"$match": bson.M{"mscs.maximum_service_capacity_per_sec":bson.M{"$gte": requests}}},
 		bson.M{"$sort": bson.M{"limits.cpu_cores":1, "limits.mem_gb":1, "mscs.replicas":1, "mscs.maximum_service_capacity_per_sec": 1}}}

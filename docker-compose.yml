@@ -15,6 +15,9 @@ services:
           - FORECASTDB_USER=spdt
           - FORECASTDB_PASS=spdt
           - FORECASTDB_HOST=forecastdb
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+          - /etc/ssl/certs:/etc/ssl/certs
         depends_on:
             - 'profilesdb'
             - 'policiesdb'

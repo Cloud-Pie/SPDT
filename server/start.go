@@ -16,21 +16,16 @@ import (
 	"io/ioutil"
 	"encoding/json"
 	"sort"
-	"github.com/Cloud-Pie/SPDT/pkg/derivation"
-	"github.com/Cloud-Pie/SPDT/pkg/schedule"
-	"errors"
+	"github.com/Cloud-Pie/SPDT/planner/derivation"
+	"github.com/Cloud-Pie/SPDT/planner/execution"
 )
 
 var (
 	FlagsVar         = util.ParseFlags()
  	log              = logging.MustGetLogger("spdt")
 	policies        []types.Policy
-	pullingInterval time.Duration
-	timeWindowSize  time.Duration
-	timeStart       time.Time
-	timeEnd         time.Time
-	ConfigFile      string
 	testJSON        []Sservice.StateToSchedule
+	sysConfiguration	util.SystemConfiguration
 )
 
 // Main function to start the scaling policy derivation
@@ -43,19 +38,18 @@ func Start(port string, configFile string) {
 	setLogger()
 
 	//Read Configuration File
-	ConfigFile = configFile
-	sysConfiguration,err := util.ReadConfigFile(configFile)
+	var err error
+	sysConfiguration,err = util.ReadConfigFile(configFile)
 	if err != nil {
 		log.Error("%s", err)
 	}
-	timeStart = sysConfiguration.ScalingHorizon.StartTime
-	timeEnd = sysConfiguration.ScalingHorizon.EndTime
-	timeWindowSize = timeEnd.Sub(timeStart)
-	pullingInterval = time.Duration(sysConfiguration.PullingInterval)
+
 	out := make(chan types.Forecast)
 	server := SetUpServer(out)
 	go updatePolicyDerivation(out)
+	go removeTemporalData(sysConfiguration)
 	go periodicPolicyDerivation(sysConfiguration)
+
 	server.Run(":" + port)
 
 }
@@ -63,15 +57,16 @@ func Start(port string, configFile string) {
 //Periodically pull a new forecast for a new time window
 //and derive a the correspondent new scaling policy
 func periodicPolicyDerivation(sysConfiguration util.SystemConfiguration) {
+	timeStart := sysConfiguration.ScalingHorizon.StartTime
+	timeEnd := sysConfiguration.ScalingHorizon.EndTime
+	timeWindowSize := timeEnd.Sub(timeStart)
+	pullingInterval := time.Duration(sysConfiguration.PullingInterval)
+
 	for {
-		selectedPolicy,forecastID, err := StartPolicyDerivation(timeStart,timeEnd, sysConfiguration)
+		_,err := StartPolicyDerivation(timeStart,timeEnd, sysConfiguration)
 		if err != nil {
 			log.Error("An error has occurred and policies have been not derived. Details: %s", err)
 		}else{
-			//Schedule scaling states
-			ScheduleScaling(sysConfiguration, selectedPolicy)
-			//Subscribe to the notifications
-			SubscribeForecastingUpdates(sysConfiguration, forecastID)
 			nextTimeStart := timeEnd.Add(timeWindowSize).Add(-10 * time.Minute )
 			if time.Now().After(nextTimeStart) {
 				timeStart = timeStart.Add(timeWindowSize)
@@ -82,6 +77,23 @@ func periodicPolicyDerivation(sysConfiguration util.SystemConfiguration) {
 	}
 }
 
+func removeTemporalData(sysConfiguration util.SystemConfiguration){
+	for {
+		current := time.Now()
+		storageInterval := sysConfiguration.StorageInterval
+		intervalInSeconds := util.ParseIntervalToSeconds(storageInterval)
+		intervalDuration := time.Duration(intervalInSeconds)
+		timestamp := current.Add(-1 * intervalDuration * time.Second )
+		forecastDAO := storage.GetForecastDAO(sysConfiguration.MainServiceName)
+		err := forecastDAO.DeleteAllBeforeDate(timestamp)
+		if err != nil {
+			log.Error("An error has occurred and temporal data was not deleted. Details: %s", err)
+		} else {
+			log.Info("call delete temp")
+		}
+		time.Sleep(24 * time.Hour)
+	}
+}
 
 func styleEntry() {
 	fmt.Println(`
@@ -109,22 +121,19 @@ func setLogger() {
 }
 
 //Read the configuration file with the setting to derive the scaling policies
-func ReadSysConfiguration() util.SystemConfiguration {
+/*func ReadSysConfiguration() util.SystemConfiguration {
 	//var err error
 	sysConfiguration, err := util.ReadConfigFile(ConfigFile)
 	if err != nil {
 		log.Errorf("Configuration file could not be processed %s", err)
 	}
 	return sysConfiguration
-}
+}*/
 
 //Fetch the profiles of the available Virtual Machines to generate the scaling policies
-func getVMProfiles()([]types.VmProfile, error) {
+func ReadVMProfiles()([]types.VmProfile, error) {
 	var err error
 	var vmProfiles	[]types.VmProfile
-	log.Info("Start request VMs Profiles")
-	//vmProfiles, err = Pservice.GetVMsProfiles(sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_VMS_PROFILES)
-
 	data, err := ioutil.ReadFile("./vm_profiles.json")
 	if err != nil {
 		log.Error(err.Error())
@@ -135,8 +144,6 @@ func getVMProfiles()([]types.VmProfile, error) {
 	if err != nil {
 		log.Error(err.Error())
 		return vmProfiles, err
-	} else {
-		log.Info("Finish request VMs Profiles")
 	}
 	sort.Slice(vmProfiles, func(i, j int) bool {
 		return vmProfiles[i].Pricing.Price <=  vmProfiles[j].Pricing.Price
@@ -145,14 +152,14 @@ func getVMProfiles()([]types.VmProfile, error) {
 	return vmProfiles,err
 }
 
-//Fetch the performance profile of the microservice that should be scaled
-func getVMBootingProfile(sysConfiguration util.SystemConfiguration, vmProfiles []types.VmProfile) error{
+//Fetch the booting and shutdown time of vms
+func FetchVMBootingProfiles(sysConfiguration util.SystemConfiguration, vmProfiles []types.VmProfile) error{
 	var err error
 	var vmBootingProfile types.InstancesBootShutdownTime
 	vmBootingProfileDAO := storage.GetVMBootingProfileDAO()
 	storedVMBootingProfiles,_ := vmBootingProfileDAO.FindAll()
 	if len(storedVMBootingProfiles) == 0 {
-		log.Info("Start request Performance Profiles")
+		log.Info("Start request VM booting Profiles")
 		endpoint := sysConfiguration.PerformanceProfilesComponent.Endpoint + util.ENDPOINT_ALL_VM_TIMES
 		csp := sysConfiguration.CSP
 		region := sysConfiguration.Region
@@ -164,13 +171,13 @@ func getVMBootingProfile(sysConfiguration util.SystemConfiguration, vmProfiles [
 			vmBootingProfile.VMType = vm.Type
 			vmBootingProfileDAO.Insert(vmBootingProfile)
 		}
+		log.Info("Finish request VM booting Profiles")
 	}
-	//defer serviceProfileDAO.Session.Close()
 	return err
 }
 
 //Fetch the performance profile of the microservice that should be scaled
-func fetchApplicationProfile(sysConfiguration util.SystemConfiguration) error {
+func FetchApplicationProfile(sysConfiguration util.SystemConfiguration) error {
 	var err error
 	var servicePerformanceProfile types.ServicePerformanceProfile
 	serviceProfileDAO := storage.GetPerformanceProfileDAO(sysConfiguration.MainServiceName)
@@ -210,23 +217,17 @@ func fetchApplicationProfile(sysConfiguration util.SystemConfiguration) error {
 		}
 	}
 	return err
-	//defer serviceProfileDAO.Session.Close()
 }
 
 //Start Derivation of a new scaling policy for the specified scaling horizon and correspondent forecast
-func setNewPolicy(forecast types.Forecast,sysConfiguration util.SystemConfiguration) (types.Policy, error){
+func setNewPolicy(forecast types.Forecast,sysConfiguration util.SystemConfiguration, vmProfiles [] types.VmProfile) (types.Policy, error){
+	//timeStart := forecast.TimeWindowStart
+	//timeEnd := forecast.TimeWindowEnd
+
 	//Get VM Profiles
 	var err error
 	var selectedPolicy types.Policy
-	vmProfiles,err := getVMProfiles()
-	if err != nil {
-		return  selectedPolicy, errors.New("VM profiles not found.")
-	}
-	//Get VM booting Profiles
-	err = getVMBootingProfile(sysConfiguration, vmProfiles)
-	if err != nil {
-		return  selectedPolicy, err
-	}
+
 
 	//Derive Strategies
 	log.Info("Start policies derivation")
@@ -244,7 +245,6 @@ func setNewPolicy(forecast types.Forecast,sysConfiguration util.SystemConfigurat
 	}else {
 		log.Info("Finish policies evaluation")
 
-		invalidateOldPolicies(sysConfiguration)
 		policyDAO := storage.GetPolicyDAO(sysConfiguration.MainServiceName)
 		for _,p := range policies {
 			err = policyDAO.Insert(p)
@@ -259,7 +259,7 @@ func setNewPolicy(forecast types.Forecast,sysConfiguration util.SystemConfigurat
 func ScheduleScaling(sysConfiguration util.SystemConfiguration, selectedPolicy types.Policy) {
 	log.Info("Start request Scheduler")
 	schedulerURL := sysConfiguration.SchedulerComponent.Endpoint + util.ENDPOINT_STATES
-	tset,err := schedule.TriggerScheduler(selectedPolicy, schedulerURL)
+	tset,err := execution.TriggerScheduler(selectedPolicy, schedulerURL)
 	testJSON = tset
 	if err != nil {
 		log.Error("The scheduler request failed with error %s\n", err)

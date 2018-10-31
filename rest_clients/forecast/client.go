@@ -9,6 +9,7 @@ import (
 	"time"
 	"bytes"
 	"github.com/Cloud-Pie/SPDT/util"
+	"errors"
 )
 
 type RequestSubscription struct {
@@ -28,20 +29,26 @@ func GetForecast(endpoint string, startTime time.Time, endTime time.Time) (types
 		return forecast,err
 	}
 	req.URL.RawQuery = q.Encode()
-
 	client := &http.Client{}
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.Header.Add("Accept", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {
 		return forecast,err
 	}
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
+
 	if err != nil {
 		return forecast,err
 	}
 	err = json.Unmarshal(data, &forecast)
 	if err != nil {
 		return forecast,err
+	}
+
+	if len(forecast.ForecastedValues) == 0{
+		return forecast, errors.New("Empty list of forecasted values")
 	}
 	return forecast,nil
 }

@@ -1,0 +1,37 @@
+{
+  "active": {
+    "Services": {
+      "primeapp": {
+        "Cpu_cores": 0.2,
+        "Mem_gb": 0.2,
+        "Replicas": 2
+      }
+    },
+    "VMs": {
+      "t2.nano": 1,
+      "t2.small": 2
+    },
+    "Name": "state-5",
+    "ISODate": "2018-08-14T12:54:16.722357636+02:00",
+    "ExpectedTime": "2018-08-14T12:54:16.722357636+02:00",
+    "RealTime": "0001-01-01T00:00:00Z"
+  },
+  "isStateTrue": false,
+  "lastDeployed": {
+    "Services": {
+      "primeapp": {
+        "Cpu_cores": 0.1,
+        "Mem_gb": 0.1,
+        "Replicas": 1
+      }
+    },
+    "VMs": {
+      "t2.nano": 1,
+      "t2.small": 2
+    },
+    "Name": "state-5",
+    "ISODate": "2018-08-14T12:54:16.722357636+02:00",
+    "ExpectedTime": "2018-08-14T12:54:16.722357636+02:00",
+    "RealTime": "0001-01-01T00:00:00Z"
+  }
+}

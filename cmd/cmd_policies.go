@@ -62,6 +62,8 @@ func retrieve (cmd *cobra.Command, args []string) {
 		policies,err := policyDAO.FindAll()
 		check(err, "No policies for the specified window")
 		writeToFile(policies)
+	}else {
+		fmt.Println("You need to use the flags to specify the parameters")
 	}
 }
 

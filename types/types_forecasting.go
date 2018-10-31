@@ -9,7 +9,6 @@ import (
 type CriticalInterval struct {
 	TimeStart	time.Time	`json:"TimeStart"`
 	Requests	float64	`json:"Requests"`	//max/min point in the interval
-	AboveThreshold	bool `json:"AboveThreshold"`	//1:= aboveThreshold; -1:= below
 	TimeEnd	time.Time	`json:"TimeEnd"`
 	TimePeak time.Time
 }
@@ -33,7 +32,6 @@ type Forecast struct {
 /*ProcessedForecast metadata after processing the time serie*/
 type ProcessedForecast struct {
 	CriticalIntervals [] CriticalInterval
-	RawForecast		Forecast
 }
 
 /*Points of Interest*/

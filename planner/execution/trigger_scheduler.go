@@ -1,4 +1,4 @@
-package schedule
+package execution
 
 import (
 	"github.com/Cloud-Pie/SPDT/types"

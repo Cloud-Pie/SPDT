@@ -81,6 +81,12 @@ func (p *ForecastDAO) Update(id bson.ObjectId, forecast types.Forecast) error {
 	return err
 }
 
+//Delete all forecast older than a timestamp
+func (p *ForecastDAO) DeleteAllBeforeDate(timestamp time.Time) error {
+	_,err := p.db.C(p.Collection).RemoveAll(bson.M{"end_time": bson.M{"$lte":timestamp}})
+	return err
+}
+
 //Retrieve all policies for start time greater than or equal to time t
 func (p *ForecastDAO) FindOneByTimeWindow(startTime time.Time, endTime time.Time) (types.Forecast, error) {
 	var forecast types.Forecast

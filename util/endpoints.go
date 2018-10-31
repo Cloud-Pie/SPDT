@@ -1,8 +1,5 @@
 package util
 
-//Services endpoints
-const URL_SERIE_PROCESSING = "http://localhost:5000/api/peaks"
-const ENDPOINT_SERIE_PROCESSING = "/api/peaks"
 
 const ENDPOINT_FORECAST = "/predict"
 
@@ -19,4 +16,5 @@ const ENDPOINT_SERVICE_PROFILE_BY_MSC = "/getPredictedRegressionReplicas/{apptyp
 const ENDPOINT_SERVICE_PROFILE_BY_REPLICAS = "/getPredictedRegressionTRN/{apptype}/{appname}/{mainservicename}/{replicas}/{numcoresutil}/{numcoreslimit}/{nummemlimit}"
 
 const ENDPOINT_SUBSCRIBE_NOTIFICATIONS = "/subscribe"
-const ENDPOINT_RECIVE_NOTIFICATIONS = "http://localhost:8083/api/forecast"
+const ENDPOINT_RECIVE_NOTIFICATIONS = "/api/forecast"
+

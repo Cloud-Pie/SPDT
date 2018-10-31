@@ -36,6 +36,7 @@ func Execute() {
 	RootCmd.AddCommand(deleteCmd)
 	RootCmd.AddCommand(policiesCmd)
 	RootCmd.AddCommand(invalidateCmd)
+	RootCmd.AddCommand(updateProfilesCmd)
 
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)

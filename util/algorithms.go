@@ -4,8 +4,8 @@ package util
 const NAIVE_ALGORITHM = "naive"
 const BEST_RESOURCE_PAIR_ALGORITHM = "best-resource-pair"
 const ONLY_DELTA_ALGORITHM = "only-delta-load"
-const SMALL_STEP_ALGORITHM = "always-resize"
-const DELTA_REPACKED = "resize-when-beneficial"
+const ALWAYS_RESIZE_ALGORITHM = "always-resize"
+const RESIZE_WHEN_BENEFICIAL = "resize-when-beneficial"
 
 
 //Algorithms options

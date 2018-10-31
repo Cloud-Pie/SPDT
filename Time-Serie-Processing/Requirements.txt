@@ -1,4 +1,0 @@
-Flask
-scipy
-matplotlib
-numpy

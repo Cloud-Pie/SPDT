@@ -28,7 +28,6 @@ func SetUpServer( fc chan types.Forecast ) *gin.Engine {
 	router.PUT("/api/:service/policies/:id", invalidatePolicyByID)
 	router.GET("/api/:service/forecast", getForecast)
 
-
 	return router
 }
 
@@ -129,16 +128,17 @@ func invalidatePolicyByID(c *gin.Context) {
 }
 
 func serverCall(c *gin.Context) {
-	sysConfiguration,_ := util.ReadConfigFile("config.yml")
+	/*sysConfiguration,_ := util.ReadConfigFile("config.yml")
+
 	selectedPolicy, predictionID, err := StartPolicyDerivation(timeStart,timeEnd,sysConfiguration)
 
 	if err != nil {
 		c.JSON(http.StatusOK, err.Error())
 	}else {
 		ScheduleScaling(sysConfiguration,selectedPolicy)
-		SubscribeForecastingUpdates(sysConfiguration, predictionID)
+		subscribeForecastingUpdates(sysConfiguration, predictionID)
 		c.JSON(http.StatusOK, testJSON)
-	}
+	}*/
 }
 
 //Listener to receive forecasting updates

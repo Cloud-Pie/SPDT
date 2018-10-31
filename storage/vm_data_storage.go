@@ -96,6 +96,12 @@ func (p *VMBootingProfileDAO) InstanceVMBootingShutdown(vmType string) (types.In
 	return result, err
 }
 
+//Delete the specified item
+func (p *VMBootingProfileDAO) DeleteAll() error {
+	_,err := p.db.C(p.Collection).RemoveAll(bson.M{})
+	return err
+}
+
 func GetVMBootingProfileDAO() *VMBootingProfileDAO {
 	if VMBootingProfileDB == nil {
 		VMBootingProfileDB = &VMBootingProfileDAO {
