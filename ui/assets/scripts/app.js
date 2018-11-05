@@ -168,10 +168,11 @@ function plotVMUnitsPerType(time, vms, timeRequests, textHover, maxNumberVMs) {
    var layout = {
         title: '<b>N° Virtual Machines</b>',
         titlefont: {
-           size:18, color: '#092e20'
+           size:14, color: '#092e20'
         },
-        autosize:true,
-        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+       autosize:true,
+       margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+       height:250,
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         yaxis: {title: 'N° VMs', range: [0, maxNumberVMs]},
@@ -184,11 +185,11 @@ function plotVMUnitsPerType(time, vms, timeRequests, textHover, maxNumberVMs) {
         },
         xaxis: {title: 'Time'},
         legend: {
-            "orientation": "h",
-            xanchor: "center",
-            y: 1.088,
-            x: 0.2
-        },
+           "orientation": "h",
+           xanchor: "center",
+           y: 1.088,
+           x: 0.2
+       },
     };
 
    Plotly.newPlot('vmUnits', stackedArea(data),layout);
@@ -203,36 +204,6 @@ function stackedArea(traces) {
     return traces;
 }
 
-function plotVMUnits(time, vms, textHover) {
-    var trace1 = {
-        x: time,
-        y: vms,
-        type: 'scatter',
-        name: 'N° VMs',
-        text: textHover,
-        line: {shape: 'hv'}
-    };
-
-    var layout = {
-        title: 'N° Virtual Machines',
-        titlefont: {
-           size:18
-        },
-        autosize:true,
-        //margin: {l: 25,r: 35,b: 45,t: 35, pad: 0},
-        paper_bgcolor:'rgba(0,0,0,0)',
-        plot_bgcolor:'rgba(0,0,0,0)',
-
-        legend: {
-            "orientation": "h",
-            xanchor: "center",
-            y: 1.09,
-            x: 0.9
-        },
-    };
-    var data = [trace1];
-    Plotly.newPlot('vmUnits', data,layout);
-}
 
 function plotContainerUnits(time, replicas, cpuCores, memGB, maxNumContainers) {
     var trace1 = {
@@ -265,7 +236,7 @@ function plotContainerUnits(time, replicas, cpuCores, memGB, maxNumContainers) {
     var layout = {
         title: '<b>N° Pods</b>',
         titlefont: {
-           size:18, color: '#092e20'
+           size:14, color: '#092e20'
         },
         yaxis: {title: 'N° Pods', range: [0, maxNumContainers]},
         yaxis2: {
@@ -277,7 +248,8 @@ function plotContainerUnits(time, replicas, cpuCores, memGB, maxNumContainers) {
         },
         xaxis: {title: 'Time'},
         autosize:true,
-        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        height:250,
+        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
 
@@ -286,7 +258,7 @@ function plotContainerUnits(time, replicas, cpuCores, memGB, maxNumContainers) {
             xanchor: "center",
             y: 1.088,
             x: 0.2
-        },
+        }
     };
     var data = [trace1, trace2, trace3];
     Plotly.newPlot('containerUnits', data,layout);
@@ -312,10 +284,11 @@ function plotCapacity(time, demand, supply, timeSuply){
     var layout = {
         title: '<b>Workload</b>',
         titlefont: {
-           size:18, color: '#092e20'
+           size:14, color: '#092e20'
         },
         autosize:true,
-        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        height:250,
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
 
@@ -342,12 +315,13 @@ function plotAccumulatedCost(time, cost) {
     var layout = {
         title: '<b>Accumulated Cost</b>',
         titlefont: {
-            size:18, color: '#092e20'
+            size:14, color: '#092e20'
         },
         xaxis: {title: 'Cost ($)'},
         xaxis: {title: 'Time'},
         autosize:true,
-        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        height:250,
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
 
@@ -381,12 +355,13 @@ function plotAllocatedResources(time, cpuCores, memGB) {
     var layout = {
         title: '<b>% Resource Allocation</b>',
         titlefont: {
-           size:18, color: '#092e20'
+           size:14, color: '#092e20'
         },
         yaxis: {range: [0, 100]},
         xaxis: {title: 'Time'},
         autosize:true,
-        //margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        margin: {l: 50,r: 50,b: 45,t: 45, pad: 4},
+        height:200,
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
 
@@ -403,13 +378,12 @@ function plotAllocatedResources(time, cpuCores, memGB) {
 
 function searchByID(policyId) {
     appName = document.getElementById("appNameid").value;
-    policiesEndpoint = '/api/'+appName+'/policies'
-    requestURL = policiesEndpoint + "/" + policyId
 
-    if (policyId == null) {
+    if (policyId == -1) {
         policyId = document.getElementById("searchpolicyid").value;
     }
 
+    requestURL = '/api/'+appName+'/policies/' + policyId
     fetch(requestURL)
         .then((response) => response.json())
         .then(function (policy){
@@ -426,8 +400,8 @@ function searchByID(policyId) {
 
 function displayPolicyInformation(policy) {
     showSinglePolicyPanels()
-    var timeStart = new Date(policy.window_time_start).toISOString().slice(0,-5)+"Z";;
-    var timeEnd = new Date( policy.window_time_end).toISOString().slice(0,-5)+"Z";;
+    var timeStart = new Date(policy.window_time_start).toISOString().slice(0,-5)+"Z";
+    var timeEnd = new Date( policy.window_time_end).toISOString().slice(0,-5)+"Z";
     var units = computeUnits(policy)
     document.getElementById("jsonId").innerText = JSON.stringify(policy,undefined, 5);
 
@@ -771,6 +745,9 @@ function plotBarComparisonAll(values, tracesAll, title, varName, nameDiv) {
                     orientation: 'h',
                     name: varName[i],
                     width: widthArray,
+                    text: item.map(String),
+                    textposition: 'auto',
+                    hoverinfo: 'none'
                 }
             )
             i=i+1
@@ -800,8 +777,10 @@ function plotNScalingActions(values, tracesAll, title, varName, nameDiv) {
                     y: tracesAll[i],
                     width: [0.2],
                     type: 'bar',
-                    orientation: 'h'
-
+                    orientation: 'h',
+                    text: item.map(String),
+                    textposition: 'auto',
+                    hoverinfo: 'none'
                 }
             )
            i=i+1
@@ -885,23 +864,11 @@ function showSinglePolicyPanels() {
     }
     var x = document.getElementById("candidatesDiv");
     x.style.display = "block";
-
-    var m = document.getElementById("metricsDiv");
-    m.style.display = "block";
-
-    var n = document.getElementById("costDiv");
-    n.style.display = "block";
 }
 
 function showMultiplePolicyPanels() {
     var x = document.getElementById("singlePolicyDiv");
     x.style.display = "none";
-
-    var m = document.getElementById("metricsDiv");
-    m.style.display = "none";
-
-    var n = document.getElementById("costDiv");
-    n.style.display = "none";
 
     var z = document.getElementById("candidatesDiv");
     z.style.display = "block";

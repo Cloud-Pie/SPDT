@@ -1,7 +1,7 @@
 app-name: movieapp
 main-service-name: movieapp
 app-type: dbaccess
-host: http://172.29.39.209:8083
+host: http://35.225.174.194:8083
 CSP: AWS
 region: us-east-2
 pricing-model:
@@ -16,7 +16,7 @@ forecasting-component:
   endpoint: http://172.29.39.209:8081
 performance-profiles-component:
   #endpoint: http://141.40.254.24:8082
-  endpoint: http://10.155.208.160:8082
+  endpoint: http://terminus.dyndns.lrz.de:8082
 scheduler-component:
   #endpoint: http://172.29.39.209:8081
   endpoint: http://172.29.39.209:5555
@@ -25,9 +25,6 @@ pulling-interval: 60
 storage-interval: 1M
 policy-settings:
   vm-scaling-method: horizontal
-  underprovisioning-allowed: false
-  percentage-max-underprovision: 20
-  preferred-metric: cost
 
 
 

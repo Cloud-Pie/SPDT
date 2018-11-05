@@ -50,8 +50,8 @@
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="lnr lnr-question-circle"></i> <span>Scaling strategies</span> <i class="icon-submenu lnr lnr-chevron-down"></i></a>
                             <ul class="dropdown-menu">
                                 <li><a href="/ui/naive.html">Naive</a></li>
-                                <li><a href="#">Best resource pair</a></li>
-                                <li><a href="/ui/delta-load.html">Only delta load</a></li>
+                                <li><a href="/ui/best-pair.html">Best resource pair</a></li>
+                                <li><a href="#">Only delta load</a></li>
                                 <li><a href="/ui/always-resize.html">Alway resize</a></li>
                                 <li><a href="/ui/resize-beneficial.html">Resize when beneficial</a></li>
                             </ul>
@@ -73,7 +73,7 @@
                         <div class="col-sm-4">
                             <div class="page-header float-left">
                                 <div class="page-title">
-                                    <h1>Best Resource Pair Strategy </h1>
+                                    <h1>Only Delta Load Strategy </h1>
                                 </div>
                             </div>
                         </div>
@@ -85,20 +85,21 @@
                         <div class="panel">
                             <div class="panel-body">
                                 <h4>Description</h4>
-                                <p>
-                                <p>The first deployment does not always have an optimal resource configuration, therefore this strategy aims to find it.
-                                    <br>
-                                    The goal is to find a new optimal resource combination for the incoming workload. A resource combination is defined as the pair (T, L)  where T is the VM type used to build a VM set S and L refers to the resource limits constraint to configure the pods.
-                                </p>
+                                <p>The Only Delta load strategy uses as input the <i>delta Load</i> at time t where <i>delta Load</i> = <i>total Load</i> - <i>current capacity</i>.
+                                <br>
+                                    Virtual machines are removed from or added to the previous allocation with the flexibility of selecting a different VM type $T$ accordingly for different delta Load.
+                                    <br>For example, if the workload increases in small steps, a small VM is added.
+                                    Eventually, over time the result would be a set of several small VMs and different heterogeneous VM sets.
                                 </p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-8">
-                        <img src="assets/img/algo_best_pair.png" width="800" height="600">
+                        <img src="assets/img/algo_only_delta.png" width="800" height="600">
                     </div>
                 </div>
             </div>
+
 		</div>
 		<!-- END MAIN -->
 		<footer>

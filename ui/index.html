@@ -50,14 +50,17 @@
             <div id="navbar-menu">
                 <ul class="nav navbar-nav navbar-right">
                     <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="lnr lnr-question-circle"></i> <span>Algorithms</span> <i class="icon-submenu lnr lnr-chevron-down"></i></a>
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="lnr lnr-question-circle"></i> <span>Scaling strategies</span> <i class="icon-submenu lnr lnr-chevron-down"></i></a>
                         <ul class="dropdown-menu">
-                            <li><a href="ui/naive.html">Naive</a></li>
+                            <li><a href="/ui/naive.html">Naive</a></li>
                             <li><a href="/ui/best-pair.html">Best resource pair</a></li>
-                            <li><a href="ui/delta-load.html">Only delta load</a></li>
-                            <li><a href="ui/always-resize.html">Alway resize</a></li>
-                            <li><a href="ui/resize-beneficial.html">Resize when beneficial</a></li>
+                            <li><a href="/ui/delta-load.html">Only delta load</a></li>
+                            <li><a href="/ui/always-resize.html">Alway resize</a></li>
+                            <li><a href="/ui/resize-beneficial.html">Resize when beneficial</a></li>
                         </ul>
+                    </li>
+                    <li>
+                        <a href="/ui"> <i class="lnr lnr-home"></i> <span>Home</span></a>
                     </li>
                 </ul>
             </div>
@@ -79,8 +82,7 @@
                     <div class="tab-content">
                         <div id="home" class="tab-pane fade in active">
                             <div class="hero-unit">
-                                <h1><bold>Welcome to SPDT</bold></h1>
-                                 <br>
+                                <h1><bold>Welcome to SPDT </bold></h1>
                                  <p>
                                     <h4><bold>A Scaling Policy Derivation Tool</bold></h4>
                                  </p>
@@ -88,50 +90,8 @@
                         </div>
                         <div id="menuSearch" class="tab-pane fade">
                             <div class="row">
-                                <!-- CANDIDATES -->
-                                <div class="sidecand" id="candidatesDiv">
 
-                                    <div class="container-fluid">
-                                        <div class="row">
-                                        <section>
-                                            <h4><b>Policy Candidates</b></h4>
-                                            <div class="tbl-header">
-                                                <table>
-                                                    <thead>
-                                                        <tr>
-                                                            <th width="40%">Policy ID</th>
-                                                            <th>Algorithm</th>
-                                                            <th>Status</th>
-                                                        </tr>
-                                                    </thead>
-                                                </table>
-                                            </div>
-                                            <div class="tbl-content">
-                                                <table class="table-hover" id="tCandidates">
-                                                    <tbody id="tBodyCandidates"></tbody>
-                                                </table>
-                                            </div>
-                                        </section>
-                                        </div>
-
-                                        <div class="row">
-                                    <button type="button" class="btn btn-default" onclick="clickedCompareAll()">Compare all</button>
-                                        </div>
-                                    <div class="row" id="costDiv">
-                                        <div class="metric padding-5">
-                                            <span class="icon"><i class="fa fa-dollar"></i></span>
-                                            <p>
-                                                <span class="number"><label id="costid"></label></span>
-                                                <br>
-                                                <span class="title">Cost</span>
-                                            </p>
-                                        </div>
-                                    </div>
-                                    </div>
-                                </div>
-                                <!-- END CANDIDATES -->
-                                <div class="plots">
-                                    <div class="container-fluid">
+                                <div>
                                     <!--SEARCH-->
                                     <div class="row">
                                         <div class="col-md-3" align="left">
@@ -144,7 +104,7 @@
                                             <br>
                                             <div class="input-group">
                                                 <input type="text" id="searchpolicyid" class="form-control" placeholder="Search Policy by ID ">
-                                                <span class="input-group-btn"><button type="button" class="btn btn-default" onclick="searchByID()">Go</button></span>
+                                                <span class="input-group-btn"><button type="button" class="btn btn-default" onclick="searchByID(-1)">Go</button></span>
                                             </div>
                                         </div>
                                         <div class="form-group col-md-6 " align="right">
@@ -173,6 +133,46 @@
                                         </div>
                                     </div>
                                     <!-- END SEARCH-->
+                                </div>
+
+                                <div>
+                                    <!-- CANDIDATES -->
+                                    <div class="sidecand" id="candidatesDiv">
+                                        <div class="container-fluid">
+                                            <div class="row">
+                                                <section>
+                                                    <h4><b>Policy Candidates</b></h4>
+                                                    <div class="tbl-header">
+                                                        <table>
+                                                            <thead>
+                                                            <tr>
+                                                                <th width="40%">Policy ID</th>
+                                                                <th>Algorithm</th>
+                                                                <th>Status</th>
+                                                            </tr>
+                                                            </thead>
+                                                        </table>
+                                                    </div>
+                                                    <div class="tbl-content">
+                                                        <table class="table-hover" id="tCandidates">
+                                                            <tbody id="tBodyCandidates"></tbody>
+                                                        </table>
+                                                    </div>
+                                                </section>
+                                            </div>
+
+                                            <div class="row">
+                                                <button type="button" class="btn btn-default" onclick="clickedCompareAll()">Compare all</button>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                    <!-- END CANDIDATES -->
+
+
+                                <div class="plots">
+                                    <div class="container-fluid">
+
                                     <div class="row" id="singlePolicyDiv">
                                         <ul class="nav nav-tabs">
                                             <li class="pull-right"><a data-toggle="tab" href="#menuDetails">Details</a></li>
@@ -181,120 +181,97 @@
                                         </ul>
                                         <div class="tab-content">
                                             <div id="ui" class="tab-pane fade in active">
-                                                <!-- END METRICS--->
-                                                <div class="row" id="metricsDiv">
-
-                                                    <div class="col-md-3">
-                                                        <div class="metric">
-                                                            <span class="icon"><i class="fas fa-clock"></i></span>
-                                                            <p>
-                                                                <span class="number"><label id="durationId"></label></span>
-                                                                <br>
-                                                                <span class="title">Derivation Duration (s)</span>
-                                                            </p>
+                                                <div class="col-md-8">
+                                                    <div class="panel">
+                                                        <div class="panel-body">
+                                                            <div id="requestsUnits" class="ct-chart"></div>
                                                         </div>
                                                     </div>
-                                                    <div class="col-md-3">
-                                                        <div class="metric">
-                                                            <span class="icon"><i class="fa fa-cogs"></i></span>
-                                                            <p>
-                                                                <span class="number"><label id="shadowTimeId"></label></span>
-                                                                <br>
-                                                                <span class="title">Shadow Time(s)</span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <div class="metric">
-                                                            <span class="icon"><i class="fa fa-cogs"></i></span>
-                                                            <p>
-                                                                <span class="number"><label id="transitionTimeId"></label></span>
-                                                                <br>
-                                                                <span class="title">Avg Transition Time(s)</span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <div class="metric">
-                                                            <span class="icon"><i class="fa fa-cogs"></i></span>
-                                                            <p>
-                                                                <span class="number"><label id="timeBetweenStatesId"></label></span>
-                                                                <br>
-                                                                <span class="title">Avg Time Between states(s)</span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <!-- END METRICS--->
-                                                <div class="row">
-                                                    <div class="col-md-8 padding-2">
-                                                        <div class="panel">
-                                                            <div class="panel-body">
-                                                                <div id="requestsUnits" class="ct-chart"></div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-4 padding-2">
-                                                        <div class="panel">
-                                                            <div class="panel-body">
-                                                                <div id="numScalingActionsDiv" class="ct-chart"></div>
-                                                            </div>
-                                                        </div>
-
-                                                            <div class="metric">
-                                                                <span class="icon"><i class="fa fa-upload"></i></span>
-                                                                <p>
-                                                                    <span class="number"><label id="overid"></label></span>
-                                                                    <br>
-                                                                    <span class="title">Overprovision</span>
-                                                                </p>
-                                                            </div>
-
-
-                                                            <div class="metric">
-                                                                <span class="icon"><i class="fa fa-download"></i></span>
-                                                                <p>
-                                                                    <span class="number"><label id="underid"> </label></span>
-                                                                    <br>
-                                                                    <span class="title">Underprovision</span>
-                                                                </p>
-                                                            </div>
-
-                                                    </div>
-                                                </div>
-                                                <div class="row">
-                                                    <div class="col-md-6 padding-2">
                                                     <div class="panel">
                                                         <div class="panel-body">
                                                             <div id="vmUnits" class="ct-chart"></div>
                                                         </div>
                                                     </div>
+                                                    <div class="panel">
+                                                        <div class="panel-body">
+                                                            <div id="containerUnits" class="ct-chart"></div>
+                                                        </div>
                                                     </div>
-                                                    <div class="col-md-6 padding-2">
-                                                        <div class="panel">
-                                                            <div class="panel-body">
-                                                                <div id="containerUnits" class="ct-chart"></div>
-                                                            </div>
+                                                    <div class="panel">
+                                                        <div class="panel-body">
+                                                            <div id="resources" class="ct-chart"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="panel">
+                                                        <div class="panel-body">
+                                                               <div id="accumulatedCost" class="ct-chart"></div>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <div class="row">
-                                                    <div class="col-md-8 padding-2">
-                                                        <div class="panel">
-                                                            <div class="panel-body">
-                                                                <div id="resources" class="ct-chart"></div>
-                                                            </div>
+                                                <div class="col-md-4 padding-2">
+                                                    <div class="metric">
+                                                        <span class="icon"><i class="fa fa-dollar"></i></span>
+                                                        <p>
+                                                            <span class="number"><label id="costid"></label></span>
+                                                            <br>
+                                                            <span class="title">Cost</span>
+                                                        </p>
+                                                    </div>
+                                                    <div class="panel">
+                                                        <div class="panel-body">
+                                                            <div id="numScalingActionsDiv" class="ct-chart"></div>
                                                         </div>
                                                     </div>
-                                                    <div class="col-md-4 padding-2">
-                                                        <div class="panel">
-                                                            <div class="panel-body">
-                                                                <div id="accumulatedCost" class="ct-chart"></div>
-                                                            </div>
-                                                        </div>
+                                                    <div class="metric">
+                                                        <span class="icon"><i class="lnr lnr-hourglass"></i></span>
+                                                        <p>
+                                                            <span class="number"><label id="durationId"></label></span>
+                                                            <br>
+                                                            <span class="title">Derivation Time (s)</span>
+                                                        </p>
                                                     </div>
-                                            </div>
+                                                    <div class="metric">
+                                                        <span class="icon"><i class="fa fa-upload"></i></span>
+                                                        <p>
+                                                            <span class="number"><label id="overid"></label></span>
+                                                            <br>
+                                                            <span class="title">% Overprovision</span>
+                                                        </p>
+                                                    </div>
+                                                    <div class="metric">
+                                                        <span class="icon"><i class="fa fa-download"></i></span>
+                                                        <p>
+                                                            <span class="number"><label id="underid"> </label></span>
+                                                            <br>
+                                                            <span class="title">% Underprovision</span>
+                                                        </p>
+                                                    </div>
+                                                    <div class="metric">
+                                                        <span class="icon"><i class="lnr lnr-hourglass"></i></span>
+                                                        <p>
+                                                            <span class="number"><label id="transitionTimeId"></label></span>
+                                                            <br>
+                                                            <span class="title">Avg Transition Time(s)</span>
+                                                        </p>
+                                                    </div>
+                                                    <div class="metric">
+                                                        <span class="icon"><i class="lnr lnr-hourglass"></i></span>
+                                                        <p>
+                                                            <span class="number"><label id="shadowTimeId"></label></span>
+                                                            <br>
+                                                            <span class="title">Shadow Time(s)</span>
+                                                        </p>
+                                                    </div>
+                                                    <div class="metric">
+                                                        <span class="icon"><i class="lnr lnr-hourglass"></i></span>
+                                                        <p>
+                                                            <span class="number"><label id="timeBetweenStatesId"></label></span>
+                                                            <br>
+                                                            <span class="title">Avg Time Between states(s)</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div id="menuJson" class="tab-pane fade">
 
@@ -303,10 +280,6 @@
                                                     <code class="json hljs" id="jsonId">
                                                     </code>
                                                 </pre>
-                                                </div>
-
-                                                <div class="btn-bottom col-md-2">
-                                                     <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Download  </button>
                                                 </div>
                                             </div>
                                             <div id="menuDetails" class="tab-pane fade">
@@ -319,10 +292,6 @@
                                                     <!-- END DETAILS-->
                                                 </div>
 
-                                                <div class="btn-bottom col-md-2">
-                                                    <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Delete  </button>
-                                                </div>
-
                                             </div>
                                         </div>
                                     </div>
@@ -330,7 +299,6 @@
                                     <!-- Multple Policy DIV-->
                                     <div class="row" id="multiplePolicyDiv">
                                         <ul class="nav nav-tabs">
-                                            <li class="pull-right"><a data-toggle="tab" href="#menuMultiJson">Json</a></li>
                                             <li class="active pull-right"><a data-toggle="tab" href="#uiMulti">UI</a></li>
                                         </ul>
                                         <div class="tab-content">
@@ -410,20 +378,6 @@
                                                 </div>
 
                                             </div>
-                                            <div id="menuMultiJson" class="tab-pane fade">
-
-                                                <div class="col-md-10">
-                                                   <pre>
-                                                    <code>
-                                                        <p id="jsonId"></p>
-                                                    </code>
-                                                </pre>
-                                                </div>
-
-                                                <div class="btn-bottom col-md-2">
-                                                    <button class="btn btn-default btn-md" type="button" onclick="searchByTimestamp()"> Download  </button>
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
                                     <!-- END Multiple Policy DIV-->
@@ -440,6 +394,7 @@
                                     <!-- END NO Results DIV -->
                                     </div>
                                 </div>
+                            </div>
                             </div>
                         </div>
                     </div>

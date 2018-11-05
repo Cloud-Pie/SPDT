@@ -2,11 +2,11 @@
 Scaling Policy Derivation Tool
 ![SPDT](logo.png)
 
-####Set Up
+#### Set Up
 - Adjust the config.yml file
 - Adjust the vm_profiles.json file
 
-####To RUN
+#### To RUN
 - Run `docker-compose up`
 
 #### CLI Usage:
@@ -26,7 +26,7 @@ Timestamp should follow the UTC format using seconds. E.g `YYYY-MM-DDTHH:mm:ssZ`
 - `spd invalidate  --start-time=<timestamp> --end-time=<timestamp>`
 Invalidates all the polices for a time window. Then, derive and schedule new ones.
 
-####Test using mock services
+#### Test using mock services
 To test use the mocks in /test
 go run mock_services.go
 

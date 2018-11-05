@@ -50,10 +50,10 @@
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="lnr lnr-question-circle"></i> <span>Scaling strategies</span> <i class="icon-submenu lnr lnr-chevron-down"></i></a>
                             <ul class="dropdown-menu">
                                 <li><a href="/ui/naive.html">Naive</a></li>
-                                <li><a href="#">Best resource pair</a></li>
+                                <li><a href="/ui/best-pair.html">Best resource pair</a></li>
                                 <li><a href="/ui/delta-load.html">Only delta load</a></li>
                                 <li><a href="/ui/always-resize.html">Alway resize</a></li>
-                                <li><a href="/ui/resize-beneficial.html">Resize when beneficial</a></li>
+                                <li><a href="#">Resize when beneficial</a></li>
                             </ul>
                         </li>
                         <li>
@@ -73,29 +73,27 @@
                         <div class="col-sm-4">
                             <div class="page-header float-left">
                                 <div class="page-title">
-                                    <h1>Best Resource Pair Strategy </h1>
+                                    <h1>Resize When Beneficial Strategy </h1>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-
                 <div>
                     <div class="col-md-4">
                         <div class="panel">
                             <div class="panel-body">
                                 <h4>Description</h4>
-                                <p>
-                                <p>The first deployment does not always have an optimal resource configuration, therefore this strategy aims to find it.
+                                <p>At each time t the resource estimation is done by comparing the configuration deployment suggested as result of the <i>only delta load</i> strategy against the configuration deployment estimated using the <i>always-resize</i> strategy to handle the <i>total load</i>.
                                     <br>
-                                    The goal is to find a new optimal resource combination for the incoming workload. A resource combination is defined as the pair (T, L)  where T is the VM type used to build a VM set S and L refers to the resource limits constraint to configure the pods.
-                                </p>
+                                    This strategy evaluates whether is worth it to use a vertical scaling approach, despite the potential overhead in costs when VM migration is required.
+                                    Otherwise scales horizontally to cover the missing delta load.
                                 </p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-8">
-                        <img src="assets/img/algo_best_pair.png" width="800" height="600">
+                        <img src="assets/img/algo_when_benefitial.png" width="800" height="600">
                     </div>
                 </div>
             </div>

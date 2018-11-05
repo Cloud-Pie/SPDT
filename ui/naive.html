@@ -49,8 +49,8 @@
                         <li class="dropdown">
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="lnr lnr-question-circle"></i> <span>Scaling strategies</span> <i class="icon-submenu lnr lnr-chevron-down"></i></a>
                             <ul class="dropdown-menu">
-                                <li><a href="/ui/naive.html">Naive</a></li>
-                                <li><a href="#">Best resource pair</a></li>
+                                <li><a href="#">Naive</a></li>
+                                <li><a href="/ui/best-pair.html">Best resource pair</a></li>
                                 <li><a href="/ui/delta-load.html">Only delta load</a></li>
                                 <li><a href="/ui/always-resize.html">Alway resize</a></li>
                                 <li><a href="/ui/resize-beneficial.html">Resize when beneficial</a></li>
@@ -67,35 +67,33 @@
         <!-- MAIN -->
 		<div class="main">
             <!-- MAIN CONTENT -->
-            <div class="main-content">
+			<div class="main-content">
                 <div class="container-fluid">
                     <div class="breadcrumbs">
                         <div class="col-sm-4">
                             <div class="page-header float-left">
                                 <div class="page-title">
-                                    <h1>Best Resource Pair Strategy </h1>
+                                    <h1>Naive Strategy </h1>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+				</div>
 
                 <div>
                     <div class="col-md-4">
                         <div class="panel">
                             <div class="panel-body">
                                 <h4>Description</h4>
-                                <p>
-                                <p>The first deployment does not always have an optimal resource configuration, therefore this strategy aims to find it.
-                                    <br>
-                                    The goal is to find a new optimal resource combination for the incoming workload. A resource combination is defined as the pair (T, L)  where T is the VM type used to build a VM set S and L refers to the resource limits constraint to configure the pods.
-                                </p>
+                                <p>The naive strategy aims to increase or decrease the application's capacity by using horizontal scaling at both virtualization levels: Containers and Virtual Machines.
+
+                                    As a drawback, the cost-efficiency of this approach highly depends on the resource limit constraints assigned to the pod and VM type defined by the system administrator at the moment of the first application deployment. It means that the system administrator requires a high expertise and knowledge about the application in order to set an optimal configuration.
                                 </p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-8">
-                        <img src="assets/img/algo_best_pair.png" width="800" height="600">
+                        <img src="assets/img/algo_naive.png" width="800" height="600">
                     </div>
                 </div>
             </div>
